@@ -24,15 +24,13 @@ public class CourseUnit {
     @Column(name = "order_index", nullable = false)
     private Integer orderIndex;
 
-    // Relatia OneToMany cu Lesson
+    // Relatia one-to-many cu Lesson
     // Cascade ALL = daca sterg unitatea, se sterg si lectiile
     @OneToMany(mappedBy = "unit", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Lesson> lessons = new ArrayList<>();
 
-    // Constructor gol (obligatoriu JPA)
     public CourseUnit() {}
 
-    // Constructor cu parametri
     public CourseUnit(String title, String description, Integer hskLevel, Integer orderIndex) {
         this.title = title;
         this.description = description;
@@ -40,7 +38,6 @@ public class CourseUnit {
         this.orderIndex = orderIndex;
     }
 
-    // GETTERS & SETTERS (Fara Lombok)
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

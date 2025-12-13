@@ -1,4 +1,4 @@
-package com.chineselearning.contentservice.dto;
+package com.chineselearning.contentservice.domain.dto;
 
 import java.util.Map;
 
@@ -8,7 +8,7 @@ public class ExerciseDto {
     private String type;
     private String prompt;
     private Integer difficulty;
-    private Map<String, Object> contentData; // Aici va sta JSON-ul cu raspunsurile
+    private Map<String, Object> contentData; // JSON-ul cu raspunsurile
 
     public ExerciseDto() {}
 
@@ -21,7 +21,6 @@ public class ExerciseDto {
         this.contentData = contentData;
     }
 
-    // Getters si Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

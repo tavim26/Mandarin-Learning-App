@@ -28,6 +28,7 @@ public class Lesson {
     @Column(name = "order_index", nullable = false)
     private Integer orderIndex;
 
+
     @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Exercise> exercises = new ArrayList<>();
 
@@ -36,7 +37,6 @@ public class Lesson {
 
     public Lesson() {}
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

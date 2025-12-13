@@ -23,17 +23,14 @@ public class LessonMaterial {
     @Column(nullable = false, length = 1000)
     private String url;
 
-    // Constructor gol
     public LessonMaterial() {}
 
-    // Constructor cu parametri
     public LessonMaterial(String title, String type, String url) {
         this.title = title;
         this.type = type;
         this.url = url;
     }
 
-    // GETTERS & SETTERS (Fara Lombok)
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

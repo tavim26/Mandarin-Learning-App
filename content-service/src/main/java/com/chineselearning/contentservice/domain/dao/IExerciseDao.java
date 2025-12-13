@@ -8,5 +8,6 @@ import java.util.List;
 
 @Repository
 public interface IExerciseDao extends JpaRepository<Exercise, Long> {
+
     List<Exercise> findByLessonId(Long lessonId);
 }

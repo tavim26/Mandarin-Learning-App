@@ -4,14 +4,16 @@ import com.chineselearning.contentservice.domain.CourseUnit;
 import com.chineselearning.contentservice.domain.Exercise;
 import com.chineselearning.contentservice.domain.Lesson;
 import com.chineselearning.contentservice.domain.LessonMaterial;
+
 import com.chineselearning.contentservice.domain.dao.ICourseUnitDao;
 import com.chineselearning.contentservice.domain.dao.IExerciseDao;
 import com.chineselearning.contentservice.domain.dao.ILessonDao;
 import com.chineselearning.contentservice.domain.dao.ILessonMaterialDao;
-import com.chineselearning.contentservice.dto.CourseUnitDto;
-import com.chineselearning.contentservice.dto.ExerciseDto;
-import com.chineselearning.contentservice.dto.LessonDto;
-import com.chineselearning.contentservice.dto.LessonMaterialDto;
+
+import com.chineselearning.contentservice.domain.dto.CourseUnitDto;
+import com.chineselearning.contentservice.domain.dto.ExerciseDto;
+import com.chineselearning.contentservice.domain.dto.LessonDto;
+import com.chineselearning.contentservice.domain.dto.LessonMaterialDto;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,7 +21,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional // Asigura ca toate operatiile sunt atomice (ori se fac toate, ori niciuna)
+@Transactional
 public class ContentService {
 
     private final ICourseUnitDao courseUnitDao;
@@ -27,7 +29,6 @@ public class ContentService {
     private final ILessonMaterialDao lessonMaterialDao;
     private final IExerciseDao exerciseDao;
 
-    // Constructor Injection (Best Practice in Spring)
     public ContentService(ICourseUnitDao courseUnitDao, ILessonDao lessonDao, ILessonMaterialDao lessonMaterialDao, IExerciseDao exerciseDao) {
         this.courseUnitDao = courseUnitDao;
         this.lessonDao = lessonDao;
@@ -35,12 +36,9 @@ public class ContentService {
         this.exerciseDao = exerciseDao;
     }
 
-    // =================================================================================
     // COURSE UNITS LOGIC
-    // =================================================================================
 
     public List<CourseUnitDto> getAllCourseUnits() {
-        // Folosim metoda custom din DAO pentru a le primi ordonate
         List<CourseUnit> units = courseUnitDao.findAllByOrderByOrderIndexAsc();
         return units.stream()
                 .map(this::mapUnitToDto)
@@ -64,6 +62,19 @@ public class ContentService {
         return mapUnitToDto(savedUnit);
     }
 
+    public CourseUnitDto updateCourseUnit(Long id, CourseUnitDto dto) {
+        CourseUnit unit = courseUnitDao.findById(id)
+                .orElseThrow(() -> new RuntimeException("CourseUnit not found with id: " + id));
+
+        unit.setTitle(dto.getTitle());
+        unit.setDescription(dto.getDescription());
+        unit.setHskLevel(dto.getHskLevel());
+        unit.setOrderIndex(dto.getOrderIndex());
+
+        CourseUnit updatedUnit = courseUnitDao.save(unit);
+        return mapUnitToDto(updatedUnit);
+    }
+
     public void deleteCourseUnit(Long id) {
         if (!courseUnitDao.existsById(id)) {
             throw new RuntimeException("Cannot delete. CourseUnit not found with id: " + id);
@@ -71,11 +82,10 @@ public class ContentService {
         courseUnitDao.deleteById(id);
     }
 
-    // =================================================================================
-    // LESSONS LOGIC
-    // =================================================================================
 
-    // Returneaza lectiile dintr-un Unit specific
+
+    // LESSONS LOGIC
+
     public List<LessonDto> getLessonsByUnitId(Long unitId) {
         return lessonDao.findByUnitIdOrderByOrderIndexAsc(unitId).stream()
                 .map(this::mapLessonToDto)
@@ -89,21 +99,40 @@ public class ContentService {
     }
 
     public LessonDto createLesson(LessonDto dto) {
-        // 1. Gasim parintele (CourseUnit)
         CourseUnit unit = courseUnitDao.findById(dto.getUnitId())
                 .orElseThrow(() -> new RuntimeException("Cannot create lesson. Unit not found: " + dto.getUnitId()));
 
-        // 2. Cream entitatea
         Lesson lesson = new Lesson();
-        lesson.setUnit(unit); // Setam relatia
+        lesson.setUnit(unit);
         lesson.setTitle(dto.getTitle());
         lesson.setDescription(dto.getDescription());
         lesson.setXpReward(dto.getXpReward());
         lesson.setOrderIndex(dto.getOrderIndex());
 
-        // 3. Salvam
         Lesson savedLesson = lessonDao.save(lesson);
         return mapLessonToDto(savedLesson);
+    }
+
+
+    public LessonDto updateLesson(Long id, LessonDto dto) {
+        Lesson lesson = lessonDao.findById(id)
+                .orElseThrow(() -> new RuntimeException("Lesson not found: " + id));
+
+
+        if (dto.getUnitId() != null && !dto.getUnitId().equals(lesson.getUnit().getId()))
+        {
+            CourseUnit newUnit = courseUnitDao.findById(dto.getUnitId())
+                    .orElseThrow(() -> new RuntimeException("Unit not found: " + dto.getUnitId()));
+            lesson.setUnit(newUnit);
+        }
+
+        lesson.setTitle(dto.getTitle());
+        lesson.setDescription(dto.getDescription());
+        lesson.setXpReward(dto.getXpReward());
+        lesson.setOrderIndex(dto.getOrderIndex());
+
+        Lesson updated = lessonDao.save(lesson);
+        return mapLessonToDto(updated);
     }
 
     public void deleteLesson(Long id) {
@@ -113,9 +142,10 @@ public class ContentService {
         lessonDao.deleteById(id);
     }
 
-    // =================================================================================
+
+
+
     // LESSON MATERIALS LOGIC
-    // =================================================================================
 
     public List<LessonMaterialDto> getMaterialsForLesson(Long lessonId) {
         return lessonMaterialDao.findByLessonId(lessonId).stream()
@@ -141,9 +171,9 @@ public class ContentService {
         lessonMaterialDao.deleteById(id);
     }
 
-    // =================================================================================
+
+
     // EXERCISES LOGIC
-    // =================================================================================
 
     public List<ExerciseDto> getExercisesForLesson(Long lessonId) {
         return exerciseDao.findByLessonId(lessonId).stream()
@@ -160,20 +190,35 @@ public class ContentService {
         exercise.setType(dto.getType());
         exercise.setPrompt(dto.getPrompt());
         exercise.setDifficulty(dto.getDifficulty());
-        // Mapam JSON-ul direct
         exercise.setContentData(dto.getContentData());
 
         Exercise saved = exerciseDao.save(exercise);
         return mapExerciseToDto(saved);
     }
 
+
+
+    public ExerciseDto updateExercise(Long id, ExerciseDto dto) {
+        Exercise exercise = exerciseDao.findById(id)
+                .orElseThrow(() -> new RuntimeException("Exercise not found: " + id));
+
+        exercise.setType(dto.getType());
+        exercise.setPrompt(dto.getPrompt());
+        exercise.setDifficulty(dto.getDifficulty());
+        exercise.setContentData(dto.getContentData());
+
+        Exercise updated = exerciseDao.save(exercise);
+        return mapExerciseToDto(updated);
+    }
+
     public void deleteExercise(Long id) {
         exerciseDao.deleteById(id);
     }
 
-    // =================================================================================
-    // HELPER MAPPERS (Manual Mapping - No Lombok/MapStruct)
-    // =================================================================================
+
+
+
+    // Metode helper
 
     private CourseUnitDto mapUnitToDto(CourseUnit unit) {
         return new CourseUnitDto(
@@ -188,7 +233,7 @@ public class ContentService {
     private LessonDto mapLessonToDto(Lesson lesson) {
         return new LessonDto(
                 lesson.getId(),
-                lesson.getUnit().getId(), // Luam doar ID-ul parintelui
+                lesson.getUnit().getId(),
                 lesson.getTitle(),
                 lesson.getDescription(),
                 lesson.getXpReward(),
@@ -213,7 +258,7 @@ public class ContentService {
                 exercise.getType(),
                 exercise.getPrompt(),
                 exercise.getDifficulty(),
-                exercise.getContentData() // JSON Map
+                exercise.getContentData()
         );
     }
 }

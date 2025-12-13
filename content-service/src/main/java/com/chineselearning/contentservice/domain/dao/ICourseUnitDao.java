@@ -8,7 +8,6 @@ import java.util.List;
 
 @Repository
 public interface ICourseUnitDao extends JpaRepository<CourseUnit, Long> {
-    // Spring Data JPA va implementa automat metoda aceasta bazata pe nume
-    // Echivalent cu: SELECT * FROM course_units ORDER BY order_index ASC
-    List<CourseUnit> findAllByOrderByOrderIndexAsc();
+
+    List<CourseUnit> findAllByOrderByOrderIndexAsc(); // echivalent cu: SELECT * FROM course_units ORDER BY order_index ASC
 }

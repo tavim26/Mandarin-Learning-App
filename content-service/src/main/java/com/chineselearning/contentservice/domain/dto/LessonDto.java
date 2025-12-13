@@ -1,8 +1,8 @@
-package com.chineselearning.contentservice.dto;
+package com.chineselearning.contentservice.domain.dto;
 
 public class LessonDto {
     private Long id;
-    private Long unitId; // Referinta doar prin ID, nu obiectul intreg
+    private Long unitId;
     private String title;
     private String description;
     private Integer xpReward;
@@ -19,7 +19,6 @@ public class LessonDto {
         this.orderIndex = orderIndex;
     }
 
-    // Getters si Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

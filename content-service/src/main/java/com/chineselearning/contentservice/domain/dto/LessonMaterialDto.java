@@ -1,4 +1,4 @@
-package com.chineselearning.contentservice.dto;
+package com.chineselearning.contentservice.domain.dto;
 
 public class LessonMaterialDto {
     private Long id;
@@ -17,7 +17,7 @@ public class LessonMaterialDto {
         this.url = url;
     }
 
-    // Getters si Setters
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

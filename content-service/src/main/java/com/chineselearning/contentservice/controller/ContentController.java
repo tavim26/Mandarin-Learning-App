@@ -1,16 +1,21 @@
 package com.chineselearning.contentservice.controller;
 
-import com.chineselearning.contentservice.dto.CourseUnitDto;
-import com.chineselearning.contentservice.dto.ExerciseDto;
-import com.chineselearning.contentservice.dto.LessonDto;
-import com.chineselearning.contentservice.dto.LessonMaterialDto;
+import com.chineselearning.contentservice.domain.dto.CourseUnitDto;
+import com.chineselearning.contentservice.domain.dto.ExerciseDto;
+import com.chineselearning.contentservice.domain.dto.LessonDto;
+import com.chineselearning.contentservice.domain.dto.LessonMaterialDto;
+
 import com.chineselearning.contentservice.service.ContentService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
+
+// http://localhost:8081/swagger-ui/index.html
 
 @RestController
 @RequestMapping("/api/content")
@@ -22,11 +27,9 @@ public class ContentController {
         this.contentService = contentService;
     }
 
-    // =================================================================================
     // 1. COURSE UNITS ENDPOINTS
-    // =================================================================================
 
-    @Tag(name = "1. Course Units", description = "Managementul modulelor principale de curs")
+    @Tag(name = "1. Course Units", description = "Managementul unitatilor de curs")
     @Operation(summary = "Obtine toate unitatile", description = "Returneaza o lista cu toate unitatile de curs ordonate dupa index.")
     @GetMapping("/units")
     public ResponseEntity<List<CourseUnitDto>> getAllUnits() {
@@ -48,16 +51,23 @@ public class ContentController {
     }
 
     @Tag(name = "1. Course Units")
-    @Operation(summary = "Sterge o unitate", description = "Sterge unitatea si toate lectiile asociate (Cascade).")
+    @Operation(summary = "Actualizeaza o unitate", description = "Modifica detaliile unei unitati existente ")
+    @PutMapping("/units/{id}")
+    public ResponseEntity<CourseUnitDto> updateUnit(@PathVariable Long id, @RequestBody CourseUnitDto dto) {
+        return ResponseEntity.ok(contentService.updateCourseUnit(id, dto));
+    }
+
+    @Tag(name = "1. Course Units")
+    @Operation(summary = "Sterge o unitate", description = "Sterge unitatea si toate lectiile asociate ")
     @DeleteMapping("/units/{id}")
     public ResponseEntity<Void> deleteUnit(@PathVariable Long id) {
         contentService.deleteCourseUnit(id);
         return ResponseEntity.noContent().build();
     }
 
-    // =================================================================================
+
+
     // 2. LESSONS ENDPOINTS
-    // =================================================================================
 
     @Tag(name = "2. Lessons", description = "Managementul lectiilor individuale")
     @Operation(summary = "Lectiile unei unitati", description = "Obtine toate lectiile care apartin de un Unit ID specific.")
@@ -74,10 +84,17 @@ public class ContentController {
     }
 
     @Tag(name = "2. Lessons")
-    @Operation(summary = "Creeaza o lectie", description = "Adauga o lectie noua intr-o unitate existenta.")
+    @Operation(summary = "Creeaza o lectie", description = "Adauga o lectie noua la o unitate existenta.")
     @PostMapping("/lessons")
     public ResponseEntity<LessonDto> createLesson(@RequestBody LessonDto dto) {
         return ResponseEntity.ok(contentService.createLesson(dto));
+    }
+
+    @Tag(name = "2. Lessons")
+    @Operation(summary = "Actualizeaza o lectie", description = "Modifica continutul unei lectii existente.")
+    @PutMapping("/lessons/{id}")
+    public ResponseEntity<LessonDto> updateLesson(@PathVariable Long id, @RequestBody LessonDto dto) {
+        return ResponseEntity.ok(contentService.updateLesson(id, dto));
     }
 
     @Tag(name = "2. Lessons")
@@ -87,11 +104,12 @@ public class ContentController {
         return ResponseEntity.noContent().build();
     }
 
-    // =================================================================================
-    // 3. MATERIALS ENDPOINTS
-    // =================================================================================
 
-    @Tag(name = "3. Materials", description = "Resurse educationale (Video, PDF, Link)")
+
+
+    // 3. MATERIALS ENDPOINTS
+
+    @Tag(name = "3. Materials", description = "Resurse educationale ")
     @Operation(summary = "Materialele unei lectii", description = "Lista de resurse pentru o lectie data.")
     @GetMapping("/lessons/{lessonId}/materials")
     public ResponseEntity<List<LessonMaterialDto>> getMaterials(@PathVariable Long lessonId) {
@@ -112,11 +130,12 @@ public class ContentController {
         return ResponseEntity.noContent().build();
     }
 
-    // =================================================================================
-    // 4. EXERCISES ENDPOINTS
-    // =================================================================================
 
-    @Tag(name = "4. Exercises", description = "Exercitii si teste grila")
+
+
+    // 4. EXERCISES ENDPOINTS
+
+    @Tag(name = "4. Exercises", description = "Exercitii")
     @Operation(summary = "Exercitiile unei lectii", description = "Returneaza lista de exercitii asociate lectiei.")
     @GetMapping("/lessons/{lessonId}/exercises")
     public ResponseEntity<List<ExerciseDto>> getExercises(@PathVariable Long lessonId) {
@@ -124,10 +143,17 @@ public class ContentController {
     }
 
     @Tag(name = "4. Exercises")
-    @Operation(summary = "Adauga exercitiu", description = "Creeaza un exercitiu nou (suporta structura JSON dinamica).")
+    @Operation(summary = "Adauga exercitiu", description = "Creeaza un exercitiu nou")
     @PostMapping("/exercises")
     public ResponseEntity<ExerciseDto> addExercise(@RequestBody ExerciseDto dto) {
         return ResponseEntity.ok(contentService.addExercise(dto));
+    }
+
+    @Tag(name = "4. Exercises")
+    @Operation(summary = "Actualizeaza exercitiu", description = "Modifica exercitiul")
+    @PutMapping("/exercises/{id}")
+    public ResponseEntity<ExerciseDto> updateExercise(@PathVariable Long id, @RequestBody ExerciseDto dto) {
+        return ResponseEntity.ok(contentService.updateExercise(id, dto));
     }
 
     @Tag(name = "4. Exercises")

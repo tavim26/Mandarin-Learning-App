@@ -1,4 +1,4 @@
-package com.chineselearning.contentservice.dto;
+package com.chineselearning.contentservice.domain.dto;
 
 public class CourseUnitDto {
     private Long id;
@@ -7,10 +7,9 @@ public class CourseUnitDto {
     private Integer hskLevel;
     private Integer orderIndex;
 
-    // Constructor gol
+
     public CourseUnitDto() {}
 
-    // Constructor complet
     public CourseUnitDto(Long id, String title, String description, Integer hskLevel, Integer orderIndex) {
         this.id = id;
         this.title = title;
@@ -19,7 +18,6 @@ public class CourseUnitDto {
         this.orderIndex = orderIndex;
     }
 
-    // Getters si Setters (Fara Lombok)
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

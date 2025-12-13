@@ -1,8 +1,8 @@
 package com.chineselearning.contentservice.domain;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.JdbcTypeCode; // Import nou
-import org.hibernate.type.SqlTypes;          // Import nou
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.Map;
 
@@ -26,16 +26,18 @@ public class Exercise {
 
     private Integer difficulty;
 
-    // --- MODIFICAREA ESTE AICI ---
-    // Folosim suportul nativ Hibernate 6 pentru JSON
-    // Aceasta functioneaza cu Jackson automat (inclus in Spring Boot)
+
+
+    // suportul nativ Hibernate 6 pentru JSON
+    // Jackson automat (inclus in Spring Boot)
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "content_data", columnDefinition = "jsonb")
     private Map<String, Object> contentData;
 
+
+
     public Exercise() {}
 
-    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
