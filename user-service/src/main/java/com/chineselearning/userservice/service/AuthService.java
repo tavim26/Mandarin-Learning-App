@@ -5,8 +5,6 @@ import com.chineselearning.userservice.domain.Student;
 import com.chineselearning.userservice.domain.Teacher;
 import com.chineselearning.userservice.domain.User;
 import com.chineselearning.userservice.domain.dao.ICredentialDao;
-import com.chineselearning.userservice.domain.dao.IStudentDao;
-import com.chineselearning.userservice.domain.dao.ITeacherDao;
 import com.chineselearning.userservice.domain.dto.AuthRequestDto;
 import com.chineselearning.userservice.domain.dto.AuthResponseDto;
 import com.chineselearning.userservice.domain.dto.RegisterRequestDto;
@@ -30,17 +28,15 @@ public class AuthService {
     private final CustomUserDetailsService userDetailsService;
     private final AuthenticationManager authenticationManager;
 
-    public AuthService(ICredentialDao credentialDao,
-                       PasswordEncoder passwordEncoder,
-                       JwtService jwtService,
-                       CustomUserDetailsService userDetailsService,
-                       AuthenticationManager authenticationManager) {
+    public AuthService(ICredentialDao credentialDao, PasswordEncoder passwordEncoder, JwtService jwtService, CustomUserDetailsService userDetailsService, AuthenticationManager authenticationManager) {
         this.credentialDao = credentialDao;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
         this.authenticationManager = authenticationManager;
     }
+
+
 
     @Transactional
     public AuthResponseDto register(RegisterRequestDto request) {
@@ -50,8 +46,10 @@ public class AuthService {
         }
 
         // 2. Validate: Check role
-        if (!request.getRole().equals("STUDENT") && !request.getRole().equals("TEACHER")) {
-            throw new IllegalArgumentException("Role must be STUDENT or TEACHER");
+        if (!request.getRole().equals("STUDENT") &&
+                !request.getRole().equals("TEACHER") &&
+                !request.getRole().equals("ADMIN")) {
+            throw new IllegalArgumentException("Role must be STUDENT, TEACHER or ADMIN");
         }
 
         // 3. Create Credential entity
@@ -67,21 +65,22 @@ public class AuthService {
         user.setCredential(credential);
         credential.setUser(user);
 
-        // 5. Create Student or Teacher entity
+        // 5. Create Student or Teacher entity (ONLY if not ADMIN)
         if (request.getRole().equals("STUDENT")) {
             Student student = new Student();
             student.setXpTotal(0);
             student.setLevel(1);
             student.setUser(user);
             user.setStudent(student);
-        } else {
+        } else if (request.getRole().equals("TEACHER")) {
             Teacher teacher = new Teacher();
             teacher.setTitle(""); // Empty by default
             teacher.setUser(user);
             user.setTeacher(teacher);
         }
+        // ADMIN role: No additional entity created (only Credential + User)
 
-        // 6. Save (cascade will save User and Student/Teacher)
+        // 6. Save (cascade will save User and Student/Teacher if present)
         Credential savedCredential = credentialDao.save(credential);
 
         // 7. Generate JWT token

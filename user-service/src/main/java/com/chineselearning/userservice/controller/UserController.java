@@ -1,15 +1,20 @@
 package com.chineselearning.userservice.controller;
 
+import com.chineselearning.userservice.domain.dto.RegisterRequestDto;
 import com.chineselearning.userservice.domain.dto.StudentDto;
 import com.chineselearning.userservice.domain.dto.TeacherDto;
 import com.chineselearning.userservice.domain.dto.UserDto;
 import com.chineselearning.userservice.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
+
+// http://localhost:8082/swagger-ui/index.html
 
 @RestController
 @RequestMapping("/api/users")
@@ -23,6 +28,18 @@ public class UserController {
     }
 
     // ========== USER ENDPOINTS ==========
+
+
+    @PostMapping
+    @Operation(summary = "Create new user", description = "Creates a new user with role STUDENT or TEACHER (admin only)")
+    public ResponseEntity<?> createUser(@RequestBody RegisterRequestDto request) {
+        try {
+            UserDto created = userService.createUser(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 
     @GetMapping
     @Operation(summary = "Get all users", description = "Returns list of all users in the system")
