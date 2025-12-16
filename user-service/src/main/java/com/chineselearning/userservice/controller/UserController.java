@@ -1,0 +1,136 @@
+package com.chineselearning.userservice.controller;
+
+import com.chineselearning.userservice.domain.dto.StudentDto;
+import com.chineselearning.userservice.domain.dto.TeacherDto;
+import com.chineselearning.userservice.domain.dto.UserDto;
+import com.chineselearning.userservice.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/users")
+@Tag(name = "User Management", description = "Endpoints for managing users, students and teachers")
+public class UserController {
+
+    private final UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    // ========== USER ENDPOINTS ==========
+
+    @GetMapping
+    @Operation(summary = "Get all users", description = "Returns list of all users in the system")
+    public ResponseEntity<List<UserDto>> getAllUsers() {
+        return ResponseEntity.ok(userService.getAllUsers());
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Get user by ID", description = "Returns basic user information")
+    public ResponseEntity<?> getUserById(@PathVariable Long id) {
+        try {
+            UserDto user = userService.getUserById(id);
+            return ResponseEntity.ok(user);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/search")
+    @Operation(summary = "Search users by name", description = "Returns users whose full name contains the search fragment")
+    public ResponseEntity<List<UserDto>> searchUsers(@RequestParam String name) {
+        return ResponseEntity.ok(userService.searchUsersByName(name));
+    }
+
+    @PutMapping("/{id}/name")
+    @Operation(summary = "Update user name", description = "Updates the full name of a user")
+    public ResponseEntity<?> updateUserName(@PathVariable Long id, @RequestParam String newName) {
+        try {
+            UserDto updated = userService.updateUserName(id, newName);
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete user", description = "Deletes a user and all associated data (cascade)")
+    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+        try {
+            userService.deleteUser(id);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    // ========== STUDENT ENDPOINTS ==========
+
+    @GetMapping("/students/{userId}")
+    @Operation(summary = "Get student details", description = "Returns student-specific information (XP, level)")
+    public ResponseEntity<?> getStudent(@PathVariable Long userId) {
+        try {
+            StudentDto student = userService.getStudentById(userId);
+            return ResponseEntity.ok(student);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PutMapping("/students/{userId}/xp")
+    @Operation(summary = "Add XP to student", description = "Adds XP points and automatically recalculates level")
+    public ResponseEntity<?> addStudentXp(@PathVariable Long userId, @RequestParam int xpToAdd) {
+        try {
+            StudentDto updated = userService.updateStudentXp(userId, xpToAdd);
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PutMapping("/students/{userId}/level")
+    @Operation(summary = "Update student level", description = "Manually sets student level (admin only)")
+    public ResponseEntity<?> updateStudentLevel(@PathVariable Long userId, @RequestParam int newLevel) {
+        try {
+            StudentDto updated = userService.updateStudentLevel(userId, newLevel);
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/students/leaderboard")
+    @Operation(summary = "Get top students", description = "Returns top 10 students ordered by total XP")
+    public ResponseEntity<List<StudentDto>> getLeaderboard() {
+        return ResponseEntity.ok(userService.getTopStudentsByXp());
+    }
+
+    // ========== TEACHER ENDPOINTS ==========
+
+    @GetMapping("/teachers/{userId}")
+    @Operation(summary = "Get teacher details", description = "Returns teacher-specific information")
+    public ResponseEntity<?> getTeacher(@PathVariable Long userId) {
+        try {
+            TeacherDto teacher = userService.getTeacherById(userId);
+            return ResponseEntity.ok(teacher);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PutMapping("/teachers/{userId}/title")
+    @Operation(summary = "Update teacher title", description = "Updates teacher's academic or professional title")
+    public ResponseEntity<?> updateTeacherTitle(@PathVariable Long userId, @RequestParam String newTitle) {
+        try {
+            TeacherDto updated = userService.updateTeacherTitle(userId, newTitle);
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+}
