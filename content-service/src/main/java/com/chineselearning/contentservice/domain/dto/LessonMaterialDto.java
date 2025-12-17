@@ -1,6 +1,7 @@
 package com.chineselearning.contentservice.domain.dto;
 
 public class LessonMaterialDto {
+
     private Long id;
     private Long lessonId;
     private String title;

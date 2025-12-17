@@ -18,7 +18,7 @@ public class LessonMaterial {
     private String title;
 
     @Column(nullable = false)
-    private String type; // ex: VIDEO, PDF, LINK
+    private String type;
 
     @Column(nullable = false, length = 1000)
     private String url;

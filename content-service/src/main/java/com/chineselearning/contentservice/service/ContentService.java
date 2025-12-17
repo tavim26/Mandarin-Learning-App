@@ -36,22 +36,25 @@ public class ContentService {
         this.exerciseDao = exerciseDao;
     }
 
-    // COURSE UNITS LOGIC
+    // COURSE UNITS
 
-    public List<CourseUnitDto> getAllCourseUnits() {
+    public List<CourseUnitDto> getAllCourseUnits()
+    {
         List<CourseUnit> units = courseUnitDao.findAllByOrderByOrderIndexAsc();
         return units.stream()
                 .map(this::mapUnitToDto)
                 .collect(Collectors.toList());
     }
 
-    public CourseUnitDto getCourseUnit(Long id) {
+    public CourseUnitDto getCourseUnit(Long id)
+    {
         CourseUnit unit = courseUnitDao.findById(id)
                 .orElseThrow(() -> new RuntimeException("CourseUnit not found with id: " + id));
         return mapUnitToDto(unit);
     }
 
-    public CourseUnitDto createCourseUnit(CourseUnitDto dto) {
+    public CourseUnitDto createCourseUnit(CourseUnitDto dto)
+    {
         CourseUnit unit = new CourseUnit();
         unit.setTitle(dto.getTitle());
         unit.setDescription(dto.getDescription());
@@ -62,7 +65,8 @@ public class ContentService {
         return mapUnitToDto(savedUnit);
     }
 
-    public CourseUnitDto updateCourseUnit(Long id, CourseUnitDto dto) {
+    public CourseUnitDto updateCourseUnit(Long id, CourseUnitDto dto)
+    {
         CourseUnit unit = courseUnitDao.findById(id)
                 .orElseThrow(() -> new RuntimeException("CourseUnit not found with id: " + id));
 
@@ -75,8 +79,10 @@ public class ContentService {
         return mapUnitToDto(updatedUnit);
     }
 
-    public void deleteCourseUnit(Long id) {
-        if (!courseUnitDao.existsById(id)) {
+    public void deleteCourseUnit(Long id)
+    {
+        if (!courseUnitDao.existsById(id))
+        {
             throw new RuntimeException("Cannot delete. CourseUnit not found with id: " + id);
         }
         courseUnitDao.deleteById(id);
@@ -84,21 +90,25 @@ public class ContentService {
 
 
 
+
     // LESSONS LOGIC
 
-    public List<LessonDto> getLessonsByUnitId(Long unitId) {
+    public List<LessonDto> getLessonsByUnitId(Long unitId)
+    {
         return lessonDao.findByUnitIdOrderByOrderIndexAsc(unitId).stream()
                 .map(this::mapLessonToDto)
                 .collect(Collectors.toList());
     }
 
-    public LessonDto getLesson(Long id) {
+    public LessonDto getLesson(Long id)
+    {
         Lesson lesson = lessonDao.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lesson not found with id: " + id));
         return mapLessonToDto(lesson);
     }
 
-    public LessonDto createLesson(LessonDto dto) {
+    public LessonDto createLesson(LessonDto dto)
+    {
         CourseUnit unit = courseUnitDao.findById(dto.getUnitId())
                 .orElseThrow(() -> new RuntimeException("Cannot create lesson. Unit not found: " + dto.getUnitId()));
 
@@ -114,7 +124,8 @@ public class ContentService {
     }
 
 
-    public LessonDto updateLesson(Long id, LessonDto dto) {
+    public LessonDto updateLesson(Long id, LessonDto dto)
+    {
         Lesson lesson = lessonDao.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lesson not found: " + id));
 
@@ -135,8 +146,10 @@ public class ContentService {
         return mapLessonToDto(updated);
     }
 
-    public void deleteLesson(Long id) {
-        if (!lessonDao.existsById(id)) {
+    public void deleteLesson(Long id)
+    {
+        if (!lessonDao.existsById(id))
+        {
             throw new RuntimeException("Lesson not found: " + id);
         }
         lessonDao.deleteById(id);
@@ -147,13 +160,15 @@ public class ContentService {
 
     // LESSON MATERIALS LOGIC
 
-    public List<LessonMaterialDto> getMaterialsForLesson(Long lessonId) {
+    public List<LessonMaterialDto> getMaterialsForLesson(Long lessonId)
+    {
         return lessonMaterialDao.findByLessonId(lessonId).stream()
                 .map(this::mapMaterialToDto)
                 .collect(Collectors.toList());
     }
 
-    public LessonMaterialDto addLessonMaterial(LessonMaterialDto dto) {
+    public LessonMaterialDto addLessonMaterial(LessonMaterialDto dto)
+    {
         Lesson lesson = lessonDao.findById(dto.getLessonId())
                 .orElseThrow(() -> new RuntimeException("Lesson not found: " + dto.getLessonId()));
 
@@ -167,7 +182,8 @@ public class ContentService {
         return mapMaterialToDto(saved);
     }
 
-    public void deleteLessonMaterial(Long id) {
+    public void deleteLessonMaterial(Long id)
+    {
         lessonMaterialDao.deleteById(id);
     }
 
@@ -175,13 +191,15 @@ public class ContentService {
 
     // EXERCISES LOGIC
 
-    public List<ExerciseDto> getExercisesForLesson(Long lessonId) {
+    public List<ExerciseDto> getExercisesForLesson(Long lessonId)
+    {
         return exerciseDao.findByLessonId(lessonId).stream()
                 .map(this::mapExerciseToDto)
                 .collect(Collectors.toList());
     }
 
-    public ExerciseDto addExercise(ExerciseDto dto) {
+    public ExerciseDto addExercise(ExerciseDto dto)
+    {
         Lesson lesson = lessonDao.findById(dto.getLessonId())
                 .orElseThrow(() -> new RuntimeException("Lesson not found: " + dto.getLessonId()));
 
@@ -198,7 +216,8 @@ public class ContentService {
 
 
 
-    public ExerciseDto updateExercise(Long id, ExerciseDto dto) {
+    public ExerciseDto updateExercise(Long id, ExerciseDto dto)
+    {
         Exercise exercise = exerciseDao.findById(id)
                 .orElseThrow(() -> new RuntimeException("Exercise not found: " + id));
 
@@ -211,7 +230,8 @@ public class ContentService {
         return mapExerciseToDto(updated);
     }
 
-    public void deleteExercise(Long id) {
+    public void deleteExercise(Long id)
+    {
         exerciseDao.deleteById(id);
     }
 

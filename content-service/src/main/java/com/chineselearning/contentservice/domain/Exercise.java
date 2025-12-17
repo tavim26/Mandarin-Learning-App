@@ -27,13 +27,10 @@ public class Exercise {
     private Integer difficulty;
 
 
-
-    // suportul nativ Hibernate 6 pentru JSON
-    // Jackson automat (inclus in Spring Boot)
+    // suportul nativ Hibernate 6 pentru JSON; Jackson automat
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "content_data", columnDefinition = "jsonb")
     private Map<String, Object> contentData;
-
 
 
     public Exercise() {}

@@ -3,6 +3,7 @@ package com.chineselearning.contentservice.domain.dto;
 import java.util.Map;
 
 public class ExerciseDto {
+
     private Long id;
     private Long lessonId;
     private String type;

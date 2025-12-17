@@ -25,7 +25,7 @@ public class CourseUnit {
     private Integer orderIndex;
 
     // Relatia one-to-many cu Lesson
-    // Cascade ALL = daca sterg unitatea, se sterg si lectiile
+    // Cascade all
     @OneToMany(mappedBy = "unit", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Lesson> lessons = new ArrayList<>();
 
