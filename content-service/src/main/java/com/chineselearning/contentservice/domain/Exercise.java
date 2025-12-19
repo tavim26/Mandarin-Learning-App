@@ -28,6 +28,9 @@ public class Exercise {
 
 
     // suportul nativ Hibernate 6 pentru JSON; Jackson automat
+
+    // Key = String (nume camp JSON)
+    // Value = Object
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "content_data", columnDefinition = "jsonb")
     private Map<String, Object> contentData;
