@@ -28,10 +28,11 @@ public class Lesson {
     @Column(name = "order_index", nullable = false)
     private Integer orderIndex;
 
-
+    //exercitiile unei lectii
     @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Exercise> exercises = new ArrayList<>();
 
+    //materialele aferente
     @OneToMany(mappedBy = "lesson", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LessonMaterial> materials = new ArrayList<>();
 

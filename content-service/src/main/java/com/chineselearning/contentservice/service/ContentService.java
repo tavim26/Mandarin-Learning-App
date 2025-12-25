@@ -238,7 +238,7 @@ public class ContentService {
 
 
 
-    // Metode helper
+    // Helpers
 
     private CourseUnitDto mapUnitToDto(CourseUnit unit) {
         return new CourseUnitDto(

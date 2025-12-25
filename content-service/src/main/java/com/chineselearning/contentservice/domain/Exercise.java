@@ -27,10 +27,11 @@ public class Exercise {
     private Integer difficulty;
 
 
-    // suportul nativ Hibernate 6 pentru JSON; Jackson automat
-
     // Key = String (nume camp JSON)
     // Value = Object
+    // in acest camp stochez structura raspunsului corect al exercitiului
+    // jsonb imi permite sa retin raspunsuri variate, in functie de tipul (type) de exercitiu
+    // am atasat in arhiva un fisier "structura_exercitiu.txt" cu astfel de exemple
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "content_data", columnDefinition = "jsonb")
     private Map<String, Object> contentData;
