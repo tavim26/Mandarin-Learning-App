@@ -100,11 +100,21 @@ public class ContentService {
                 .collect(Collectors.toList());
     }
 
-    public LessonDto getLesson(Long id)
-    {
+    public LessonDto getLesson(Long id) {
         Lesson lesson = lessonDao.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lesson not found with id: " + id));
-        return mapLessonToDto(lesson);
+
+        // Map lesson to DTO
+        LessonDto dto = mapLessonToDto(lesson);
+
+        // CRITICAL: Load and attach exercises
+        List<ExerciseDto> exerciseDtos = lesson.getExercises().stream()
+                .map(this::mapExerciseToDto)
+                .collect(Collectors.toList());
+
+        dto.setExercises(exerciseDtos);
+
+        return dto;
     }
 
     public LessonDto createLesson(LessonDto dto)
@@ -190,6 +200,15 @@ public class ContentService {
 
 
     // EXERCISES LOGIC
+
+
+    // In ContentService class
+
+    public ExerciseDto getExercise(Long id) {
+        Exercise exercise = exerciseDao.findById(id)
+                .orElseThrow(() -> new RuntimeException("Exercise not found with id: " + id));
+        return mapExerciseToDto(exercise);
+    }
 
     public List<ExerciseDto> getExercisesForLesson(Long lessonId)
     {

@@ -1,0 +1,176 @@
+version: '3.8'
+
+services:
+  # ========== DATABASES ==========
+  
+  user-database:
+    image: postgres:16-alpine
+    container_name: user-database
+    environment:
+      POSTGRES_DB: user_database
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: kuso
+    ports:
+      - "5433:5432"
+    volumes:
+      - user-db-data:/var/lib/postgresql/data
+    networks:
+      - chinese-learning-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  content-database:
+    image: postgres:16-alpine
+    container_name: content-database
+    environment:
+      POSTGRES_DB: content_database
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: kuso
+    ports:
+      - "5434:5432"
+    volumes:
+      - content-db-data:/var/lib/postgresql/data
+    networks:
+      - chinese-learning-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  progress-database:
+    image: postgres:16-alpine
+    container_name: progress-database
+    environment:
+      POSTGRES_DB: progress_database
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: kuso
+    ports:
+      - "5435:5432"
+    volumes:
+      - progress-db-data:/var/lib/postgresql/data
+    networks:
+      - chinese-learning-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ========== MESSAGE BROKER ==========
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - chinese-learning-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ========== MICROSERVICES ==========
+
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    container_name: user-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://user-database:5432/user_database
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: kuso
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "true"
+    depends_on:
+      user-database:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - chinese-learning-network
+    restart: on-failure
+
+  content-service:
+    build:
+      context: ./content-service
+      dockerfile: Dockerfile
+    container_name: content-service
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://content-database:5432/content_database
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: kuso
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "true"
+    depends_on:
+      content-database:
+        condition: service_healthy
+    networks:
+      - chinese-learning-network
+    restart: on-failure
+
+  progress-service:
+    build:
+      context: ./progress-service
+      dockerfile: Dockerfile
+    container_name: progress-service
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://progress-database:5432/progress_database
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: kuso
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+      CONTENT_SERVICE_URL: http://content-service:8081
+      USER_SERVICE_URL: http://user-service:8082
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "true"
+    depends_on:
+      progress-database:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      content-service:
+        condition: service_started
+    networks:
+      - chinese-learning-network
+    restart: on-failure
+
+# ========== NETWORKS ==========
+
+networks:
+  chinese-learning-network:
+    driver: bridge
+
+# ========== VOLUMES ==========
+
+volumes:
+  user-db-data:
+  content-db-data:
+  progress-db-data:
+  rabbitmq-data:

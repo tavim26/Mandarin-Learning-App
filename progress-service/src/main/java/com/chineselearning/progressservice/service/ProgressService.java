@@ -192,7 +192,7 @@ public class ProgressService {
                 .map(ex -> ((Number) ex.get("id")).longValue())
                 .collect(Collectors.toList());
 
-        // Count how many exercises have correct attempts
+        // Count completed exercises
         long completedCount = exerciseAttemptDao.countDistinctCorrectExercises(studentId, exerciseIds);
         BigDecimal completionPct = BigDecimal.valueOf((completedCount * 100.0) / exercises.size())
                 .setScale(2, BigDecimal.ROUND_HALF_UP);
@@ -201,34 +201,54 @@ public class ProgressService {
         StudentLessonProgress progress = lessonProgressDao.findByStudentIdAndLessonId(studentId, lessonId)
                 .orElse(new StudentLessonProgress(studentId, lessonId));
 
-        // Update fields
+        // Set started_at if first time
         if (progress.getStartedAt() == null) {
             progress.setStartedAt(LocalDateTime.now());
-            progress.setStatus("IN_PROGRESS");
         }
+
+        // Update completion percentage
         progress.setCompletionPct(completionPct);
         progress.setLastAccessedAt(LocalDateTime.now());
 
-        // Check if lesson just completed
-        if (completionPct.compareTo(new BigDecimal("100")) == 0
-                && !"COMPLETED".equals(progress.getStatus())) {
+        // ========== FIX: CORRECT STATUS LOGIC ==========
 
-            progress.setStatus("COMPLETED");
-            progress.setCompletedAt(LocalDateTime.now());
+        if (completionPct.compareTo(new BigDecimal("100")) == 0) {
+            // Lesson is 100% complete
 
-            // Award XP
-            int xpReward = ((Number) lesson.get("xpReward")).intValue();
-            progress.setXpAwarded(xpReward);
+            if (!"COMPLETED".equals(progress.getStatus())) {
+                // Just became completed
+                progress.setStatus("COMPLETED");
+                progress.setCompletedAt(LocalDateTime.now());
 
-            // Call User Service to update student XP
-            try {
-                userServiceClient.addStudentXp(studentId, xpReward);
-                log.info("Awarded {} XP to student {} for completing lesson {}",
-                        xpReward, studentId, lessonId);
-            } catch (Exception e) {
-                log.error("Failed to award XP to student {}: {}", studentId, e.getMessage(), e);
-                // Continue anyway - XP is saved in progress table for audit
+                // Award XP DOAR daca nu a fost awarded deja (prevent duplicate)
+                if (progress.getXpAwarded() == null || progress.getXpAwarded() == 0) {
+                    int xpReward = ((Number) lesson.get("xpReward")).intValue();
+                    progress.setXpAwarded(xpReward);
+
+                    try {
+                        userServiceClient.addStudentXp(studentId, xpReward);
+                        log.info("Awarded {} XP to student {} for completing lesson {}",
+                                xpReward, studentId, lessonId);
+                    } catch (Exception e) {
+                        log.error("Failed to award XP to student {}: {}", studentId, e.getMessage(), e);
+                    }
+                } else {
+                    log.info("XP already awarded for lesson {}, skipping duplicate award", lessonId);
+                }
             }
+
+        } else if (completionPct.compareTo(BigDecimal.ZERO) > 0) {
+            // Lesson is partially complete (0% < completion < 100%)
+
+            if (!"IN_PROGRESS".equals(progress.getStatus())) {
+                progress.setStatus("IN_PROGRESS");
+                progress.setCompletedAt(null); // Clear completed timestamp
+            }
+
+        } else {
+            // Lesson not started (0% completion)
+            progress.setStatus("NOT_STARTED");
+            progress.setCompletedAt(null);
         }
 
         lessonProgressDao.save(progress);
@@ -268,6 +288,16 @@ public class ProgressService {
         String correctOption = (String) contentData.get("correctOption");
         String selectedOption = (String) submitted.get("selectedOption");
 
+
+        // ADD THESE 2 CHECKS:
+        if (correctOption == null) {
+            return new EvaluationResult(BigDecimal.ZERO, "Invalid exercise configuration");
+        }
+
+        if (selectedOption == null) {
+            return new EvaluationResult(BigDecimal.ZERO, "No option selected");
+        }
+
         if (correctOption.equals(selectedOption)) {
             return new EvaluationResult(new BigDecimal("100"), "Correct!");
         } else {
@@ -280,6 +310,15 @@ public class ProgressService {
         String correctTranslation = (String) contentData.get("correctTranslation");
         List<String> alternatives = (List<String>) contentData.get("alternativeTranslations");
         String userTranslation = (String) submitted.get("translation");
+
+
+        if (correctTranslation == null) {
+            return new EvaluationResult(BigDecimal.ZERO, "Invalid exercise configuration");
+        }
+
+        if (userTranslation == null || userTranslation.trim().isEmpty()) {
+            return new EvaluationResult(BigDecimal.ZERO, "No translation provided");
+        }
 
         // Exact match
         if (correctTranslation.equals(userTranslation)) {
@@ -296,6 +335,8 @@ public class ProgressService {
             return new EvaluationResult(new BigDecimal("50"),
                     "Partially correct. Expected: " + correctTranslation);
         }
+
+
 
         return new EvaluationResult(BigDecimal.ZERO,
                 "Incorrect. Correct translation: " + correctTranslation);

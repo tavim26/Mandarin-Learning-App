@@ -149,6 +149,16 @@ public class ContentController {
 
     // 4. EXERCISES ENDPOINTS
 
+    @GetMapping("/exercises/{id}")
+    public ResponseEntity<ExerciseDto> getExercise(@PathVariable Long id) {
+        try {
+            ExerciseDto exercise = contentService.getExercise(id);
+            return ResponseEntity.ok(exercise);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @Tag(name = "4. Exercises", description = "Exercitii")
     @Operation(summary = "Exercitiile unei lectii", description = "Returneaza lista de exercitii asociate lectiei.")
     @GetMapping("/lessons/{lessonId}/exercises")

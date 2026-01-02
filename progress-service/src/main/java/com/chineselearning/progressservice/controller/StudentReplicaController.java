@@ -21,16 +21,14 @@ public class StudentReplicaController {
     }
 
     @GetMapping
-    @Operation(summary = "Obtine toate replicile studenti",
-            description = "Returneaza toti studentii sincronizati (doar admin)")
+    @Operation(summary = "Obtine toate replicile studenti", description = "Returneaza toti studentii sincronizati (doar admin)")
     public ResponseEntity<List<StudentReplicaDto>> getAllStudents() {
         List<StudentReplicaDto> students = studentReplicaService.getAllStudents();
         return ResponseEntity.ok(students);
     }
 
     @GetMapping("/{studentId}")
-    @Operation(summary = "Obtine replica student dupa ID",
-            description = "Returneaza datele sincronizate pentru un student specific")
+    @Operation(summary = "Obtine replica student dupa ID", description = "Returneaza datele sincronizate pentru un student specific")
     public ResponseEntity<StudentReplicaDto> getStudentById(@PathVariable Long studentId) {
         return studentReplicaService.getStudentById(studentId)
                 .map(ResponseEntity::ok)
@@ -38,8 +36,7 @@ public class StudentReplicaController {
     }
 
     @GetMapping("/{studentId}/exists")
-    @Operation(summary = "Verifica existenta student",
-            description = "Verifica daca un student a fost sincronizat in Progress Service")
+    @Operation(summary = "Verifica existenta student", description = "Verifica daca un student a fost sincronizat in Progress Service")
     public ResponseEntity<Boolean> studentExists(@PathVariable Long studentId) {
         boolean exists = studentReplicaService.studentExists(studentId);
         return ResponseEntity.ok(exists);

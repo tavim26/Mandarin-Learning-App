@@ -9,7 +9,7 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Map;
 
 /**
- * REST client for communicating with Content Service.
+ * REST client pentru a comunica cu Content Service.
  * Fetches exercise and lesson data for validation and evaluation.
  */
 @Service
@@ -22,25 +22,22 @@ public class ContentServiceClient {
 
     private final RestTemplate restTemplate;
 
-    public ContentServiceClient() {
+    public ContentServiceClient()
+    {
         this.restTemplate = new RestTemplate();
     }
 
-    /**
-     * Fetch exercise by ID from Content Service.
-     *
-     * @param exerciseId Exercise ID
-     * @return Exercise data as Map
-     * @throws IllegalArgumentException if exercise not found
-     */
-    public Map<String, Object> getExercise(Long exerciseId) {
+
+    public Map<String, Object> getExercise(Long exerciseId)
+    {
         String url = contentServiceUrl + "/api/content/exercises/" + exerciseId;
 
         try {
             log.debug("Fetching exercise from Content Service: {}", url);
             Map<String, Object> exercise = restTemplate.getForObject(url, Map.class);
 
-            if (exercise == null) {
+            if (exercise == null)
+            {
                 throw new IllegalArgumentException("Exercise not found: " + exerciseId);
             }
 
@@ -51,21 +48,17 @@ public class ContentServiceClient {
         }
     }
 
-    /**
-     * Fetch lesson by ID from Content Service.
-     *
-     * @param lessonId Lesson ID
-     * @return Lesson data including exercises list
-     * @throws IllegalArgumentException if lesson not found
-     */
-    public Map<String, Object> getLesson(Long lessonId) {
+
+    public Map<String, Object> getLesson(Long lessonId)
+    {
         String url = contentServiceUrl + "/api/content/lessons/" + lessonId;
 
         try {
             log.debug("Fetching lesson from Content Service: {}", url);
             Map<String, Object> lesson = restTemplate.getForObject(url, Map.class);
 
-            if (lesson == null) {
+            if (lesson == null)
+            {
                 throw new IllegalArgumentException("Lesson not found: " + lessonId);
             }
 

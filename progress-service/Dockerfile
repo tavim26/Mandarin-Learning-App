@@ -2,7 +2,7 @@ FROM amazoncorretto:21-alpine AS build
 
 WORKDIR /app
 
-# Copiere pom.xml si download dependencies (cache layer)
+# Copiere pom.xml si download dependencies
 COPY pom.xml .
 COPY mvnw .
 COPY .mvn .mvn
@@ -17,11 +17,8 @@ FROM amazoncorretto:21-alpine
 
 WORKDIR /app
 
-# Copiere JAR din build stage
 COPY --from=build /app/target/*.jar app.jar
 
-# Expune portul
-EXPOSE 8082
+EXPOSE 8083
 
-# Run application
 ENTRYPOINT ["java", "-jar", "app.jar"]
