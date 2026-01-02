@@ -12,6 +12,9 @@ import com.chineselearning.userservice.domain.dto.RegisterRequestDto;
 import com.chineselearning.userservice.domain.dto.StudentDto;
 import com.chineselearning.userservice.domain.dto.TeacherDto;
 import com.chineselearning.userservice.domain.dto.UserDto;
+import com.chineselearning.userservice.events.StudentCreatedEvent;
+import com.chineselearning.userservice.events.StudentDeletedEvent;
+import com.chineselearning.userservice.events.StudentUpdatedEvent;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,18 +30,24 @@ public class UserService {
     private final IStudentDao studentDao;
     private final ITeacherDao teacherDao;
     private final ICredentialDao credentialDao;
-
     private final PasswordEncoder passwordEncoder;
+    private final StudentEventPublisher studentEventPublisher;
 
-    public UserService(IUserDao userDao, IStudentDao studentDao, ITeacherDao teacherDao,  ICredentialDao credentialDao,  PasswordEncoder passwordEncoder) {
+    public UserService(
+            IUserDao userDao,
+            IStudentDao studentDao,
+            ITeacherDao teacherDao,
+            ICredentialDao credentialDao,
+            PasswordEncoder passwordEncoder,
+            StudentEventPublisher studentEventPublisher
+    ) {
         this.userDao = userDao;
         this.studentDao = studentDao;
         this.teacherDao = teacherDao;
         this.credentialDao = credentialDao;
         this.passwordEncoder = passwordEncoder;
+        this.studentEventPublisher = studentEventPublisher;
     }
-
-
 
     // ========== USER OPERATIONS ==========
 
@@ -84,7 +93,17 @@ public class UserService {
         // 6. Save (cascade will save User and Student/Teacher)
         Credential savedCredential = credentialDao.save(credential);
 
-        // 7. Return UserDto
+        // 7. Publish StudentCreatedEvent if role is STUDENT
+        if (request.getRole().equals("STUDENT")) {
+            StudentCreatedEvent event = new StudentCreatedEvent(
+                    savedCredential.getId(),
+                    savedCredential.getUser().getFullName(),
+                    savedCredential.getEmail()
+            );
+            studentEventPublisher.publishStudentCreated(event);
+        }
+
+        // 8. Return UserDto
         return mapToUserDto(savedCredential.getUser());
     }
 
@@ -110,8 +129,23 @@ public class UserService {
     public UserDto updateUserName(Long id, String newName) {
         User user = userDao.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
+
         user.setFullName(newName);
         User updated = userDao.save(user);
+
+        // Publish StudentUpdatedEvent if this user is a student
+        if (studentDao.existsById(id)) {
+            Credential credential = credentialDao.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Credential not found for id: " + id));
+
+            StudentUpdatedEvent event = new StudentUpdatedEvent(
+                    id,
+                    newName,
+                    credential.getEmail()
+            );
+            studentEventPublisher.publishStudentUpdated(event);
+        }
+
         return mapToUserDto(updated);
     }
 
@@ -120,6 +154,14 @@ public class UserService {
         if (!userDao.existsById(id)) {
             throw new IllegalArgumentException("User not found with id: " + id);
         }
+
+        // Publish StudentDeletedEvent BEFORE deletion if this user is a student
+        if (studentDao.existsById(id)) {
+            StudentDeletedEvent event = new StudentDeletedEvent(id);
+            studentEventPublisher.publishStudentDeleted(event);
+        }
+
+        // Delete user (cascade will delete Credential and Student/Teacher)
         userDao.deleteById(id);
     }
 

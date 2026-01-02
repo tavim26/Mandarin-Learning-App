@@ -8,6 +8,7 @@ import com.chineselearning.userservice.domain.dao.ICredentialDao;
 import com.chineselearning.userservice.domain.dto.AuthRequestDto;
 import com.chineselearning.userservice.domain.dto.AuthResponseDto;
 import com.chineselearning.userservice.domain.dto.RegisterRequestDto;
+import com.chineselearning.userservice.events.StudentCreatedEvent;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -27,16 +28,23 @@ public class AuthService {
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
     private final AuthenticationManager authenticationManager;
+    private final StudentEventPublisher studentEventPublisher;
 
-    public AuthService(ICredentialDao credentialDao, PasswordEncoder passwordEncoder, JwtService jwtService, CustomUserDetailsService userDetailsService, AuthenticationManager authenticationManager) {
+    public AuthService(
+            ICredentialDao credentialDao,
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService,
+            CustomUserDetailsService userDetailsService,
+            AuthenticationManager authenticationManager,
+            StudentEventPublisher studentEventPublisher
+    ) {
         this.credentialDao = credentialDao;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
         this.authenticationManager = authenticationManager;
+        this.studentEventPublisher = studentEventPublisher;
     }
-
-
 
     @Transactional
     public AuthResponseDto register(RegisterRequestDto request) {
@@ -83,14 +91,24 @@ public class AuthService {
         // 6. Save (cascade will save User and Student/Teacher if present)
         Credential savedCredential = credentialDao.save(credential);
 
-        // 7. Generate JWT token
+        // 7. Publish StudentCreatedEvent if role is STUDENT
+        if (request.getRole().equals("STUDENT")) {
+            StudentCreatedEvent event = new StudentCreatedEvent(
+                    savedCredential.getId(),  // studentId = userId (same via @MapsId)
+                    savedCredential.getUser().getFullName(),
+                    savedCredential.getEmail()
+            );
+            studentEventPublisher.publishStudentCreated(event);
+        }
+
+        // 8. Generate JWT token
         UserDetails userDetails = userDetailsService.loadUserByUsername(savedCredential.getEmail());
         Map<String, Object> extraClaims = new HashMap<>();
         extraClaims.put("userId", savedCredential.getId());
         extraClaims.put("role", savedCredential.getRole());
         String token = jwtService.generateToken(extraClaims, userDetails);
 
-        // 8. Return response
+        // 9. Return response
         return new AuthResponseDto(
                 token,
                 savedCredential.getId(),

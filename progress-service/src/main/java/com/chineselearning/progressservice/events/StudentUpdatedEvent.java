@@ -1,0 +1,59 @@
+package com.chineselearning.progressservice.events;
+
+import java.io.Serializable;
+
+/**
+ * Event DTO received when Student profile is updated in User Service.
+ * Progress Service consumes this event to update the local replica.
+ */
+public class StudentUpdatedEvent implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    private Long studentId;
+    private String fullName;
+    private String email;
+
+    // No-args constructor for Jackson
+    public StudentUpdatedEvent() {
+    }
+
+    public StudentUpdatedEvent(Long studentId, String fullName, String email) {
+        this.studentId = studentId;
+        this.fullName = fullName;
+        this.email = email;
+    }
+
+    public Long getStudentId() {
+        return studentId;
+    }
+
+    public void setStudentId(Long studentId) {
+        this.studentId = studentId;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    @Override
+    public String toString() {
+        return "StudentUpdatedEvent{" +
+                "studentId=" + studentId +
+                ", fullName='" + fullName + '\'' +
+                ", email='" + email + '\'' +
+                '}';
+    }
+}
