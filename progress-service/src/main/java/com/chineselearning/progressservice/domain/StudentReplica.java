@@ -27,11 +27,9 @@ public class StudentReplica {
     @Column(name = "synced_at", nullable = false)
     private LocalDateTime syncedAt;
 
-    // No-args constructor for JPA
     public StudentReplica() {
     }
 
-    // All-args constructor for easy instantiation
     public StudentReplica(Long studentId, String fullName, String email, LocalDateTime syncedAt) {
         this.studentId = studentId;
         this.fullName = fullName;
@@ -39,7 +37,6 @@ public class StudentReplica {
         this.syncedAt = syncedAt;
     }
 
-    // Manual getters and setters (no Lombok)
 
     public Long getStudentId() {
         return studentId;

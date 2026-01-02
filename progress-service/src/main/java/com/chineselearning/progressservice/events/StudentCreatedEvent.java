@@ -16,18 +16,15 @@ public class StudentCreatedEvent implements Serializable {
     private String fullName;
     private String email;
 
-    // No-args constructor for Jackson deserialization
     public StudentCreatedEvent() {
     }
 
-    // All-args constructor
     public StudentCreatedEvent(Long studentId, String fullName, String email) {
         this.studentId = studentId;
         this.fullName = fullName;
         this.email = email;
     }
 
-    // Getters and setters
 
     public Long getStudentId() {
         return studentId;

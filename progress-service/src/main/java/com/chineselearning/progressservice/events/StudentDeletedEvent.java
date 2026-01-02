@@ -12,7 +12,6 @@ public class StudentDeletedEvent implements Serializable {
 
     private Long studentId;
 
-    // No-args constructor for Jackson
     public StudentDeletedEvent() {
     }
 

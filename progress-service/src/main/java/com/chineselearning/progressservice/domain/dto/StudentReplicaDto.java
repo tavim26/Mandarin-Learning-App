@@ -2,9 +2,7 @@ package com.chineselearning.progressservice.domain.dto;
 
 import java.time.LocalDateTime;
 
-/**
- * DTO for StudentReplica entity.
- */
+
 public class StudentReplicaDto {
 
     private Long studentId;
@@ -12,11 +10,9 @@ public class StudentReplicaDto {
     private String email;
     private LocalDateTime syncedAt;
 
-    // No-args constructor
     public StudentReplicaDto() {
     }
 
-    // All-args constructor
     public StudentReplicaDto(Long studentId, String fullName, String email, LocalDateTime syncedAt) {
         this.studentId = studentId;
         this.fullName = fullName;
@@ -24,7 +20,6 @@ public class StudentReplicaDto {
         this.syncedAt = syncedAt;
     }
 
-    // Getters and setters
 
     public Long getStudentId() {
         return studentId;

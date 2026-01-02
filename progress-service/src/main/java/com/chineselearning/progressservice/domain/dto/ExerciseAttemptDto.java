@@ -4,9 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-/**
- * DTO for ExerciseAttempt entity.
- */
+
 public class ExerciseAttemptDto {
 
     private Long id;
@@ -20,13 +18,12 @@ public class ExerciseAttemptDto {
     private String feedbackText;
 
     // No-args constructor
-    public ExerciseAttemptDto() {
+    public ExerciseAttemptDto()
+    {
     }
 
     // All-args constructor
-    public ExerciseAttemptDto(Long id, Long studentId, Long exerciseId, Integer attemptNumber,
-                              LocalDateTime submittedAt, Map<String, Object> submittedAnswer,
-                              Boolean isCorrect, BigDecimal score, String feedbackText) {
+    public ExerciseAttemptDto(Long id, Long studentId, Long exerciseId, Integer attemptNumber, LocalDateTime submittedAt, Map<String, Object> submittedAnswer, Boolean isCorrect, BigDecimal score, String feedbackText) {
         this.id = id;
         this.studentId = studentId;
         this.exerciseId = exerciseId;
@@ -38,7 +35,6 @@ public class ExerciseAttemptDto {
         this.feedbackText = feedbackText;
     }
 
-    // Getters and setters
 
     public Long getId() {
         return id;

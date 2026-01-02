@@ -3,9 +3,7 @@ package com.chineselearning.progressservice.domain.dto;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * DTO for StudentLessonProgress entity.
- */
+
 public class StudentLessonProgressDto {
 
     private Long studentId;
@@ -17,15 +15,10 @@ public class StudentLessonProgressDto {
     private LocalDateTime lastAccessedAt;
     private LocalDateTime completedAt;
 
-    // No-args constructor
     public StudentLessonProgressDto() {
     }
 
-    // All-args constructor
-    public StudentLessonProgressDto(Long studentId, Long lessonId, String status,
-                                    BigDecimal completionPct, Integer xpAwarded,
-                                    LocalDateTime startedAt, LocalDateTime lastAccessedAt,
-                                    LocalDateTime completedAt) {
+    public StudentLessonProgressDto(Long studentId, Long lessonId, String status, BigDecimal completionPct, Integer xpAwarded, LocalDateTime startedAt, LocalDateTime lastAccessedAt, LocalDateTime completedAt) {
         this.studentId = studentId;
         this.lessonId = lessonId;
         this.status = status;

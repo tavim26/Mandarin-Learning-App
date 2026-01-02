@@ -42,13 +42,11 @@ public class StudentLessonProgress {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
-    // No-args constructor for JPA
     public StudentLessonProgress() {
         this.status = "NOT_STARTED";
         this.completionPct = BigDecimal.ZERO;
     }
 
-    // Constructor with composite key
     public StudentLessonProgress(Long studentId, Long lessonId) {
         this.studentId = studentId;
         this.lessonId = lessonId;
@@ -57,7 +55,6 @@ public class StudentLessonProgress {
         this.lastAccessedAt = LocalDateTime.now();
     }
 
-    // Manual getters and setters
 
     public Long getStudentId() {
         return studentId;

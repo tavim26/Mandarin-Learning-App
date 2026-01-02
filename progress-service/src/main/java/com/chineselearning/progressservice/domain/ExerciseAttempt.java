@@ -48,11 +48,9 @@ public class ExerciseAttempt {
     @Column(name = "feedback_text", columnDefinition = "TEXT")
     private String feedbackText;
 
-    // No-args constructor for JPA
     public ExerciseAttempt() {
     }
 
-    // Manual getters and setters
 
     public Long getId() {
         return id;

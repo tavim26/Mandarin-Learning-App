@@ -3,9 +3,6 @@ package com.chineselearning.progressservice.domain.dto;
 import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 
-/**
- * Request DTO for submitting an exercise attempt.
- */
 public class SubmitAttemptRequest {
 
     @NotNull(message = "Student ID is required")
@@ -17,11 +14,9 @@ public class SubmitAttemptRequest {
     @NotNull(message = "Submitted answer is required")
     private Map<String, Object> submittedAnswer;
 
-    // No-args constructor
     public SubmitAttemptRequest() {
     }
 
-    // All-args constructor
     public SubmitAttemptRequest(Long studentId, Long exerciseId, Map<String, Object> submittedAnswer) {
         this.studentId = studentId;
         this.exerciseId = exerciseId;

@@ -14,7 +14,6 @@ public class StudentUpdatedEvent implements Serializable {
     private String fullName;
     private String email;
 
-    // No-args constructor for Jackson
     public StudentUpdatedEvent() {
     }
 
