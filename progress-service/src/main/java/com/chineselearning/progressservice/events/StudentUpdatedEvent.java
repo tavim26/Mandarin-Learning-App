@@ -3,8 +3,7 @@ package com.chineselearning.progressservice.events;
 import java.io.Serializable;
 
 /**
- * Event DTO received when Student profile is updated in User Service.
- * Progress Service consumes this event to update the local replica.
+ * Event DTO primit atunci cand profilul unui Student primeste update din User Service.
  */
 public class StudentUpdatedEvent implements Serializable {
 

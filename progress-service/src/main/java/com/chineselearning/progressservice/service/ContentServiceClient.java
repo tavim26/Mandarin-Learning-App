@@ -10,7 +10,6 @@ import java.util.Map;
 
 /**
  * REST client pentru a comunica cu Content Service.
- * Fetches exercise and lesson data for validation and evaluation.
  */
 @Service
 public class ContentServiceClient {

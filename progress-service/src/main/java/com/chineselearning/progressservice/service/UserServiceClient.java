@@ -7,8 +7,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * REST client for communicating with User Service.
- * Updates student XP when lessons are completed.
+ * REST client pentru comunicare cu User Service.
+ * Folosit pentru update la punctele de XP(experienta) ale unui student atunci cand acesta finalizeaza o lectie.
  */
 @Service
 public class UserServiceClient {
@@ -24,16 +24,9 @@ public class UserServiceClient {
         this.restTemplate = new RestTemplate();
     }
 
-    /**
-     * Add XP to a student in User Service.
-     *
-     * @param studentId Student ID
-     * @param xpToAdd Amount of XP to add
-     * @throws RuntimeException if User Service call fails
-     */
-    public void addStudentXp(Long studentId, int xpToAdd) {
-        String url = String.format("%s/api/users/students/%d/xp?xpToAdd=%d",
-                userServiceUrl, studentId, xpToAdd);
+    public void addStudentXp(Long studentId, int xpToAdd)
+    {
+        String url = String.format("%s/api/users/students/%d/xp?xpToAdd=%d", userServiceUrl, studentId, xpToAdd);
 
         try {
             log.debug("Adding {} XP to student {} via User Service", xpToAdd, studentId);

@@ -23,7 +23,6 @@ public class SubmitAttemptRequest {
         this.submittedAnswer = submittedAnswer;
     }
 
-    // Getters and setters
 
     public Long getStudentId() {
         return studentId;

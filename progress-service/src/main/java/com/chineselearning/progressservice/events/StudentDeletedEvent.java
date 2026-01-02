@@ -3,8 +3,7 @@ package com.chineselearning.progressservice.events;
 import java.io.Serializable;
 
 /**
- * Event DTO received when a Student is deleted in User Service.
- * Progress Service consumes this event to remove or soft-delete the local replica.
+ * Event DTO primit atunci cand un Student este  sters din User Service.
  */
 public class StudentDeletedEvent implements Serializable {
 

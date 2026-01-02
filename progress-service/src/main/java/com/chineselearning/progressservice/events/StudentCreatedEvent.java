@@ -3,10 +3,8 @@ package com.chineselearning.progressservice.events;
 import java.io.Serializable;
 
 /**
- * Event DTO received when a new Student is created in User Service.
- * Progress Service consumes this event to create a local replica.
- *
- * Must match the structure sent by User Service.
+ * Event DTO primit cand un nou Student este creat in User Service.
+ * Progress Service consuma acest event pentru a crea o "replica" locala, in acest serviciu.
  */
 public class StudentCreatedEvent implements Serializable {
 

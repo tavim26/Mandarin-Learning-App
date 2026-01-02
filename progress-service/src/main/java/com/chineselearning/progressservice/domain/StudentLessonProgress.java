@@ -5,10 +5,7 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * Tracks a student's progress through a specific lesson.
- * Composite primary key: (student_id, lesson_id).
- */
+
 @Entity
 @Table(name = "student_lesson_progress", indexes = {
         @Index(name = "idx_student_status", columnList = "student_id, status")

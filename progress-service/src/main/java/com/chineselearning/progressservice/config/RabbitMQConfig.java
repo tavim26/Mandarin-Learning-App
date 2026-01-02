@@ -13,11 +13,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * RabbitMQ configuration for Progress Service (Consumer).
- * Declares queues and bindings to consume student events from User Service.
+ * RabbitMQ pentru Progress Service .
  *
- * Pattern: Topic Exchange with routing keys.
- * User Service publishes events -> Progress Service consumes them.
+ * Pattern: Topic Exchange cu routing keys.
+ * User Service publica evenimente -> Progress Service le consuma
  */
 @Configuration
 public class RabbitMQConfig {
@@ -44,17 +43,16 @@ public class RabbitMQConfig {
     private String studentUpdatedRoutingKey;
 
     /**
-     * Declare the Topic Exchange (must match User Service exchange name).
-     * This exchange already exists in User Service, but declaring it here is idempotent.
+     * Declara Topic Exchange (acelasi nume ca si exchange name-ul din User Service).
      */
     @Bean
-    public TopicExchange userEventsExchange() {
+    public TopicExchange userEventsExchange()
+    {
         return new TopicExchange(userEventsExchange);
     }
 
     /**
-     * Declare queue for StudentCreatedEvent.
-     * Durable queue persists messages even if RabbitMQ restarts.
+     * declara coada pentru StudentCreatedEvent.
      */
     @Bean
     public Queue studentCreatedQueue() {
@@ -62,7 +60,7 @@ public class RabbitMQConfig {
     }
 
     /**
-     * Declare queue for StudentDeletedEvent.
+     * declara coada pentru StudentDeletedEvent.
      */
     @Bean
     public Queue studentDeletedQueue() {
@@ -70,7 +68,7 @@ public class RabbitMQConfig {
     }
 
     /**
-     * Declare queue for StudentUpdatedEvent.
+     * Declara coada pentru StudentUpdatedEvent.
      */
     @Bean
     public Queue studentUpdatedQueue() {
@@ -78,7 +76,7 @@ public class RabbitMQConfig {
     }
 
     /**
-     * Bind studentCreatedQueue to exchange with routing key "student.created".
+     * Bind studentCreatedQueue spre exchange cu routing key "student.created".
      */
     @Bean
     public Binding studentCreatedBinding(Queue studentCreatedQueue, TopicExchange userEventsExchange) {
@@ -88,7 +86,7 @@ public class RabbitMQConfig {
     }
 
     /**
-     * Bind studentDeletedQueue to exchange with routing key "student.deleted".
+     * Bind studentDeletedQueue spre exchange cu routing key "student.deleted".
      */
     @Bean
     public Binding studentDeletedBinding(Queue studentDeletedQueue, TopicExchange userEventsExchange) {
@@ -98,7 +96,7 @@ public class RabbitMQConfig {
     }
 
     /**
-     * Bind studentUpdatedQueue to exchange with routing key "student.updated".
+     * Bind studentUpdatedQueue spre exchange cu routing key "student.updated".
      */
     @Bean
     public Binding studentUpdatedBinding(Queue studentUpdatedQueue, TopicExchange userEventsExchange) {
@@ -108,16 +106,14 @@ public class RabbitMQConfig {
     }
 
     /**
-     * Message converter for deserializing JSON messages to Java objects.
+     * Message converter pentru a deserializa mesajele JSON spre obiecte Java.
      */
     @Bean
     public MessageConverter jsonMessageConverter() {
         return new Jackson2JsonMessageConverter();
     }
 
-    /**
-     * Configure RabbitTemplate with JSON message converter.
-     */
+
     @Bean
     public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);

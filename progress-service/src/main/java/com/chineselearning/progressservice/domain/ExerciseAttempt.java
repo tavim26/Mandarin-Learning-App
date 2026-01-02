@@ -8,10 +8,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-/**
- * Records each attempt a student makes on an exercise.
- * Tracks submitted answer, score, correctness, and feedback.
- */
+
 @Entity
 @Table(name = "exercise_attempts", indexes = {
         @Index(name = "idx_student_exercise_submitted", columnList = "student_id, exercise_id, submitted_at"),

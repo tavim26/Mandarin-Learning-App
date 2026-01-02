@@ -29,7 +29,6 @@ public class StudentLessonProgressDto {
         this.completedAt = completedAt;
     }
 
-    // Getters and setters
 
     public Long getStudentId() {
         return studentId;

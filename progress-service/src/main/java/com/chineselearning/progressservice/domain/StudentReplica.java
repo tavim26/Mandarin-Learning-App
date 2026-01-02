@@ -3,13 +3,7 @@ package com.chineselearning.progressservice.domain;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-/**
- * Local replica of Student identity from User Service.
- * Populated via RabbitMQ events (StudentCreatedEvent, StudentUpdatedEvent).
- *
- * This allows Progress Service to operate independently without calling User Service
- * for every query (eventual consistency pattern).
- */
+
 @Entity
 @Table(name = "students_replica")
 public class StudentReplica {
