@@ -17,7 +17,8 @@ import org.springframework.context.annotation.Configuration;
  * Consumer services (Progress, Flashcard, etc.) will bind their own queues to this exchange.
  */
 @Configuration
-public class RabbitMQConfig {
+public class RabbitMQConfig
+{
 
     @Value("${rabbitmq.exchange.user-events}")
     private String userEventsExchange;
@@ -29,7 +30,8 @@ public class RabbitMQConfig {
      * @return TopicExchange instance
      */
     @Bean
-    public TopicExchange userEventsExchange() {
+    public TopicExchange userEventsExchange()
+    {
         return new TopicExchange(userEventsExchange);
     }
 
@@ -40,7 +42,8 @@ public class RabbitMQConfig {
      * @return Jackson2JsonMessageConverter instance
      */
     @Bean
-    public MessageConverter jsonMessageConverter() {
+    public MessageConverter jsonMessageConverter()
+    {
         return new Jackson2JsonMessageConverter();
     }
 
@@ -52,7 +55,8 @@ public class RabbitMQConfig {
      * @return Configured RabbitTemplate
      */
     @Bean
-    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
+    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory)
+    {
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
         rabbitTemplate.setMessageConverter(jsonMessageConverter());
         return rabbitTemplate;

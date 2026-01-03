@@ -8,7 +8,8 @@ import java.io.Serializable;
  *
  * Pattern: Event-Driven Architecture with eventual consistency.
  */
-public class StudentDeletedEvent implements Serializable {
+public class StudentDeletedEvent implements Serializable
+{
 
     private static final long serialVersionUID = 1L;
 

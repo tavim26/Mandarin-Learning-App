@@ -9,7 +9,8 @@ import java.io.Serializable;
  *
  * Pattern: Event-Driven Architecture with eventual consistency.
  */
-public class StudentCreatedEvent implements Serializable {
+public class StudentCreatedEvent implements Serializable
+{
 
     private static final long serialVersionUID = 1L;
 
@@ -18,11 +19,13 @@ public class StudentCreatedEvent implements Serializable {
     private String email;
 
     // No-args constructor for Jackson deserialization
-    public StudentCreatedEvent() {
+    public StudentCreatedEvent()
+    {
     }
 
     // All-args constructor for easy instantiation
-    public StudentCreatedEvent(Long studentId, String fullName, String email) {
+    public StudentCreatedEvent(Long studentId, String fullName, String email)
+    {
         this.studentId = studentId;
         this.fullName = fullName;
         this.email = email;

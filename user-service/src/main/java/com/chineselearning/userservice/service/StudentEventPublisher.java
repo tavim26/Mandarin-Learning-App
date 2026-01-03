@@ -17,7 +17,8 @@ import org.springframework.stereotype.Service;
  * and maintain their own local replica of student data.
  */
 @Service
-public class StudentEventPublisher {
+public class StudentEventPublisher
+{
 
     private static final Logger log = LoggerFactory.getLogger(StudentEventPublisher.class);
 
@@ -44,14 +45,15 @@ public class StudentEventPublisher {
      *
      * @param event StudentCreatedEvent containing student ID, name, and email
      */
-    public void publishStudentCreated(StudentCreatedEvent event) {
+    public void publishStudentCreated(StudentCreatedEvent event)
+    {
         try {
             rabbitTemplate.convertAndSend(exchange, studentCreatedRoutingKey, event);
             log.info("Published StudentCreatedEvent: {}", event);
         } catch (Exception e) {
             log.error("Failed to publish StudentCreatedEvent for studentId={}: {}",
                     event.getStudentId(), e.getMessage(), e);
-            // In production: retry logic or dead-letter queue
+
         }
     }
 
@@ -60,7 +62,8 @@ public class StudentEventPublisher {
      *
      * @param event StudentDeletedEvent containing student ID
      */
-    public void publishStudentDeleted(StudentDeletedEvent event) {
+    public void publishStudentDeleted(StudentDeletedEvent event)
+    {
         try {
             rabbitTemplate.convertAndSend(exchange, studentDeletedRoutingKey, event);
             log.info("Published StudentDeletedEvent: {}", event);
@@ -75,7 +78,8 @@ public class StudentEventPublisher {
      *
      * @param event StudentUpdatedEvent containing updated student data
      */
-    public void publishStudentUpdated(StudentUpdatedEvent event) {
+    public void publishStudentUpdated(StudentUpdatedEvent event)
+    {
         try {
             rabbitTemplate.convertAndSend(exchange, studentUpdatedRoutingKey, event);
             log.info("Published StudentUpdatedEvent: {}", event);

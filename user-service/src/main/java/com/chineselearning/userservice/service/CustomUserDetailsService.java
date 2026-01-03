@@ -11,7 +11,8 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class CustomUserDetailsService implements UserDetailsService {
+public class CustomUserDetailsService implements UserDetailsService
+{
 
     private final ICredentialDao credentialDao;
 
@@ -21,7 +22,8 @@ public class CustomUserDetailsService implements UserDetailsService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException
+    {
         Credential credential = credentialDao.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
