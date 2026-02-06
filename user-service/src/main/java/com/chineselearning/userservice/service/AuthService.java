@@ -21,7 +21,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Service
-public class AuthService {
+public class AuthService
+{
 
     private final ICredentialDao credentialDao;
     private final PasswordEncoder passwordEncoder;
@@ -47,16 +48,16 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponseDto register(RegisterRequestDto request) {
+    public AuthResponseDto register(RegisterRequestDto request)
+    {
         // 1. Validate: Check if email already exists
-        if (credentialDao.existsByEmail(request.getEmail())) {
+        if (credentialDao.existsByEmail(request.getEmail()))
+        {
             throw new IllegalArgumentException("Email already registered");
         }
 
         // 2. Validate: Check role
-        if (!request.getRole().equals("STUDENT") &&
-                !request.getRole().equals("TEACHER") &&
-                !request.getRole().equals("ADMIN")) {
+        if (!request.getRole().equals("STUDENT") && !request.getRole().equals("TEACHER") && !request.getRole().equals("ADMIN")) {
             throw new IllegalArgumentException("Role must be STUDENT, TEACHER or ADMIN");
         }
 
@@ -74,13 +75,16 @@ public class AuthService {
         credential.setUser(user);
 
         // 5. Create Student or Teacher entity (ONLY if not ADMIN)
-        if (request.getRole().equals("STUDENT")) {
+        if (request.getRole().equals("STUDENT"))
+        {
             Student student = new Student();
             student.setXpTotal(0);
             student.setLevel(1);
             student.setUser(user);
             user.setStudent(student);
-        } else if (request.getRole().equals("TEACHER")) {
+        }
+        else if (request.getRole().equals("TEACHER"))
+        {
             Teacher teacher = new Teacher();
             teacher.setTitle(""); // Empty by default
             teacher.setUser(user);
@@ -92,7 +96,8 @@ public class AuthService {
         Credential savedCredential = credentialDao.save(credential);
 
         // 7. Publish StudentCreatedEvent if role is STUDENT
-        if (request.getRole().equals("STUDENT")) {
+        if (request.getRole().equals("STUDENT"))
+        {
             StudentCreatedEvent event = new StudentCreatedEvent(
                     savedCredential.getId(),  // studentId = userId (same via @MapsId)
                     savedCredential.getUser().getFullName(),
@@ -117,12 +122,11 @@ public class AuthService {
         );
     }
 
-    public AuthResponseDto login(AuthRequestDto request) {
+    public AuthResponseDto login(AuthRequestDto request)
+    {
         // 1. Authenticate using Spring Security
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
+                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()
                 )
         );
 

@@ -21,6 +21,7 @@ public class CustomUserDetailsService implements UserDetailsService
         this.credentialDao = credentialDao;
     }
 
+
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException
     {

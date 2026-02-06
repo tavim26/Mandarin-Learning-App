@@ -13,17 +13,20 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Authentication", description = "Endpoints for user registration and login")
-public class AuthController {
+public class AuthController
+{
 
     private final AuthService authService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService)
+    {
         this.authService = authService;
     }
 
     @PostMapping("/register")
     @Operation(summary = "Register new user", description = "Creates a new user account (Student or Teacher) and returns JWT token")
-    public ResponseEntity<?> register(@RequestBody RegisterRequestDto request) {
+    public ResponseEntity<?> register(@RequestBody RegisterRequestDto request)
+    {
         try {
             AuthResponseDto response = authService.register(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -34,7 +37,8 @@ public class AuthController {
 
     @PostMapping("/login")
     @Operation(summary = "Login user", description = "Authenticates user credentials and returns JWT token")
-    public ResponseEntity<?> login(@RequestBody AuthRequestDto request) {
+    public ResponseEntity<?> login(@RequestBody AuthRequestDto request)
+    {
         try {
             AuthResponseDto response = authService.login(request);
             return ResponseEntity.ok(response);
