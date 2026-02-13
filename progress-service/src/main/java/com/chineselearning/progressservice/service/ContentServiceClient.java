@@ -14,6 +14,7 @@ import java.util.Map;
 @Service
 public class ContentServiceClient {
 
+
     private static final Logger log = LoggerFactory.getLogger(ContentServiceClient.class);
 
     @Value("${content-service.url:http://localhost:8081}")

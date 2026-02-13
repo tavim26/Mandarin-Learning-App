@@ -3,7 +3,7 @@ package com.chineselearning.userservice.events;
 import java.io.Serializable;
 
 /**
- * Event DTO published when Student profile is updated (e.g., name change).
+ * Event DTO published when Student profile is updated
  * Consumer services use this to update their local replica.
  *
  * Pattern: Event-Driven Architecture with eventual consistency.
@@ -17,7 +17,6 @@ public class StudentUpdatedEvent implements Serializable
     private String fullName;
     private String email;
 
-    // No-args constructor for Jackson
     public StudentUpdatedEvent() {
     }
 

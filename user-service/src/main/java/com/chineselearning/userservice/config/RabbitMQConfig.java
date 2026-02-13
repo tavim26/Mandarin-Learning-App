@@ -27,7 +27,6 @@ public class RabbitMQConfig
      * Declare the Topic Exchange for user events.
      * Topic exchanges route messages to queues based on routing key patterns.
      *
-     * @return TopicExchange instance
      */
     @Bean
     public TopicExchange userEventsExchange()
@@ -39,7 +38,6 @@ public class RabbitMQConfig
      * Message converter for serializing/deserializing messages to/from JSON.
      * Allows sending Java objects directly without manual JSON conversion.
      *
-     * @return Jackson2JsonMessageConverter instance
      */
     @Bean
     public MessageConverter jsonMessageConverter()
@@ -51,8 +49,6 @@ public class RabbitMQConfig
      * Configure RabbitTemplate with JSON message converter.
      * RabbitTemplate is the main Spring class for sending messages to RabbitMQ.
      *
-     * @param connectionFactory RabbitMQ connection factory (auto-configured by Spring)
-     * @return Configured RabbitTemplate
      */
     @Bean
     public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory)

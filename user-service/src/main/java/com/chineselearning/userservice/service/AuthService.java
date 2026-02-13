@@ -31,13 +31,7 @@ public class AuthService
     private final AuthenticationManager authenticationManager;
     private final StudentEventPublisher studentEventPublisher;
 
-    public AuthService(
-            ICredentialDao credentialDao,
-            PasswordEncoder passwordEncoder,
-            JwtService jwtService,
-            CustomUserDetailsService userDetailsService,
-            AuthenticationManager authenticationManager,
-            StudentEventPublisher studentEventPublisher
+    public AuthService(ICredentialDao credentialDao, PasswordEncoder passwordEncoder, JwtService jwtService, CustomUserDetailsService userDetailsService, AuthenticationManager authenticationManager, StudentEventPublisher studentEventPublisher
     ) {
         this.credentialDao = credentialDao;
         this.passwordEncoder = passwordEncoder;
@@ -74,7 +68,7 @@ public class AuthService
         user.setCredential(credential);
         credential.setUser(user);
 
-        // 5. Create Student or Teacher entity (ONLY if not ADMIN)
+        // 5. Create Student or Teacher entity
         if (request.getRole().equals("STUDENT"))
         {
             Student student = new Student();
@@ -86,20 +80,21 @@ public class AuthService
         else if (request.getRole().equals("TEACHER"))
         {
             Teacher teacher = new Teacher();
-            teacher.setTitle(""); // Empty by default
+            teacher.setTitle("");
             teacher.setUser(user);
             user.setTeacher(teacher);
         }
-        // ADMIN role: No additional entity created (only Credential + User)
 
-        // 6. Save (cascade will save User and Student/Teacher if present)
+
+
+        // 6. Save
         Credential savedCredential = credentialDao.save(credential);
 
         // 7. Publish StudentCreatedEvent if role is STUDENT
         if (request.getRole().equals("STUDENT"))
         {
             StudentCreatedEvent event = new StudentCreatedEvent(
-                    savedCredential.getId(),  // studentId = userId (same via @MapsId)
+                    savedCredential.getId(),
                     savedCredential.getUser().getFullName(),
                     savedCredential.getEmail()
             );

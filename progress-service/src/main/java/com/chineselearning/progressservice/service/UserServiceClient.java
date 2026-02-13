@@ -11,7 +11,8 @@ import org.springframework.web.client.RestTemplate;
  * Folosit pentru update la punctele de XP(experienta) ale unui student atunci cand acesta finalizeaza o lectie.
  */
 @Service
-public class UserServiceClient {
+public class UserServiceClient
+{
 
     private static final Logger log = LoggerFactory.getLogger(UserServiceClient.class);
 
@@ -20,7 +21,8 @@ public class UserServiceClient {
 
     private final RestTemplate restTemplate;
 
-    public UserServiceClient() {
+    public UserServiceClient()
+    {
         this.restTemplate = new RestTemplate();
     }
 

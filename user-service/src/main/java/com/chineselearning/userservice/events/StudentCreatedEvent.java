@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 /**
  * Event DTO published when a new Student is created in User Service.
- * This event is consumed by other microservices (Progress, Flashcard, Group, etc.)
+ * This event is consumed by other microservices (Progress, Flashcard)
  * to maintain a local replica of student identity data.
  *
  * Pattern: Event-Driven Architecture with eventual consistency.
@@ -18,7 +18,6 @@ public class StudentCreatedEvent implements Serializable
     private String fullName;
     private String email;
 
-    // No-args constructor for Jackson deserialization
     public StudentCreatedEvent()
     {
     }
@@ -31,7 +30,6 @@ public class StudentCreatedEvent implements Serializable
         this.email = email;
     }
 
-    // Manual getters and setters (no Lombok as per project guidelines)
 
     public Long getStudentId() {
         return studentId;

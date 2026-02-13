@@ -275,6 +275,8 @@ public class ProgressService
         }
     }
 
+
+
     private EvaluationResult evaluateMultipleChoice(Map<String, Object> contentData, Map<String, Object> submitted)
     {
         String correctOption = (String) contentData.get("correctOption");
@@ -299,6 +301,8 @@ public class ProgressService
             return new EvaluationResult(BigDecimal.ZERO, "Incorrect. The correct answer was: " + correctOption);
         }
     }
+
+
 
     private EvaluationResult evaluateTranslation(Map<String, Object> contentData, Map<String, Object> submitted)
     {
@@ -339,6 +343,9 @@ public class ProgressService
         return new EvaluationResult(BigDecimal.ZERO, "Incorrect. Correct translation: " + correctTranslation);
     }
 
+
+
+
     private EvaluationResult evaluateFillBlank(Map<String, Object> contentData, Map<String, Object> submitted)
     {
         List<String> correctAnswers = (List<String>) contentData.get("correctAnswers");
@@ -367,6 +374,8 @@ public class ProgressService
 
         return new EvaluationResult(score, feedback);
     }
+
+
 
     private EvaluationResult evaluateMatching(Map<String, Object> contentData, Map<String, Object> submitted)
     {

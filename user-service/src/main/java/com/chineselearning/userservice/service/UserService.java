@@ -99,7 +99,7 @@ public class UserService
             user.setTeacher(teacher);
         }
 
-        // 6. Save (cascade will save User and Student/Teacher)
+        // 6. Save
         Credential savedCredential = credentialDao.save(credential);
 
         // 7. Publish StudentCreatedEvent if role is STUDENT
@@ -178,7 +178,7 @@ public class UserService
             studentEventPublisher.publishStudentDeleted(event);
         }
 
-        // Delete user (cascade will delete Credential and Student/Teacher)
+        // Delete user
         userDao.deleteById(id);
     }
 
