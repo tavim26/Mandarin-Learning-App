@@ -2,24 +2,29 @@ package com.chineselearning.userservice.domain.dto;
 
 public class StudentDto {
     private Long userId;
-    private Integer xpTotal;
-    private Integer level;
+    private String nickname;
 
     public StudentDto() {}
 
-    public StudentDto(Long userId, Integer xpTotal, Integer level) {
+    public StudentDto(Long userId, String nickname) {
         this.userId = userId;
-        this.xpTotal = xpTotal;
-        this.level = level;
+        this.nickname = nickname;
     }
 
     // Getters and Setters
-    public Long getUserId() { return userId; }
-    public void setUserId(Long userId) { this.userId = userId; }
+    public Long getUserId() {
+        return userId;
+    }
 
-    public Integer getXpTotal() { return xpTotal; }
-    public void setXpTotal(Integer xpTotal) { this.xpTotal = xpTotal; }
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
 
-    public Integer getLevel() { return level; }
-    public void setLevel(Integer level) { this.level = level; }
+    public String getNickname() {
+        return nickname;
+    }
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
+    }
 }

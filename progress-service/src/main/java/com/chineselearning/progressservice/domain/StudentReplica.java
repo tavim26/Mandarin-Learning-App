@@ -1,37 +1,45 @@
 package com.chineselearning.progressservice.domain;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
-
 
 @Entity
-@Table(name = "students_replica")
+@Table(
+        name = "students_replica",
+        indexes = {
+                @Index(name = "idx_students_xp_leaderboard", columnList = "xp_total DESC")
+        }
+)
 public class StudentReplica {
 
     @Id
-    @Column(name = "student_id", nullable = false)
+    @Column(name = "student_id")
     private Long studentId;
 
-    @Column(name = "full_name", nullable = false, length = 255)
-    private String fullName;
+    @Column(name = "xp_total", nullable = false)
+    private Integer xpTotal;
 
-    @Column(name = "email", nullable = false, length = 255)
-    private String email;
+    @Column(name = "level", nullable = false)
+    private Integer level;
 
-    @Column(name = "synced_at", nullable = false)
-    private LocalDateTime syncedAt;
-
+    // Constructors
     public StudentReplica() {
+        this.xpTotal = 0;
+        this.level = 1;
     }
 
-    public StudentReplica(Long studentId, String fullName, String email, LocalDateTime syncedAt) {
+    public StudentReplica(Long studentId) {
         this.studentId = studentId;
-        this.fullName = fullName;
-        this.email = email;
-        this.syncedAt = syncedAt;
+        this.xpTotal = 0;
+        this.level = 1;
     }
 
+    public StudentReplica(Long studentId, Integer xpTotal, Integer level) {
+        this.studentId = studentId;
+        this.xpTotal = xpTotal;
+        this.level = level;
+    }
 
+    // Getters and Setters
     public Long getStudentId() {
         return studentId;
     }
@@ -40,33 +48,29 @@ public class StudentReplica {
         this.studentId = studentId;
     }
 
-    public String getFullName() {
-        return fullName;
+    public Integer getXpTotal() {
+        return xpTotal;
     }
 
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
+    public void setXpTotal(Integer xpTotal) {
+        this.xpTotal = xpTotal;
     }
 
-    public String getEmail() {
-        return email;
+    public Integer getLevel() {
+        return level;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setLevel(Integer level) {
+        this.level = level;
     }
 
-    public LocalDateTime getSyncedAt() {
-        return syncedAt;
+    // Business logic methods
+    public void addXp(Integer xpToAdd) {
+        this.xpTotal += xpToAdd;
+        recalculateLevel();
     }
 
-    public void setSyncedAt(LocalDateTime syncedAt) {
-        this.syncedAt = syncedAt;
-    }
-
-    @PrePersist
-    @PreUpdate
-    protected void onPersistOrUpdate() {
-        this.syncedAt = LocalDateTime.now();
+    public void recalculateLevel() {
+        this.level = (this.xpTotal / 1000) + 1;
     }
 }

@@ -3,9 +3,9 @@ package com.chineselearning.progressservice.domain.dto;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-
 public class StudentLessonProgressDto {
 
+    private Long id;
     private Long studentId;
     private Long lessonId;
     private String status;
@@ -15,10 +15,13 @@ public class StudentLessonProgressDto {
     private LocalDateTime lastAccessedAt;
     private LocalDateTime completedAt;
 
-    public StudentLessonProgressDto() {
-    }
+    public StudentLessonProgressDto() {}
 
-    public StudentLessonProgressDto(Long studentId, Long lessonId, String status, BigDecimal completionPct, Integer xpAwarded, LocalDateTime startedAt, LocalDateTime lastAccessedAt, LocalDateTime completedAt) {
+    public StudentLessonProgressDto(Long id, Long studentId, Long lessonId, String status,
+                                    BigDecimal completionPct, Integer xpAwarded,
+                                    LocalDateTime startedAt, LocalDateTime lastAccessedAt,
+                                    LocalDateTime completedAt) {
+        this.id = id;
         this.studentId = studentId;
         this.lessonId = lessonId;
         this.status = status;
@@ -29,6 +32,13 @@ public class StudentLessonProgressDto {
         this.completedAt = completedAt;
     }
 
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
 
     public Long getStudentId() {
         return studentId;

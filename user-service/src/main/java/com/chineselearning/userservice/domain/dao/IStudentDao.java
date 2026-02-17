@@ -9,6 +9,5 @@ import java.util.List;
 @Repository
 public interface IStudentDao extends JpaRepository<Student, Long> {
 
-    // Returneaza primii 10 studenti ordonati descrescator dupa XP
-    List<Student> findTop10ByOrderByXpTotalDesc();
+
 }

@@ -8,12 +8,14 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-
 @Entity
-@Table(name = "exercise_attempts", indexes = {
-        @Index(name = "idx_student_exercise_submitted", columnList = "student_id, exercise_id, submitted_at"),
-        @Index(name = "idx_exercise_correct", columnList = "exercise_id, is_correct")
-})
+@Table(
+        name = "exercise_attempts",
+        indexes = {
+                @Index(name = "idx_attempts_student_exercise", columnList = "student_id, exercise_id, submitted_at"),
+                @Index(name = "idx_attempts_exercise_correct", columnList = "exercise_id, is_correct")
+        }
+)
 public class ExerciseAttempt {
 
     @Id
@@ -45,10 +47,23 @@ public class ExerciseAttempt {
     @Column(name = "feedback_text", columnDefinition = "TEXT")
     private String feedbackText;
 
-    public ExerciseAttempt() {
+    // Constructors
+    public ExerciseAttempt() {}
+
+    public ExerciseAttempt(Long studentId, Long exerciseId, Integer attemptNumber,
+                           LocalDateTime submittedAt, Map<String, Object> submittedAnswer,
+                           Boolean isCorrect, BigDecimal score, String feedbackText) {
+        this.studentId = studentId;
+        this.exerciseId = exerciseId;
+        this.attemptNumber = attemptNumber;
+        this.submittedAt = submittedAt;
+        this.submittedAnswer = submittedAnswer;
+        this.isCorrect = isCorrect;
+        this.score = score;
+        this.feedbackText = feedbackText;
     }
 
-
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -119,12 +134,5 @@ public class ExerciseAttempt {
 
     public void setFeedbackText(String feedbackText) {
         this.feedbackText = feedbackText;
-    }
-
-    @PrePersist
-    protected void onCreate() {
-        if (submittedAt == null) {
-            submittedAt = LocalDateTime.now();
-        }
     }
 }

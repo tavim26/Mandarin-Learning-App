@@ -1,28 +1,31 @@
 package com.chineselearning.progressservice.domain;
 
 import jakarta.persistence.*;
-import java.io.Serializable;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-
 @Entity
-@Table(name = "student_lesson_progress", indexes = {
-        @Index(name = "idx_student_status", columnList = "student_id, status")
-})
-@IdClass(StudentLessonProgress.StudentLessonProgressId.class)
+@Table(
+        name = "student_lesson_progress",
+        indexes = {
+                @Index(name = "idx_progress_student_status", columnList = "student_id, status")
+        }
+)
 public class StudentLessonProgress {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     @Column(name = "student_id", nullable = false)
     private Long studentId;
 
-    @Id
     @Column(name = "lesson_id", nullable = false)
     private Long lessonId;
 
     @Column(name = "status", nullable = false, length = 20)
-    private String status; // NOT_STARTED, IN_PROGRESS, COMPLETED
+    private String status;
 
     @Column(name = "completion_pct", nullable = false, precision = 5, scale = 2)
     private BigDecimal completionPct;
@@ -33,7 +36,7 @@ public class StudentLessonProgress {
     @Column(name = "started_at")
     private LocalDateTime startedAt;
 
-    @Column(name = "last_accessed_at", nullable = false)
+    @Column(name = "last_accessed_at")
     private LocalDateTime lastAccessedAt;
 
     @Column(name = "completed_at")
@@ -49,9 +52,15 @@ public class StudentLessonProgress {
         this.lessonId = lessonId;
         this.status = "NOT_STARTED";
         this.completionPct = BigDecimal.ZERO;
-        this.lastAccessedAt = LocalDateTime.now();
     }
 
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
 
     public Long getStudentId() {
         return studentId;
@@ -115,67 +124,5 @@ public class StudentLessonProgress {
 
     public void setCompletedAt(LocalDateTime completedAt) {
         this.completedAt = completedAt;
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        this.lastAccessedAt = LocalDateTime.now();
-    }
-
-    /**
-     * Composite primary key class for StudentLessonProgress.
-     * Required for @IdClass strategy.
-     */
-    public static class StudentLessonProgressId implements Serializable {
-
-        private Long studentId;
-        private Long lessonId;
-
-        // No-args constructor
-        public StudentLessonProgressId() {
-        }
-
-        public StudentLessonProgressId(Long studentId, Long lessonId) {
-            this.studentId = studentId;
-            this.lessonId = lessonId;
-        }
-
-        // Getters and setters
-
-        public Long getStudentId() {
-            return studentId;
-        }
-
-        public void setStudentId(Long studentId) {
-            this.studentId = studentId;
-        }
-
-        public Long getLessonId() {
-            return lessonId;
-        }
-
-        public void setLessonId(Long lessonId) {
-            this.lessonId = lessonId;
-        }
-
-        // equals() and hashCode() required for composite key
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            StudentLessonProgressId that = (StudentLessonProgressId) o;
-
-            if (!studentId.equals(that.studentId)) return false;
-            return lessonId.equals(that.lessonId);
-        }
-
-        @Override
-        public int hashCode() {
-            int result = studentId.hashCode();
-            result = 31 * result + lessonId.hashCode();
-            return result;
-        }
     }
 }

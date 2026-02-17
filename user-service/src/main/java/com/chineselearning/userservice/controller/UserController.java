@@ -13,29 +13,24 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-
 // http://localhost:8082/swagger-ui/index.html
 
 @RestController
 @RequestMapping("/api/users")
 @Tag(name = "User Management", description = "Endpoints for managing users, students and teachers")
-public class UserController
-{
+public class UserController {
 
     private final UserService userService;
 
-    public UserController(UserService userService)
-    {
+    public UserController(UserService userService) {
         this.userService = userService;
     }
 
     // ========== USER ENDPOINTS ==========
 
-
     @PostMapping
     @Operation(summary = "Create new user", description = "Creates a new user with role STUDENT or TEACHER (admin only)")
-    public ResponseEntity<?> createUser(@RequestBody RegisterRequestDto request)
-    {
+    public ResponseEntity<?> createUser(@RequestBody RegisterRequestDto request) {
         try {
             UserDto created = userService.createUser(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
@@ -46,15 +41,13 @@ public class UserController
 
     @GetMapping
     @Operation(summary = "Get all users", description = "Returns list of all users in the system")
-    public ResponseEntity<List<UserDto>> getAllUsers()
-    {
+    public ResponseEntity<List<UserDto>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Get user by ID", description = "Returns basic user information")
-    public ResponseEntity<?> getUserById(@PathVariable Long id)
-    {
+    public ResponseEntity<?> getUserById(@PathVariable Long id) {
         try {
             UserDto user = userService.getUserById(id);
             return ResponseEntity.ok(user);
@@ -65,15 +58,13 @@ public class UserController
 
     @GetMapping("/search")
     @Operation(summary = "Search users by name", description = "Returns users whose full name contains the search fragment")
-    public ResponseEntity<List<UserDto>> searchUsers(@RequestParam String name)
-    {
+    public ResponseEntity<List<UserDto>> searchUsers(@RequestParam String name) {
         return ResponseEntity.ok(userService.searchUsersByName(name));
     }
 
     @PutMapping("/{id}/name")
     @Operation(summary = "Update user name", description = "Updates the full name of a user")
-    public ResponseEntity<?> updateUserName(@PathVariable Long id, @RequestParam String newName)
-    {
+    public ResponseEntity<?> updateUserName(@PathVariable Long id, @RequestParam String newName) {
         try {
             UserDto updated = userService.updateUserName(id, newName);
             return ResponseEntity.ok(updated);
@@ -93,15 +84,11 @@ public class UserController
         }
     }
 
-
-
-
     // ========== STUDENT ENDPOINTS ==========
 
     @GetMapping("/students/{userId}")
-    @Operation(summary = "Get student details", description = "Returns student-specific information (XP, level)")
-    public ResponseEntity<?> getStudent(@PathVariable Long userId)
-    {
+    @Operation(summary = "Get student details", description = "Returns student-specific information (nickname)")
+    public ResponseEntity<?> getStudent(@PathVariable Long userId) {
         try {
             StudentDto student = userService.getStudentById(userId);
             return ResponseEntity.ok(student);
@@ -110,43 +97,22 @@ public class UserController
         }
     }
 
-    @PutMapping("/students/{userId}/xp")
-    @Operation(summary = "Add XP to student", description = "Adds XP points and automatically recalculates level")
-    public ResponseEntity<?> addStudentXp(@PathVariable Long userId, @RequestParam int xpToAdd)
-    {
+    @PutMapping("/students/{userId}/nickname")
+    @Operation(summary = "Update student nickname", description = "Sets or updates the student's display nickname")
+    public ResponseEntity<?> updateStudentNickname(@PathVariable Long userId, @RequestParam String newNickname) {
         try {
-            StudentDto updated = userService.updateStudentXp(userId, xpToAdd);
+            StudentDto updated = userService.updateStudentNickname(userId, newNickname);
             return ResponseEntity.ok(updated);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
-    }
-
-    @PutMapping("/students/{userId}/level")
-    @Operation(summary = "Update student level", description = "Manually sets student level (admin only)")
-    public ResponseEntity<?> updateStudentLevel(@PathVariable Long userId, @RequestParam int newLevel)
-    {
-        try {
-            StudentDto updated = userService.updateStudentLevel(userId, newLevel);
-            return ResponseEntity.ok(updated);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    @GetMapping("/students/leaderboard")
-    @Operation(summary = "Get top students", description = "Returns top 10 students ordered by total XP")
-    public ResponseEntity<List<StudentDto>> getLeaderboard()
-    {
-        return ResponseEntity.ok(userService.getTopStudentsByXp());
     }
 
     // ========== TEACHER ENDPOINTS ==========
 
     @GetMapping("/teachers/{userId}")
     @Operation(summary = "Get teacher details", description = "Returns teacher-specific information")
-    public ResponseEntity<?> getTeacher(@PathVariable Long userId)
-    {
+    public ResponseEntity<?> getTeacher(@PathVariable Long userId) {
         try {
             TeacherDto teacher = userService.getTeacherById(userId);
             return ResponseEntity.ok(teacher);
@@ -157,8 +123,7 @@ public class UserController
 
     @PutMapping("/teachers/{userId}/title")
     @Operation(summary = "Update teacher title", description = "Updates teacher's academic or professional title")
-    public ResponseEntity<?> updateTeacherTitle(@PathVariable Long userId, @RequestParam String newTitle)
-    {
+    public ResponseEntity<?> updateTeacherTitle(@PathVariable Long userId, @RequestParam String newTitle) {
         try {
             TeacherDto updated = userService.updateTeacherTitle(userId, newTitle);
             return ResponseEntity.ok(updated);

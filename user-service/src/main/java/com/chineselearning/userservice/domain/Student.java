@@ -7,31 +7,45 @@ import jakarta.persistence.*;
 public class Student {
 
     @Id
-    private Long userId; // Numele coloanei PK in DB este 'user_id' conform diagramei tale
+    private Long userId;
 
-    @Column(name = "xp_total", nullable = false)
-    private Integer xpTotal;
-
-    @Column(nullable = false)
-    private Integer level;
+    @Column(name = "nickname", length = 50)
+    private String nickname;
 
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId
-    @JoinColumn(name = "user_id") // Leaga PK-ul 'userId' de cheia straina catre Users
+    @JoinColumn(name = "user_id")
     private User user;
 
+    // Constructors
     public Student() {}
 
+    public Student(String nickname) {
+        this.nickname = nickname;
+    }
+
     // Getters and Setters
-    public Long getUserId() { return userId; }
-    public void setUserId(Long userId) { this.userId = userId; }
+    public Long getUserId() {
+        return userId;
+    }
 
-    public Integer getXpTotal() { return xpTotal; }
-    public void setXpTotal(Integer xpTotal) { this.xpTotal = xpTotal; }
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
 
-    public Integer getLevel() { return level; }
-    public void setLevel(Integer level) { this.level = level; }
+    public String getNickname() {
+        return nickname;
+    }
 
-    public User getUser() { return user; }
-    public void setUser(User user) { this.user = user; }
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
 }

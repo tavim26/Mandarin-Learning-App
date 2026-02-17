@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-
 public class ExerciseAttemptDto {
 
     private Long id;
@@ -17,11 +16,11 @@ public class ExerciseAttemptDto {
     private BigDecimal score;
     private String feedbackText;
 
-    public ExerciseAttemptDto()
-    {
-    }
+    public ExerciseAttemptDto() {}
 
-    public ExerciseAttemptDto(Long id, Long studentId, Long exerciseId, Integer attemptNumber, LocalDateTime submittedAt, Map<String, Object> submittedAnswer, Boolean isCorrect, BigDecimal score, String feedbackText) {
+    public ExerciseAttemptDto(Long id, Long studentId, Long exerciseId, Integer attemptNumber,
+                              LocalDateTime submittedAt, Map<String, Object> submittedAnswer,
+                              Boolean isCorrect, BigDecimal score, String feedbackText) {
         this.id = id;
         this.studentId = studentId;
         this.exerciseId = exerciseId;
@@ -32,7 +31,6 @@ public class ExerciseAttemptDto {
         this.score = score;
         this.feedbackText = feedbackText;
     }
-
 
     public Long getId() {
         return id;

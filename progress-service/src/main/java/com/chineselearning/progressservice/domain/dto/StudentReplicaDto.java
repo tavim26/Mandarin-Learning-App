@@ -1,25 +1,18 @@
 package com.chineselearning.progressservice.domain.dto;
 
-import java.time.LocalDateTime;
-
-
 public class StudentReplicaDto {
 
     private Long studentId;
-    private String fullName;
-    private String email;
-    private LocalDateTime syncedAt;
+    private Integer xpTotal;
+    private Integer level;
 
-    public StudentReplicaDto() {
-    }
+    public StudentReplicaDto() {}
 
-    public StudentReplicaDto(Long studentId, String fullName, String email, LocalDateTime syncedAt) {
+    public StudentReplicaDto(Long studentId, Integer xpTotal, Integer level) {
         this.studentId = studentId;
-        this.fullName = fullName;
-        this.email = email;
-        this.syncedAt = syncedAt;
+        this.xpTotal = xpTotal;
+        this.level = level;
     }
-
 
     public Long getStudentId() {
         return studentId;
@@ -29,27 +22,19 @@ public class StudentReplicaDto {
         this.studentId = studentId;
     }
 
-    public String getFullName() {
-        return fullName;
+    public Integer getXpTotal() {
+        return xpTotal;
     }
 
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
+    public void setXpTotal(Integer xpTotal) {
+        this.xpTotal = xpTotal;
     }
 
-    public String getEmail() {
-        return email;
+    public Integer getLevel() {
+        return level;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public LocalDateTime getSyncedAt() {
-        return syncedAt;
-    }
-
-    public void setSyncedAt(LocalDateTime syncedAt) {
-        this.syncedAt = syncedAt;
+    public void setLevel(Integer level) {
+        this.level = level;
     }
 }
