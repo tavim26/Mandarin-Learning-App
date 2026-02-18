@@ -6,7 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
 
-public interface IStudentLessonProgressDao extends JpaRepository<StudentLessonProgress, Long> {
+public interface IStudentLessonProgressDao extends JpaRepository<StudentLessonProgress, Long>
+{
 
     // Lookup progress for a specific student on a specific lesson
     Optional<StudentLessonProgress> findByStudentIdAndLessonId(Long studentId, Long lessonId);

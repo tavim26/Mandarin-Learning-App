@@ -71,6 +71,6 @@ public class StudentReplica {
     }
 
     public void recalculateLevel() {
-        this.level = (this.xpTotal / 1000) + 1;
+        this.level = (this.xpTotal / 100) + 1;
     }
 }

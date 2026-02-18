@@ -9,7 +9,8 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Map;
 
 @Service
-public class ContentServiceClient {
+public class ContentServiceClient
+{
 
     private static final Logger log = LoggerFactory.getLogger(ContentServiceClient.class);
 
@@ -18,11 +19,13 @@ public class ContentServiceClient {
 
     private final RestTemplate restTemplate;
 
-    public ContentServiceClient(RestTemplate restTemplate) {
+    public ContentServiceClient(RestTemplate restTemplate)
+    {
         this.restTemplate = restTemplate;
     }
 
-    public Map<String, Object> getExercise(Long exerciseId) {
+    public Map<String, Object> getExercise(Long exerciseId)
+    {
         String url = contentServiceUrl + "/api/content/exercises/" + exerciseId;
 
         try {
@@ -35,8 +38,7 @@ public class ContentServiceClient {
             }
 
             // Validate essential fields
-            if (!exercise.containsKey("lessonId") || !exercise.containsKey("type") ||
-                    !exercise.containsKey("contentData")) {
+            if (!exercise.containsKey("lessonId") || !exercise.containsKey("type") || !exercise.containsKey("contentData")) {
                 throw new IllegalArgumentException("Invalid exercise structure from Content Service");
             }
 
@@ -51,7 +53,8 @@ public class ContentServiceClient {
         }
     }
 
-    public Map<String, Object> getLesson(Long lessonId) {
+    public Map<String, Object> getLesson(Long lessonId)
+    {
         String url = contentServiceUrl + "/api/content/lessons/" + lessonId;
 
         try {

@@ -7,16 +7,18 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-public class EvaluationService {
+public class EvaluationService
+{
 
-    public EvaluationResult evaluate(String exerciseType, Map<String, Object> contentData,
-                                     Map<String, Object> submittedAnswer) {
+    public EvaluationResult evaluate(String exerciseType, Map<String, Object> contentData, Map<String, Object> submittedAnswer) {
 
-        if (contentData == null || submittedAnswer == null) {
+        if (contentData == null || submittedAnswer == null)
+        {
             return new EvaluationResult(BigDecimal.ZERO, "Invalid exercise or answer data");
         }
 
-        switch (exerciseType) {
+        switch (exerciseType)
+        {
             case "MULTIPLE_CHOICE":
                 return evaluateMultipleChoice(contentData, submittedAnswer);
             case "TRANSLATION":
@@ -32,32 +34,35 @@ public class EvaluationService {
 
     private EvaluationResult evaluateMultipleChoice(Map<String, Object> contentData,
                                                     Map<String, Object> submittedAnswer) {
-        String correctOption = (String) contentData.get("correctOption");
-        String selectedOption = (String) submittedAnswer.get("selectedOption");
 
-        if (correctOption == null) {
+        List<String> options = (List<String>) contentData.get("options");
+        Integer correctIndex = (Integer) contentData.get("correctIndex");
+        Integer selectedIndex = (Integer) submittedAnswer.get("selectedIndex");
+
+        if (options == null || correctIndex == null) {
             return new EvaluationResult(BigDecimal.ZERO, "Invalid exercise configuration");
         }
 
-        if (selectedOption == null) {
+        if (selectedIndex == null) {
             return new EvaluationResult(BigDecimal.ZERO, "No option selected");
         }
 
-        if (correctOption.equals(selectedOption)) {
+        if (correctIndex.equals(selectedIndex)) {
             return new EvaluationResult(new BigDecimal("100"), "Correct!");
         } else {
+            String correctAnswer = options.get(correctIndex);
             return new EvaluationResult(BigDecimal.ZERO,
-                    "Incorrect. The correct answer was: " + correctOption);
+                    "Incorrect. The correct answer was: " + correctAnswer);
         }
     }
 
     private EvaluationResult evaluateTranslation(Map<String, Object> contentData,
                                                  Map<String, Object> submittedAnswer) {
-        String correctTranslation = (String) contentData.get("correctTranslation");
-        List<String> alternatives = (List<String>) contentData.get("alternativeTranslations");
+
+        List<String> acceptedAnswers = (List<String>) contentData.get("acceptedAnswers");
         String userTranslation = (String) submittedAnswer.get("translation");
 
-        if (correctTranslation == null) {
+        if (acceptedAnswers == null || acceptedAnswers.isEmpty()) {
             return new EvaluationResult(BigDecimal.ZERO, "Invalid exercise configuration");
         }
 
@@ -65,48 +70,55 @@ public class EvaluationService {
             return new EvaluationResult(BigDecimal.ZERO, "No translation provided");
         }
 
-        // Exact match
-        if (correctTranslation.equals(userTranslation)) {
-            return new EvaluationResult(new BigDecimal("100"), "Perfect translation!");
+        // Normalize for comparison (lowercase, trim)
+        String normalizedUser = userTranslation.toLowerCase().trim();
+
+        // Check against all accepted answers
+        for (String accepted : acceptedAnswers) {
+            if (accepted.toLowerCase().trim().equals(normalizedUser)) {
+                return new EvaluationResult(new BigDecimal("100"), "Perfect translation!");
+            }
         }
 
-        // Alternative match
-        if (alternatives != null && alternatives.contains(userTranslation)) {
-            return new EvaluationResult(new BigDecimal("100"), "Correct alternative translation!");
-        }
-
-        // Partial credit (simplified - contains check)
-        if (userTranslation.contains(correctTranslation) || correctTranslation.contains(userTranslation)) {
-            return new EvaluationResult(new BigDecimal("50"),
-                    "Partially correct. Expected: " + correctTranslation);
+        // Partial credit: check if user answer contains key words
+        for (String accepted : acceptedAnswers) {
+            String normalizedAccepted = accepted.toLowerCase().trim();
+            if (normalizedUser.contains(normalizedAccepted) || normalizedAccepted.contains(normalizedUser)) {
+                return new EvaluationResult(new BigDecimal("50"),
+                        "Partially correct. Expected: " + acceptedAnswers.get(0));
+            }
         }
 
         return new EvaluationResult(BigDecimal.ZERO,
-                "Incorrect. Correct translation: " + correctTranslation);
+                "Incorrect. Correct translation: " + acceptedAnswers.get(0));
     }
 
-    private EvaluationResult evaluateFillBlank(Map<String, Object> contentData,
-                                               Map<String, Object> submittedAnswer) {
+    private EvaluationResult evaluateFillBlank(Map<String, Object> contentData, Map<String, Object> submittedAnswer) {
+
         List<String> correctAnswers = (List<String>) contentData.get("correctAnswers");
         List<String> userAnswers = (List<String>) submittedAnswer.get("answers");
 
-        if (correctAnswers == null || correctAnswers.isEmpty()) {
+        if (correctAnswers == null || correctAnswers.isEmpty())
+        {
             return new EvaluationResult(BigDecimal.ZERO, "Invalid exercise configuration");
         }
 
-        if (userAnswers == null) {
+        if (userAnswers == null)
+        {
             return new EvaluationResult(BigDecimal.ZERO, "No answers provided");
         }
 
-        if (correctAnswers.size() != userAnswers.size()) {
-            return new EvaluationResult(BigDecimal.ZERO,
-                    "Invalid number of answers. Expected: " + correctAnswers.size());
+        if (correctAnswers.size() != userAnswers.size())
+        {
+            return new EvaluationResult(BigDecimal.ZERO, "Invalid number of answers. Expected: " + correctAnswers.size());
         }
 
         // Compare each blank
         int correct = 0;
-        for (int i = 0; i < correctAnswers.size(); i++) {
-            if (correctAnswers.get(i).equalsIgnoreCase(userAnswers.get(i))) {
+        for (int i = 0; i < correctAnswers.size(); i++)
+        {
+            if (correctAnswers.get(i).equalsIgnoreCase(userAnswers.get(i)))
+            {
                 correct++;
             }
         }
@@ -122,27 +134,31 @@ public class EvaluationService {
         return new EvaluationResult(score, feedback);
     }
 
-    private EvaluationResult evaluateMatching(Map<String, Object> contentData,
-                                              Map<String, Object> submittedAnswer) {
+    private EvaluationResult evaluateMatching(Map<String, Object> contentData, Map<String, Object> submittedAnswer) {
+
         List<Map<String, String>> correctPairs = (List<Map<String, String>>) contentData.get("pairs");
         Map<String, String> userMatches = (Map<String, String>) submittedAnswer.get("matches");
 
-        if (correctPairs == null || correctPairs.isEmpty()) {
+        if (correctPairs == null || correctPairs.isEmpty())
+        {
             return new EvaluationResult(BigDecimal.ZERO, "Invalid exercise configuration");
         }
 
-        if (userMatches == null || userMatches.isEmpty()) {
+        if (userMatches == null || userMatches.isEmpty())
+        {
             return new EvaluationResult(BigDecimal.ZERO, "No matches provided");
         }
 
         // Compare pairs
         int correct = 0;
-        for (Map<String, String> pair : correctPairs) {
+        for (Map<String, String> pair : correctPairs)
+        {
             String left = pair.get("left");
             String correctRight = pair.get("right");
             String userRight = userMatches.get(left);
 
-            if (correctRight != null && correctRight.equals(userRight)) {
+            if (correctRight != null && correctRight.equals(userRight))
+            {
                 correct++;
             }
         }
@@ -158,11 +174,13 @@ public class EvaluationService {
         return new EvaluationResult(score, feedback);
     }
 
-    public static class EvaluationResult {
+    public static class EvaluationResult
+    {
         private final BigDecimal score;
         private final String feedback;
 
-        public EvaluationResult(BigDecimal score, String feedback) {
+        public EvaluationResult(BigDecimal score, String feedback)
+        {
             this.score = score;
             this.feedback = feedback;
         }

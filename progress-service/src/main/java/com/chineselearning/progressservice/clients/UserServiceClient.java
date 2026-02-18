@@ -9,7 +9,8 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Map;
 
 @Service
-public class UserServiceClient {
+public class UserServiceClient
+{
 
     private static final Logger log = LoggerFactory.getLogger(UserServiceClient.class);
 
@@ -18,11 +19,13 @@ public class UserServiceClient {
 
     private final RestTemplate restTemplate;
 
-    public UserServiceClient(RestTemplate restTemplate) {
+    public UserServiceClient(RestTemplate restTemplate)
+    {
         this.restTemplate = restTemplate;
     }
 
-    public Map<String, Object> getUserById(Long userId) {
+    public Map<String, Object> getUserById(Long userId)
+    {
         String url = userServiceUrl + "/api/users/" + userId;
 
         try {

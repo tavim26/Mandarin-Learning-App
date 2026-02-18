@@ -7,7 +7,8 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface IExerciseAttemptDao extends JpaRepository<ExerciseAttempt, Long> {
+public interface IExerciseAttemptDao extends JpaRepository<ExerciseAttempt, Long>
+{
 
     // Count total attempts for a specific student on a specific exercise
     // Used to calculate next attempt_number

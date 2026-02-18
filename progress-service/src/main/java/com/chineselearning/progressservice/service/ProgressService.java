@@ -24,7 +24,8 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional
-public class ProgressService {
+public class ProgressService
+{
 
     private static final Logger log = LoggerFactory.getLogger(ProgressService.class);
 
@@ -35,13 +36,7 @@ public class ProgressService {
     private final UserServiceClient userServiceClient;
     private final EvaluationService evaluationService;
 
-    public ProgressService(
-            IStudentReplicaDao studentReplicaDao,
-            IExerciseAttemptDao exerciseAttemptDao,
-            IStudentLessonProgressDao lessonProgressDao,
-            ContentServiceClient contentServiceClient,
-            UserServiceClient userServiceClient,
-            EvaluationService evaluationService
+    public ProgressService(IStudentReplicaDao studentReplicaDao, IExerciseAttemptDao exerciseAttemptDao, IStudentLessonProgressDao lessonProgressDao, ContentServiceClient contentServiceClient, UserServiceClient userServiceClient, EvaluationService evaluationService
     ) {
         this.studentReplicaDao = studentReplicaDao;
         this.exerciseAttemptDao = exerciseAttemptDao;
@@ -51,7 +46,9 @@ public class ProgressService {
         this.evaluationService = evaluationService;
     }
 
-    public ExerciseAttemptDto submitAttempt(SubmitAttemptRequest request) {
+
+    public ExerciseAttemptDto submitAttempt(SubmitAttemptRequest request)
+    {
         Long studentId = request.getStudentId();
         Long exerciseId = request.getExerciseId();
 
@@ -98,7 +95,8 @@ public class ProgressService {
         return mapToExerciseAttemptDto(saved);
     }
 
-    public StudentLessonProgressDto getLessonProgress(Long studentId, Long lessonId) {
+    public StudentLessonProgressDto getLessonProgress(Long studentId, Long lessonId)
+    {
         StudentLessonProgress progress = lessonProgressDao.findByStudentIdAndLessonId(studentId, lessonId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "No progress found for studentId=" + studentId + ", lessonId=" + lessonId));
@@ -106,13 +104,15 @@ public class ProgressService {
         return mapToStudentLessonProgressDto(progress);
     }
 
-    public List<StudentLessonProgressDto> getAllProgressForStudent(Long studentId) {
+    public List<StudentLessonProgressDto> getAllProgressForStudent(Long studentId)
+    {
         return lessonProgressDao.findByStudentId(studentId).stream()
                 .map(this::mapToStudentLessonProgressDto)
                 .collect(Collectors.toList());
     }
 
-    public List<StudentLessonProgressDto> getInProgressLessons(Long studentId) {
+    public List<StudentLessonProgressDto> getInProgressLessons(Long studentId)
+    {
         return lessonProgressDao.findByStudentIdAndStatus(studentId, "IN_PROGRESS").stream()
                 .map(this::mapToStudentLessonProgressDto)
                 .collect(Collectors.toList());
@@ -131,10 +131,15 @@ public class ProgressService {
                 .collect(Collectors.toList());
     }
 
+
+
+
     // ========== PRIVATE HELPER METHODS ==========
 
-    private void ensureStudentReplicaExists(Long studentId) {
-        if (!studentReplicaDao.existsByStudentId(studentId)) {
+    private void ensureStudentReplicaExists(Long studentId)
+    {
+        if (!studentReplicaDao.existsByStudentId(studentId))
+        {
             // Student replica NU exista - lazy creation triggered
             log.info("Student replica not found for studentId={}, creating now...", studentId);
 
@@ -149,12 +154,14 @@ public class ProgressService {
         }
     }
 
-    private void updateLessonProgress(Long studentId, Long lessonId) {
+    private void updateLessonProgress(Long studentId, Long lessonId)
+    {
         // STEP 1: Fetch lesson from Content Service (get exercises array)
         Map<String, Object> lesson = contentServiceClient.getLesson(lessonId);
         List<Map<String, Object>> exercises = (List<Map<String, Object>>) lesson.get("exercises");
 
-        if (exercises == null || exercises.isEmpty()) {
+        if (exercises == null || exercises.isEmpty())
+        {
             log.warn("Lesson {} has no exercises, skipping progress update", lessonId);
             return;
         }
@@ -228,7 +235,8 @@ public class ProgressService {
                 studentId, lessonId, completionPct, progress.getStatus());
     }
 
-    private void awardXpToStudent(Long studentId, int xpToAdd) {
+    private void awardXpToStudent(Long studentId, int xpToAdd)
+    {
         StudentReplica student = studentReplicaDao.findById(studentId)
                 .orElseThrow(() -> new IllegalArgumentException("Student replica not found: " + studentId));
 
@@ -238,6 +246,9 @@ public class ProgressService {
         studentReplicaDao.save(student);
         log.info("Student {} now has {} XP (level {})", studentId, student.getXpTotal(), student.getLevel());
     }
+
+
+
 
     // ========== DTO MAPPING METHODS ==========
 
