@@ -1,105 +1,87 @@
 # User Service - Chinese Learning Platform
 
-Microservice pentru Identity & Authentication Management in arhitectura distribuita. Gestioneaza inregistrare utilizatori, autentificare JWT si profiluri studenți/profesori.
+Microservice pentru **Identity & Authentication Management**. Gestioneaza user registration, JWT authentication si profiluri studenti/profesori.
 
 ## Stack Tehnologic
 
-* **Java 21** + **Spring Boot 4.0.0**
-* **PostgreSQL 16+** (Hibernate 6 JPA)
-* **Spring Security 6** + JWT
-* **Maven** + **SpringDoc OpenAPI**
-* **Docker** + Amazon Corretto 21
-
-## Arhitectura
-
-**N-Tier Architecture** cu separare clara:
-```
-domain/       -> Entities (JPA) + DTOs + DAOs (JpaRepository)
-service/      -> Business logic + manual DTO mapping
-controller/   -> REST endpoints + Swagger docs
-config/       -> Spring Security setup
-```
-
-**Reguli Implementare:**
-- Fara Lombok, MapStruct (getters/setters/mapping manual)
-- Fara diacritice in cod si comentarii (encoding safety)
-- Comentarii DOAR cu // (INTERZIS /* ... */)
-- JWT generation only (validare in API Gateway viitor)
-- Controllers NU importa DAO (separation of concerns strict)
+**Java 21** + **Spring Boot 4.0.0** + **PostgreSQL 16+** + **Spring Security 6** + **JWT** + **Maven** + **Docker**
 
 ## Schema Baza de Date
 
-**Database:** `user_database` (postgres/kuso)  
-**Port:** 8082  
-**Swagger:** http://localhost:8082/swagger-ui/index.html
+**Database:** `user_database` | **Port:** 8082
 
-### Tabele si Relatii (@MapsId strategy):
+```dbml
+Table "credentials" {
+  "id" BIGINT [pk, increment]
+  "email" VARCHAR(255) [unique, not null]
+  "password_hash" VARCHAR(255) [not null]
+  "role" VARCHAR(20) [not null]
+  "created_at" TIMESTAMP [not null]
+}
+
+Table "users" {
+  "id" BIGINT [pk]
+  "full_name" VARCHAR(255) [not null]
+}
+
+Table "students" {
+  "user_id" BIGINT [pk]
+  "nickname" VARCHAR(50)
+}
+
+Table "teachers" {
+  "user_id" BIGINT [pk]
+  "title" VARCHAR(255)
+}
+
+Ref: "users"."id" - "credentials"."id"
+Ref: "students"."user_id" - "users"."id"
+Ref: "teachers"."user_id" - "users"."id"
 ```
-credentials (PK: id, auto-inc)
-├── id, email (UNIQUE), password_hash, role, created_at
-└── 1:1 -> users
 
-users (PK: id via @MapsId from credentials)
-├── id, full_name
-├── 1:1 -> students (optional)
-└── 1:1 -> teachers (optional)
+**Key Points:**
+- **@MapsId Strategy:** `credentials.id = users.id = students.user_id` (same ID propagated)
+- **Cascade:** Credential → User → Student/Teacher (CascadeType.ALL)
+- **Fetch:** LAZY on all relationships
+- **Roles:** STUDENT, TEACHER, ADMIN
 
-students (PK: user_id via @MapsId from users)
-└── user_id, nickname (optional display name)
+## Bounded Context
 
-teachers (PK: user_id via @MapsId from users)
-└── user_id, title (nullable)
-```
+**Domain:** Identity & Authentication
 
-**ID Sharing Strategy:**
-- `credentials.id = users.id = students.user_id` (acelasi ID propagat prin toate tabelele)
-- Beneficiu: Un singur ID pentru intreg user graph, simplifica foreign keys
-- Pattern: `@MapsId` pe User.id si Student/Teacher.userId
-
-**Cascade:** `Credential -> User -> Student/Teacher` (CascadeType.ALL)  
-**Fetch:** LAZY pe toate relatiile (optimizare N+1 queries)
-
-**Roluri:** STUDENT, TEACHER, ADMIN (ADMIN fara entitate separata)
-
-## Bounded Context (Domain-Driven Design)
-
-**User Service = Identity & Authentication Domain**
-
-### Responsibilities:
-- User registration cu role selection (STUDENT/TEACHER/ADMIN)
+**Owns:**
+- User registration (role selection: STUDENT/TEACHER/ADMIN)
 - JWT authentication (login/register)
-- User profile CRUD operations (full_name, email)
-- Student nickname management (optional display name pentru gamification)
+- User profile CRUD (full_name, email)
+- Student nickname management (optional display name)
 - Teacher title management (academic credentials)
 
-### Out of Scope:
-User Service NU gestioneaza:
-- Progress tracking (exercise attempts, lesson completion)
-- XP/level management (calculat in Progress Service)
-- Leaderboard queries (data stored in Progress Service)
+**Does NOT Own:**
+- Progress tracking (exercise attempts, lesson completion in Progress Service)
+- XP/level management (calculated in Progress Service)
+- Leaderboard queries (data in Progress Service)
 
-## Autentificare JWT
+## JWT Authentication
 
-### Register Flow:
+**Register Flow:**
 ```
-POST /api/auth/register {"email", "password", "fullName", "role"}
-1. Valideaza email (unique constraint) si rol (STUDENT/TEACHER/ADMIN)
-2. Creeaza Credential cu BCrypt password hash
-3. Creeaza User (cascade save)
-4. Daca role == STUDENT -> creeaza Student entity (nickname=NULL)
-5. Daca role == TEACHER -> creeaza Teacher entity (title="")
-6. Salveaza prin cascade (1 save operation)
-7. Genereaza JWT cu payload: {userId, role, email}
-8. Response: {token, userId, role, fullName}
+POST /api/auth/register {email, password, fullName, role}
+1. Validate email unique + role (STUDENT/TEACHER/ADMIN)
+2. Create Credential (BCrypt password hash)
+3. Create User (cascade)
+4. IF role=STUDENT -> Create Student entity (nickname=NULL)
+5. IF role=TEACHER -> Create Teacher entity (title="")
+6. Save (cascade saves all)
+7. Generate JWT {userId, role, email}
+8. Return {token, userId, role, fullName}
 ```
 
-### Login Flow:
+**Login Flow:**
 ```
-POST /api/auth/login {"email", "password"}
-1. AuthenticationManager valideaza credentials (Spring Security)
-2. CustomUserDetailsService incarca user din DB
-3. Genereaza JWT nou
-4. Response: {token, userId, role, fullName}
+POST /api/auth/login {email, password}
+1. AuthenticationManager validates credentials
+2. Generate new JWT
+3. Return {token, userId, role, fullName}
 ```
 
 **JWT Structure:**
@@ -113,255 +95,96 @@ POST /api/auth/login {"email", "password"}
 }
 ```
 
-**Security Config:**
-- CSRF disabled (REST stateless)
-- `/api/auth/**` + `/swagger-ui/**` public (permitAll)
-- `anyRequest().permitAll()` (simplificare licenta - fara JWT filter validation)
-- Session STATELESS (no server-side session)
-- **NOTE:** JWT validation va fi implementata in API Gateway (centralizat)
+**Security:** JWT validation delegated to API Gateway (User Service only generates)
 
 ## API Endpoints
 
-Toate rutele incep cu `/api/users`.
+**Base:** `/api/users`
 
-### Authentication (`/api/auth`)
+### Authentication
 ```
-POST /register  -> Inregistrare publica (STUDENT/TEACHER/ADMIN)
-POST /login     -> Autentificare (generare JWT)
-```
-
-### User Management (`/api/users`)
-```
-POST   /                           -> Creare user (admin use)
-GET    /                           -> Lista toti userii
-GET    /{id}                       -> Detalii user (USED BY PROGRESS SERVICE)
-GET    /search?name=fragment       -> Cautare dupa nume (LIKE query)
-PUT    /{id}/name?newName=...      -> Update nume
-DELETE /{id}                       -> Stergere (cascade)
-
-GET    /students/{userId}          -> Info student (nickname)
-PUT    /students/{userId}/nickname?newNickname=...  -> Update nickname
-
-GET    /teachers/{userId}          -> Info profesor
-PUT    /teachers/{userId}/title?newTitle=...  -> Update titlu
+POST /api/auth/register  -> Public registration
+POST /api/auth/login     -> Authentication
 ```
 
-## Entities si DTOs
-
-### Entities (JPA):
-
-**Credential:**
-```java
-@Entity
-@Table(name = "credentials")
-public class Credential {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
-    @Column(unique = true, nullable = false)
-    private String email;
-    
-    @Column(name = "password_hash", nullable = false)
-    private String passwordHash;
-    
-    @Column(nullable = false, length = 20)
-    private String role;
-    
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
-    
-    @OneToOne(mappedBy = "credential", cascade = CascadeType.ALL)
-    private User user;
-}
+### User Management
+```
+POST   /                          -> Create user (admin)
+GET    /                          -> List all users
+GET    /{id}                      -> Get user (USED BY PROGRESS SERVICE)
+GET    /search?name=fragment      -> Search by name
+PUT    /{id}/name?newName=...     -> Update full name
+DELETE /{id}                      -> Delete (cascade)
 ```
 
-**User:**
-```java
-@Entity
-@Table(name = "users")
-public class User {
-    @Id
-    private Long id;
-    
-    @Column(name = "full_name", nullable = false)
-    private String fullName;
-    
-    @OneToOne(fetch = FetchType.LAZY)
-    @MapsId
-    @JoinColumn(name = "id")
-    private Credential credential;
-    
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
-    private Student student;
-    
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
-    private Teacher teacher;
-}
+### Student Operations
+```
+GET /students/{userId}                   -> Get student (nickname)
+PUT /students/{userId}/nickname?newNickname=...  -> Update nickname
 ```
 
-**Student:**
-```java
-@Entity
-@Table(name = "students")
-public class Student {
-    @Id
-    private Long userId;
-    
-    @Column(name = "nickname", length = 50)
-    private String nickname;  // Optional display name
-    
-    @OneToOne(fetch = FetchType.LAZY)
-    @MapsId
-    @JoinColumn(name = "user_id")
-    private User user;
-}
+### Teacher Operations
 ```
-
-**Teacher:**
-```java
-@Entity
-@Table(name = "teachers")
-public class Teacher {
-    @Id
-    private Long userId;
-    
-    @Column(length = 255)
-    private String title;  // e.g., "PhD", "Professor"
-    
-    @OneToOne(fetch = FetchType.LAZY)
-    @MapsId
-    @JoinColumn(name = "user_id")
-    private User user;
-}
-```
-
-### DTOs (Transfer Objects):
-
-**UserDto:**
-```java
-public class UserDto {
-    private Long id;
-    private String fullName;
-    private String role;  // STUDENT, TEACHER, ADMIN
-}
-```
-
-**StudentDto:**
-```java
-public class StudentDto {
-    private Long userId;
-    private String nickname;  // Optional display name
-}
-```
-
-**TeacherDto:**
-```java
-public class TeacherDto {
-    private Long userId;
-    private String title;
-}
-```
-
-**RegisterRequestDto:**
-```java
-public class RegisterRequestDto {
-    private String email;
-    private String password;
-    private String fullName;
-    private String role;  // STUDENT, TEACHER, ADMIN
-}
-```
-
-**AuthResponseDto:**
-```java
-public class AuthResponseDto {
-    private String token;
-    private Long userId;
-    private String role;
-    private String fullName;
-}
+GET /teachers/{userId}                   -> Get teacher
+PUT /teachers/{userId}/title?newTitle=... -> Update title
 ```
 
 ## Service Layer Logic
 
-### AuthService:
-```java
-@Transactional
-AuthResponseDto register(RegisterRequestDto request)
-  1. Validate email unique
-  2. Validate role (STUDENT/TEACHER/ADMIN)
-  3. Create Credential + User + Student/Teacher (cascade)
-  4. Generate JWT
-  5. Return AuthResponseDto
+**AuthService:**
+- `register()`: Create Credential → User → Student/Teacher (cascade), generate JWT
+- `login()`: Authenticate, generate new JWT
 
-AuthResponseDto login(AuthRequestDto request)
-  1. Authenticate via Spring Security
-  2. Generate new JWT
-  3. Return AuthResponseDto
+**UserService:**
+- `createUser()`: Similar to register, no JWT (admin use)
+- `getAllUsers()`, `getUserById()`, `searchUsersByName()`, `updateUserName()`, `deleteUser()`
+- `getStudentById()`, `updateStudentNickname()`
+- `getTeacherById()`, `updateTeacherTitle()`
+
+## DTOs
+
+**UserDto:**
+```java
+{id, fullName, role}
 ```
 
-### UserService:
+**StudentDto:**
 ```java
-@Transactional
-UserDto createUser(RegisterRequestDto request)
-  - Similar to register() but NO JWT generation (admin use)
-
-CRUD Operations:
-  - getAllUsers() - fetch all
-  - getUserById(Long id) - fetch one (CRITICAL: used by Progress Service)
-  - searchUsersByName(String fragment) - LIKE query
-  - updateUserName(Long id, String newName)
-  - deleteUser(Long id) - cascade delete
-
-Student Operations:
-  - getStudentById(Long userId) - StudentDto
-  - updateStudentNickname(Long userId, String newNickname)
-
-Teacher Operations:
-  - getTeacherById(Long userId) - TeacherDto
-  - updateTeacherTitle(Long userId, String title)
+{userId, nickname}
 ```
 
-### CustomUserDetailsService:
+**TeacherDto:**
 ```java
-UserDetails loadUserByUsername(String email)
-  - Implements Spring Security UserDetailsService
-  - Loads Credential from DB by email
-  - Returns UserDetails for authentication
+{userId, title}
 ```
 
-### JwtService:
+**RegisterRequestDto:**
 ```java
-String generateToken(Map<String, Object> extraClaims, UserDetails userDetails)
-  - Creates JWT with custom claims (userId, role)
-  - Signs with HMAC secret key
-  - Sets expiration (24 hours default)
+{email, password, fullName, role}
+```
 
-String extractUsername(String token)
-boolean isTokenValid(String token, UserDetails userDetails)
-  - Utility methods for token parsing/validation
-  - NOT used in User Service (API Gateway responsibility)
+**AuthResponseDto:**
+```java
+{token, userId, role, fullName}
 ```
 
 ## Integration cu Alte Servicii
 
-### Progress Service Dependencies:
+**Progress Service Dependencies:**
 
-**Endpoint consumat:** `GET /api/users/{id}`
+**Endpoint:** `GET /api/users/{id}`
 
 **Usage:** Lazy student replica creation
-
-**Flow:**
 ```
+Flow:
 1. Student submits first attempt -> Progress Service
-2. Progress Service checks: EXISTS student_id in students_replica?
-3. If NO -> Call User Service: GET /api/users/{id}
-4. Validate student exists + role=STUDENT
-5. Create minimal replica in Progress Service (xpTotal=0, level=1)
+2. Progress Service: EXISTS student_id in replica? NO
+3. Call User Service: GET /api/users/{id}
+4. Validate: role=STUDENT
+5. Create minimal replica (xpTotal=0, level=1)
 ```
 
-**Response Structure:**
+**Response:**
 ```json
 {
   "id": 1,
@@ -370,304 +193,207 @@ boolean isTokenValid(String token, UserDetails userDetails)
 }
 ```
 
-**Error Handling:**
-- User not found -> 404 Not Found
-- User is not STUDENT -> Progress Service throws validation error
+**Error:** 404 if user not found
 
-**Integration Pattern:** On-demand REST API call (synchronous)
+**Pattern:** On-demand REST API (synchronous)
 
-### Future Service Dependencies:
+## Key Architectural Decisions
 
-**Group Service:**
-- GET /api/users/students/{userId} - validate student exists
-- GET /api/users/teachers/{userId} - validate teacher exists
+**1. @MapsId Strategy**
+- One shared ID: credentials.id = users.id = students.user_id
+- Simplifies JOINs, prevents orphan records
+- Cascade delete guarantees cleanup
 
-**Frontend:**
-- POST /api/auth/login - authentication
-- GET /api/users/students/{userId} - display student nickname
-- Leaderboard display: Progress Service returns studentId + XP, Frontend fetches nickname from User Service
+**2. Cascade Operations**
+- CascadeType.ALL: Credential → User → Student/Teacher
+- Single `save(credential)` saves entire graph
+- Delete user → deletes all related entities
 
-## Decizii Arhitecturale
+**3. LAZY Fetch**
+- FetchType.LAZY on all @OneToOne/@ManyToOne
+- Prevents N+1 queries
+- Requires @Transactional on Service methods
 
-### @MapsId Strategy:
-**Decision:** Un singur ID partajat intre credentials/users/students/teachers
+**4. JWT Generation Only**
+- User Service generates JWT, does NOT validate in requests
+- API Gateway (future) will validate centrally
+- Current: `anyRequest().permitAll()` (thesis simplification)
 
-**Justification:**
-- Simplifica JOIN queries (nu trebuie multiple FK traversals)
-- Consistenta: user graph always has same ID
-- Evita orphan records (cascade delete garanteaza cleanup)
+**5. Manual DTO Mapping**
+- No Lombok/MapStruct
+- Full control over DTO structure
+- Avoids lazy loading exceptions
 
-**Trade-off:** Credentials table leaked implementation detail (user_id = credential_id)
+**6. Nickname Field**
+- Students table: user_id + nickname (optional)
+- Default: NULL at registration
+- Purpose: Display name for gamification (e.g., "DragonSlayer123")
+- Usage: Progress Service returns studentId + XP, Frontend fetches nickname from User Service
 
-**Implementation:**
+## Entities (Key Structure)
+
+**Credential:**
 ```java
 @Entity
-@Table(name = "students")
-public class Student {
-    @Id
-    private Long userId;  // NOT auto-increment
-    
-    @MapsId
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
+public class Credential {
+    @Id @GeneratedValue
+    private Long id;
+    @Column(unique = true, nullable = false)
+    private String email;
+    private String passwordHash;
+    private String role;
+    private LocalDateTime createdAt;
+    @OneToOne(cascade = ALL)
     private User user;
 }
 ```
 
-### Cascade Operations:
-**Decision:** CascadeType.ALL de la Credential -> User -> Student/Teacher
-
-**Justification:**
-- Un singur `save(credential)` salveaza tot graful
-- Delete user -> sterge automat credentials, student/teacher data
-- Simplifica transaction management
-
-**Trade-off:** Cannot partially delete (ex: keep user, delete student) - all-or-nothing
-
-### LAZY Fetch:
-**Decision:** FetchType.LAZY pe toate relatiile @OneToOne/@ManyToOne
-
-**Justification:**
-- Previne N+1 queries (load 100 users NU incarca automat 100 students)
-- Date incarcate doar la acces explicit: `user.getStudent()`
-
-**Requirement:** @Transactional pe Service methods pentru Hibernate session active
-
-### JWT fara Validation Filter:
-**Decision:** User Service genereaza JWT, dar NU valideaza in requests
-
-**Justification:**
-- API Gateway (viitor) va valida centralizat
-- Evita duplicare cod in fiecare microservice
-- User Service = Authentication Authority, Gateway = Authorization Enforcer
-
-**Current State:** `anyRequest().permitAll()` - NO PROTECTION (temporary pentru licenta)
-
-### Manual DTO Mapping:
-**Decision:** No Lombok, no MapStruct - manual getters/setters/mapping
-
-**Justification:**
-- Control complet asupra structurii DTO
-- Debugging mai usor (no generated code)
-- Evita lazy loading exceptions (extract doar ID-uri pentru FK)
-
-**Pattern:**
+**Student:**
 ```java
-private UserDto mapToUserDto(User user) {
-    return new UserDto(
-        user.getId(),
-        user.getFullName(),
-        user.getCredential().getRole()  // Access parent OK (already loaded)
-    );
+@Entity
+public class Student {
+    @Id
+    private Long userId;  // NOT auto-increment
+    @Column(length = 50)
+    private String nickname;
+    @MapsId @OneToOne(fetch = LAZY)
+    private User user;
 }
-```
-
-### Nickname Field:
-**Decision:** Students table contine doar userId + nickname (optional)
-
-**Purpose:**
-- Optional display name pentru gamification (e.g., "DragonSlayer123")
-- Alternative la afisare full_name in leaderboard
-- Social feature enabler (viitor)
-
-**Default:** NULL la inregistrare, poate fi setat mai tarziu prin endpoint dedicat
-
-**Usage Pattern:**
-```
-Register student -> nickname=NULL
-Later: PUT /students/{id}/nickname?newNickname=DragonSlayer
-Leaderboard: Progress Service returneaza studentId + XP
-Frontend: Fetch nickname din User Service pentru display
 ```
 
 ## Configurare
 
-### application.properties (Local):
 ```properties
 server.port=8082
-
-# Database
 spring.datasource.url=jdbc:postgresql://localhost:5432/user_database
 spring.datasource.username=postgres
 spring.datasource.password=kuso
-spring.datasource.driver-class-name=org.postgresql.Driver
-
-# JPA
 spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-spring.jpa.properties.hibernate.format_sql=true
-
-# Security Logging
-logging.level.org.springframework.security=INFO
 
 # JWT
 application.security.jwt.secret-key=404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
 application.security.jwt.expiration=86400000
 ```
 
-### Docker Environment Variables (override local):
-```yaml
-environment:
-  SPRING_DATASOURCE_URL: jdbc:postgresql://user-database:5432/user_database
-  SPRING_DATASOURCE_USERNAME: postgres
-  SPRING_DATASOURCE_PASSWORD: kuso
-  SPRING_JPA_HIBERNATE_DDL_AUTO: update
-  SPRING_JPA_SHOW_SQL: "true"
+## Example Flows
+
+**Student Registration:**
+```
+POST /api/auth/register {email, password, fullName, role:"STUDENT"}
+-> Create: Credential + User + Student (nickname=NULL)
+-> Generate JWT
+-> Response: {token, userId:1, role:"STUDENT", fullName}
+-> Progress Service: NO action (lazy creation pattern)
 ```
 
-### Setup DB Local:
-```sql
-CREATE DATABASE user_database;
+**Lazy Validation (Progress Service calls):**
+```
+Progress Service: Submit first attempt
+-> Check: EXISTS student_id=1 in replica? NO
+-> Call: GET /api/users/1
+-> Response: {id:1, fullName:"John", role:"STUDENT"}
+-> Create replica in Progress Service
 ```
 
-### Rulare Local:
-```bash
-mvn spring-boot:run
+**Nickname Update:**
 ```
-
-### Rulare Docker:
-```bash
-docker-compose up --build user-service
-```
-
-## Test Scenarios (Swagger)
-
-### 1. Register + Login Flow:
-```
-POST /api/auth/register {email, password, fullName, role: "STUDENT"}
-  -> Verify: response contains JWT token
-  -> Verify: studentId present
-
-POST /api/auth/login {email, password}
-  -> Verify: new JWT token (different from register)
-  -> Verify: userId matches registered user
-```
-
-### 2. CRUD Operations:
-```
-GET /api/users
-  -> List all users
-GET /api/users/search?name=John
-  -> Search by name fragment
-PUT /api/users/1/name?newName=John Updated
-  -> Update name
-DELETE /api/users/1
-  -> Cascade delete
-```
-
-### 3. Student Nickname:
-```
-POST /api/auth/register {role: "STUDENT"}
-  -> Verify: nickname=NULL in database
-
 PUT /api/users/students/1/nickname?newNickname=DragonSlayer
-  -> Verify: nickname updated
-
-GET /api/users/students/1
-  -> Verify: {userId: 1, nickname: "DragonSlayer"}
+-> UPDATE students SET nickname='DragonSlayer' WHERE user_id=1
+-> Response: {userId:1, nickname:"DragonSlayer"}
+-> Progress Service: NO action (nickname stored only in User Service)
+-> Frontend: Fetches nickname when displaying leaderboard
 ```
 
-### 4. Admin vs Student Registration:
-```
-POST /api/auth/register {role: "ADMIN"}
-  -> Verify: NO Student entity created
+## Test Scenarios
 
-POST /api/auth/register {role: "STUDENT"}
-  -> Verify: Student entity created (nickname=NULL)
+**Register + Login:**
+```
+POST /auth/register {role:"STUDENT"}
+-> Verify: JWT token, nickname=NULL in DB
+POST /auth/login
+-> Verify: New JWT token
 ```
 
-### 5. Integration Test cu Progress Service:
+**CRUD:**
 ```
-1. Register student in User Service (userId=42)
+GET /users -> List all
+GET /users/1 -> Get one
+PUT /users/1/name?newName=Updated
+DELETE /users/1 -> Cascade delete
+```
+
+**Nickname:**
+```
+POST /auth/register {role:"STUDENT"}
+-> nickname=NULL
+PUT /students/1/nickname?newNickname=Test
+GET /students/1
+-> {userId:1, nickname:"Test"}
+```
+
+**Role Validation:**
+```
+POST /auth/register {role:"TEACHER"}
+-> Teacher entity created, NO Student
+POST /auth/register {role:"ADMIN"}
+-> NO Student/Teacher entity
+```
+
+**Integration:**
+```
+1. Register student (userId=42)
 2. Progress Service: Submit first attempt
-3. Progress Service calls: GET /api/users/42
-4. Verify: User Service returns valid student data
-5. Progress Service: Creates student replica
+3. Progress Service calls: GET /users/42
+4. Verify: Valid response
+5. Progress Service: Creates replica
 ```
 
 ## Known Limitations
 
-**Current Implementation:**
-- No email verification flow (email assumed valid)
+- No email verification flow
 - No password reset functionality
-- No rate limiting pe register/login (vulnerable to brute force)
-- No audit trail (cine a modificat ce si cand)
-- No password complexity requirements
-
-**Security Gaps (acceptable pentru licenta, NU production):**
-- `anyRequest().permitAll()` - no authentication required
-- Passwords stored cu BCrypt dar no complexity requirements
-- JWT secret in plaintext in properties (ar trebui externalizat)
-- No refresh token mechanism (JWT expira dupa 24h, re-login required)
-
-**Future Enhancements:**
-- Add email verification cu confirmation token
-- Add password reset flow
-- Add refresh token support
-- Add rate limiting (Spring Cloud Gateway)
-- Add audit logging (created_by, updated_by, timestamps)
-- Add password complexity validation
-- Add externalized secrets management (Vault, K8s Secrets)
-
-## Docker Configuration
-
-**Dockerfile:** Multi-stage build cu Amazon Corretto 21 Alpine
-
-**Dependencies:**
-- user-database (PostgreSQL 16)
-- Network: chinese-learning-network
-
-**Ports:**
-- Internal: 8082
-- External: 8082
-
-**Health Check:** Depends on user-database healthy
-
-**Startup Order:**
-1. PostgreSQL starts + healthcheck passes
-2. User Service starts
+- No JWT refresh tokens
+- No rate limiting (vulnerable to brute force)
+- Security: `anyRequest().permitAll()` (no authentication - thesis only)
+- No audit trail (timestamps, created_by)
 
 ## AI Agent Quick Reference
 
 **Service Identity:**
-- Name: User Service
 - Domain: Identity & Authentication
-- Database: user_database
-- Port: 8082
-- Tech Stack: Java 21, Spring Boot 4, PostgreSQL 16
+- Database: user_database, Port: 8082
+- Tech: Java 21, Spring Boot 4, PostgreSQL 16, JWT
 
-**Core Responsibilities:**
+**Responsibilities:**
 - User registration (STUDENT/TEACHER/ADMIN roles)
-- JWT authentication
+- JWT authentication (login/register)
 - User profile CRUD (full_name, email, nickname)
 - Student/Teacher entity management
 
-**Key Integration Points:**
+**Integration:**
 - Exposes: GET /api/users/{id} for Progress Service
 - Pattern: On-demand REST API (synchronous)
 - No event publishing (no RabbitMQ)
 
-**Database Schema:**
+**Schema:**
 - credentials (id PK, email UNIQUE, password_hash, role, created_at)
 - users (id PK via @MapsId, full_name)
 - students (user_id PK via @MapsId, nickname)
 - teachers (user_id PK via @MapsId, title)
 
-**Critical Implementation Details:**
+**Critical Details:**
 - @MapsId strategy: credentials.id = users.id = students.user_id
-- Cascade: ALL operations propagate down entity graph
+- Cascade: ALL operations propagate down
 - Fetch: LAZY on all relationships
 - Security: permitAll() for thesis (JWT validation in Gateway)
 
-**NOT Managed Here:**
-- XP/level tracking -> Progress Service
-- Exercise attempts -> Progress Service
-- Lesson progress -> Progress Service
-- Leaderboard data -> Progress Service
+**Data Ownership:**
+- Owns: User identity (full_name, email, nickname)
+- Does NOT own: XP, level, attempts, progress (Progress Service)
 
-**Typical Usage by AI Agent:**
-When implementing new features:
-1. Check if feature is Identity-related -> User Service
-2. Check if feature is Progress-related -> Progress Service
-3. Integration: Use REST API GET /users/{id} for validation
+**Typical Usage:**
+When implementing features:
+1. Identity-related -> User Service
+2. Progress-related -> Progress Service
+3. Integration: REST API GET /users/{id} for validation
 4. No cross-service data duplication (Single Source of Truth)
