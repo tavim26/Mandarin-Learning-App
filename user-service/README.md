@@ -1,13 +1,12 @@
 # User Service - Chinese Learning Platform
 
-Microserviciu pentru gestionare utilizatori, autentificare JWT, operatii specifice studentilor/profesorilor si publicare evenimente RabbitMQ pentru sincronizare cross-service.
+Microservice pentru Identity & Authentication Management in arhitectura distribuita. Gestioneaza inregistrare utilizatori, autentificare JWT si profiluri studenți/profesori.
 
 ## Stack Tehnologic
 
 * **Java 21** + **Spring Boot 4.0.0**
 * **PostgreSQL 16+** (Hibernate 6 JPA)
 * **Spring Security 6** + JWT
-* **RabbitMQ** (AMQP) pentru event publishing
 * **Maven** + **SpringDoc OpenAPI**
 * **Docker** + Amazon Corretto 21
 
@@ -16,18 +15,16 @@ Microserviciu pentru gestionare utilizatori, autentificare JWT, operatii specifi
 **N-Tier Architecture** cu separare clara:
 ```
 domain/       -> Entities (JPA) + DTOs + DAOs (JpaRepository)
-service/      -> Business logic + manual DTO mapping + event publishing
+service/      -> Business logic + manual DTO mapping
 controller/   -> REST endpoints + Swagger docs
-config/       -> Spring Security setup + RabbitMQ configuration
-events/       -> Event DTOs (StudentCreatedEvent, etc.)
+config/       -> Spring Security setup
 ```
 
-**Reguli Implementare (AI Context):**
+**Reguli Implementare:**
 - Fara Lombok, MapStruct (getters/setters/mapping manual)
 - Fara diacritice in cod si comentarii (encoding safety)
 - Comentarii DOAR cu // (INTERZIS /* ... */)
 - JWT generation only (validare in API Gateway viitor)
-- Spring Boot 4.0.0 API (AuthenticationManagerBuilder pattern)
 - Controllers NU importa DAO (separation of concerns strict)
 
 ## Schema Baza de Date
@@ -48,7 +45,7 @@ users (PK: id via @MapsId from credentials)
 └── 1:1 -> teachers (optional)
 
 students (PK: user_id via @MapsId from users)
-└── user_id, xp_total (default 0), level (default 1)
+└── user_id, nickname (optional display name)
 
 teachers (PK: user_id via @MapsId from users)
 └── user_id, title (nullable)
@@ -64,6 +61,23 @@ teachers (PK: user_id via @MapsId from users)
 
 **Roluri:** STUDENT, TEACHER, ADMIN (ADMIN fara entitate separata)
 
+## Bounded Context (Domain-Driven Design)
+
+**User Service = Identity & Authentication Domain**
+
+### Responsibilities:
+- User registration cu role selection (STUDENT/TEACHER/ADMIN)
+- JWT authentication (login/register)
+- User profile CRUD operations (full_name, email)
+- Student nickname management (optional display name pentru gamification)
+- Teacher title management (academic credentials)
+
+### Out of Scope:
+User Service NU gestioneaza:
+- Progress tracking (exercise attempts, lesson completion)
+- XP/level management (calculat in Progress Service)
+- Leaderboard queries (data stored in Progress Service)
+
 ## Autentificare JWT
 
 ### Register Flow:
@@ -72,12 +86,11 @@ POST /api/auth/register {"email", "password", "fullName", "role"}
 1. Valideaza email (unique constraint) si rol (STUDENT/TEACHER/ADMIN)
 2. Creeaza Credential cu BCrypt password hash
 3. Creeaza User (cascade save)
-4. Daca role == STUDENT → creeaza Student entity (xpTotal=0, level=1)
-5. Daca role == TEACHER → creeaza Teacher entity
+4. Daca role == STUDENT -> creeaza Student entity (nickname=NULL)
+5. Daca role == TEACHER -> creeaza Teacher entity (title="")
 6. Salveaza prin cascade (1 save operation)
-7. Publish StudentCreatedEvent la RabbitMQ (daca STUDENT)
-8. Genereaza JWT cu payload: {userId, role, email}
-9. Response: {token, userId, role, fullName}
+7. Genereaza JWT cu payload: {userId, role, email}
+8. Response: {token, userId, role, fullName}
 ```
 
 ### Login Flow:
@@ -107,143 +120,182 @@ POST /api/auth/login {"email", "password"}
 - Session STATELESS (no server-side session)
 - **NOTE:** JWT validation va fi implementata in API Gateway (centralizat)
 
-## RabbitMQ Event-Driven Architecture
-
-### Events Published:
-
-User Service actioneaza ca **Event Publisher** pentru sincronizare student identity data.
-
-**StudentCreatedEvent:**
-```java
-{
-  "studentId": 1,
-  "fullName": "John Doe",
-  "email": "john@example.com"
-}
-```
-**Trigger:** POST /api/auth/register cu role=STUDENT SAU POST /api/users cu role=STUDENT
-
----
-
-**StudentUpdatedEvent:**
-```java
-{
-  "studentId": 1,
-  "fullName": "John Updated",
-  "email": "john.updated@example.com"
-}
-```
-**Trigger:** PUT /api/users/{id}/name (daca user este STUDENT)
-
----
-
-**StudentDeletedEvent:**
-```java
-{
-  "studentId": 1
-}
-```
-**Trigger:** DELETE /api/users/{id} (daca user este STUDENT)
-
----
-
-### RabbitMQ Configuration:
-
-**Exchange:** `user.events.exchange` (TopicExchange)
-
-**Routing Keys:**
-- `student.created` → StudentCreatedEvent
-- `student.updated` → StudentUpdatedEvent
-- `student.deleted` → StudentDeletedEvent
-
-**Message Format:** JSON (Jackson2JsonMessageConverter)
-
-**Publisher:** `StudentEventPublisher` service wraps RabbitTemplate
-
-**Error Handling:**
-- Events publicate DUPA database commit (success)
-- Failure la publish → logged but NOT rolled back (eventual consistency)
-- Consumers handle idempotency (duplicate events possible)
-
-### Integration Pattern:
-
-**Eventual Consistency pentru Student Identity:**
-- User Service = Source of Truth pentru student data
-- Progress Service = Replica consumata via events
-- Motivație: Student data rarely changes, eventual consistency acceptable
-- Alternative rejected: Synchronous API calls → tight coupling, cascading failures
-
 ## API Endpoints
+
+Toate rutele incep cu `/api/users`.
 
 ### Authentication (`/api/auth`)
 ```
 POST /register  -> Inregistrare publica (STUDENT/TEACHER/ADMIN)
-                   Publică StudentCreatedEvent daca role=STUDENT
 POST /login     -> Autentificare (generare JWT)
 ```
 
 ### User Management (`/api/users`)
 ```
-POST   /                           -> Creare user (STUDENT/TEACHER only, admin use)
-                                      Publică StudentCreatedEvent daca STUDENT
+POST   /                           -> Creare user (admin use)
 GET    /                           -> Lista toti userii
-GET    /{id}                       -> Detalii user
+GET    /{id}                       -> Detalii user (USED BY PROGRESS SERVICE)
 GET    /search?name=fragment       -> Cautare dupa nume (LIKE query)
 PUT    /{id}/name?newName=...      -> Update nume
-                                      Publică StudentUpdatedEvent daca STUDENT
 DELETE /{id}                       -> Stergere (cascade)
-                                      Publică StudentDeletedEvent daca STUDENT
 
-GET    /students/{userId}          -> Info student (xpTotal, level)
-PUT    /students/{userId}/xp?xpToAdd=100     -> Adauga XP (USED BY PROGRESS SERVICE!)
-                                                Recalculeaza level: (xpTotal / 1000) + 1
-PUT    /students/{userId}/level?newLevel=5   -> Set level manual (admin)
-GET    /students/leaderboard       -> Top 10 studenti dupa xpTotal
+GET    /students/{userId}          -> Info student (nickname)
+PUT    /students/{userId}/nickname?newNickname=...  -> Update nickname
 
 GET    /teachers/{userId}          -> Info profesor
-PUT    /teachers/{userId}/title?newTitle=PhD -> Update titlu
+PUT    /teachers/{userId}/title?newTitle=...  -> Update titlu
 ```
 
-## Logica Business
+## Entities si DTOs
 
-### Level Calculation:
+### Entities (JPA):
+
+**Credential:**
 ```java
-level = (xpTotal / 1000) + 1
-
-Exemple:
-xpTotal = 0     → level = 1
-xpTotal = 500   → level = 1
-xpTotal = 1000  → level = 2
-xpTotal = 2500  → level = 3
+@Entity
+@Table(name = "credentials")
+public class Credential {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Column(unique = true, nullable = false)
+    private String email;
+    
+    @Column(name = "password_hash", nullable = false)
+    private String passwordHash;
+    
+    @Column(nullable = false, length = 20)
+    private String role;
+    
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+    
+    @OneToOne(mappedBy = "credential", cascade = CascadeType.ALL)
+    private User user;
+}
 ```
 
-**Automatic Recalculation:** Level recalculat automat la fiecare `updateStudentXp()` call.
+**User:**
+```java
+@Entity
+@Table(name = "users")
+public class User {
+    @Id
+    private Long id;
+    
+    @Column(name = "full_name", nullable = false)
+    private String fullName;
+    
+    @OneToOne(fetch = FetchType.LAZY)
+    @MapsId
+    @JoinColumn(name = "id")
+    private Credential credential;
+    
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    private Student student;
+    
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    private Teacher teacher;
+}
+```
 
-### DTO Mapping:
-Manual in Service layer prin metode private:
-- `mapToUserDto()` - Credential + User data
-- `mapToStudentDto()` - Student data only (xpTotal, level)
-- `mapToTeacherDto()` - Teacher data only (title)
+**Student:**
+```java
+@Entity
+@Table(name = "students")
+public class Student {
+    @Id
+    private Long userId;
+    
+    @Column(name = "nickname", length = 50)
+    private String nickname;  // Optional display name
+    
+    @OneToOne(fetch = FetchType.LAZY)
+    @MapsId
+    @JoinColumn(name = "user_id")
+    private User user;
+}
+```
 
-**Pattern:** Extract doar ID-uri pentru FK, nu obiecte intregi (evita lazy loading issues).
+**Teacher:**
+```java
+@Entity
+@Table(name = "teachers")
+public class Teacher {
+    @Id
+    private Long userId;
+    
+    @Column(length = 255)
+    private String title;  // e.g., "PhD", "Professor"
+    
+    @OneToOne(fetch = FetchType.LAZY)
+    @MapsId
+    @JoinColumn(name = "user_id")
+    private User user;
+}
+```
 
-### Exception Handling:
-- Throw `IllegalArgumentException` pentru validation errors
-- Controller catch si returneaza appropriate HTTP status
-- No @ControllerAdvice (simplificare licenta)
+### DTOs (Transfer Objects):
 
-## Servicii
+**UserDto:**
+```java
+public class UserDto {
+    private Long id;
+    private String fullName;
+    private String role;  // STUDENT, TEACHER, ADMIN
+}
+```
+
+**StudentDto:**
+```java
+public class StudentDto {
+    private Long userId;
+    private String nickname;  // Optional display name
+}
+```
+
+**TeacherDto:**
+```java
+public class TeacherDto {
+    private Long userId;
+    private String title;
+}
+```
+
+**RegisterRequestDto:**
+```java
+public class RegisterRequestDto {
+    private String email;
+    private String password;
+    private String fullName;
+    private String role;  // STUDENT, TEACHER, ADMIN
+}
+```
+
+**AuthResponseDto:**
+```java
+public class AuthResponseDto {
+    private String token;
+    private Long userId;
+    private String role;
+    private String fullName;
+}
+```
+
+## Service Layer Logic
 
 ### AuthService:
 ```java
-AuthResponseDto register(RegisterRequestDto dto)
+@Transactional
+AuthResponseDto register(RegisterRequestDto request)
   1. Validate email unique
-  2. Create Credential + User + Student/Teacher (cascade)
-  3. Publish StudentCreatedEvent (if STUDENT)
+  2. Validate role (STUDENT/TEACHER/ADMIN)
+  3. Create Credential + User + Student/Teacher (cascade)
   4. Generate JWT
   5. Return AuthResponseDto
 
-AuthResponseDto login(AuthRequestDto dto)
+AuthResponseDto login(AuthRequestDto request)
   1. Authenticate via Spring Security
   2. Generate new JWT
   3. Return AuthResponseDto
@@ -251,39 +303,24 @@ AuthResponseDto login(AuthRequestDto dto)
 
 ### UserService:
 ```java
-UserDto createUser(RegisterRequestDto dto)
+@Transactional
+UserDto createUser(RegisterRequestDto request)
   - Similar to register() but NO JWT generation (admin use)
-  - Publish StudentCreatedEvent if role=STUDENT
 
 CRUD Operations:
   - getAllUsers() - fetch all
-  - getUserById(Long id) - fetch one
+  - getUserById(Long id) - fetch one (CRITICAL: used by Progress Service)
   - searchUsersByName(String fragment) - LIKE query
-  - updateUserName(Long id, String newName) - Publish StudentUpdatedEvent if STUDENT
-  - deleteUser(Long id) - Publish StudentDeletedEvent BEFORE deletion if STUDENT
+  - updateUserName(Long id, String newName)
+  - deleteUser(Long id) - cascade delete
 
 Student Operations:
   - getStudentById(Long userId) - StudentDto
-  - updateStudentXp(Long userId, int xpToAdd) - CRITICAL: called by Progress Service!
-  - updateStudentLevel(Long userId, int newLevel) - admin override
-  - getTopStudentsByXp() - leaderboard (top 10)
+  - updateStudentNickname(Long userId, String newNickname)
 
 Teacher Operations:
   - getTeacherById(Long userId) - TeacherDto
   - updateTeacherTitle(Long userId, String title)
-```
-
-### StudentEventPublisher:
-```java
-void publishStudentCreated(StudentCreatedEvent event)
-void publishStudentUpdated(StudentUpdatedEvent event)
-void publishStudentDeleted(StudentDeletedEvent event)
-
-Implementation:
-  - Wraps RabbitTemplate
-  - Uses convertAndSend(exchange, routingKey, event)
-  - Logs success/failure
-  - Non-blocking (fire-and-forget pattern)
 ```
 
 ### CustomUserDetailsService:
@@ -307,125 +344,50 @@ boolean isTokenValid(String token, UserDetails userDetails)
   - NOT used in User Service (API Gateway responsibility)
 ```
 
-## Configurare
+## Integration cu Alte Servicii
 
-### application.properties (Local):
-```properties
-server.port=8082
+### Progress Service Dependencies:
 
-# Database
-spring.datasource.url=jdbc:postgresql://localhost:5432/user_database
-spring.datasource.username=postgres
-spring.datasource.password=kuso
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
+**Endpoint consumat:** `GET /api/users/{id}`
 
-# JWT
-application.security.jwt.secret-key=404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
-application.security.jwt.expiration=86400000
+**Usage:** Lazy student replica creation
 
-# RabbitMQ
-spring.rabbitmq.host=localhost
-spring.rabbitmq.port=5672
-spring.rabbitmq.username=guest
-spring.rabbitmq.password=guest
-
-# RabbitMQ Routing
-rabbitmq.exchange.user-events=user.events.exchange
-rabbitmq.routing-key.student-created=student.created
-rabbitmq.routing-key.student-updated=student.updated
-rabbitmq.routing-key.student-deleted=student.deleted
+**Flow:**
+```
+1. Student submits first attempt -> Progress Service
+2. Progress Service checks: EXISTS student_id in students_replica?
+3. If NO -> Call User Service: GET /api/users/{id}
+4. Validate student exists + role=STUDENT
+5. Create minimal replica in Progress Service (xpTotal=0, level=1)
 ```
 
-### Docker Environment Variables (override local):
-```yaml
-environment:
-  SPRING_DATASOURCE_URL: jdbc:postgresql://user-database:5432/user_database
-  SPRING_DATASOURCE_USERNAME: postgres
-  SPRING_DATASOURCE_PASSWORD: kuso
-  
-  SPRING_RABBITMQ_HOST: rabbitmq
-  SPRING_RABBITMQ_PORT: 5672
-  SPRING_RABBITMQ_USERNAME: guest
-  SPRING_RABBITMQ_PASSWORD: guest
-  
-  SPRING_JPA_HIBERNATE_DDL_AUTO: update
-  SPRING_JPA_SHOW_SQL: "true"
+**Response Structure:**
+```json
+{
+  "id": 1,
+  "fullName": "John Doe",
+  "role": "STUDENT"
+}
 ```
 
-### Setup DB Local:
-```sql
-CREATE DATABASE user_database;
-```
+**Error Handling:**
+- User not found -> 404 Not Found
+- User is not STUDENT -> Progress Service throws validation error
 
-### Rulare Local:
-```bash
-mvn spring-boot:run
-# Sau: Run UserServiceApplication in IntelliJ
-```
+**Integration Pattern:** On-demand REST API call (synchronous)
 
-### Rulare Docker:
-```bash
-docker-compose up --build user-service
-```
-
-## Integrare Cross-Service
-
-### 1. Progress Service Dependencies:
-
-**PUT /api/users/students/{userId}/xp?xpToAdd={amount}**
-- **CRITICAL endpoint** pentru Progress Service
-- Apelat cand student completeaza lectie
-- Flow: Lesson completed → Progress Service → User Service (add XP)
-- Communication: Synchronous REST API call (RestTemplate/Feign)
-- Error handling: Progress Service logs failure but continues (XP stored in progress table)
-
-**Example Call:**
-```java
-// From Progress Service
-userServiceClient.addStudentXp(studentId, 100);
-
-// HTTP: PUT http://user-service:8082/api/users/students/1/xp?xpToAdd=100
-```
-
-### 2. Progress Service Event Consumption:
-
-**StudentCreatedEvent → Progress Service creates student replica**
-- Pattern: Eventual consistency
-- Purpose: Progress Service needs student data for foreign keys
-- Idempotency: Progress Service checks if student already exists before insert
-
-**StudentUpdatedEvent → Progress Service updates student replica**
-- Updates: fullName, email
-- Idempotency: Update if exists, ignore if not
-
-**StudentDeletedEvent → Progress Service deletes student replica**
-- Cascade: Deletes all progress data for student
-- Idempotency: Delete if exists, ignore if not
-
-### 3. Future Service Dependencies:
+### Future Service Dependencies:
 
 **Group Service:**
 - GET /api/users/students/{userId} - validate student exists
 - GET /api/users/teachers/{userId} - validate teacher exists
 
-**Flashcard Service:**
-- GET /api/users/students/{userId} - validate student exists
-
 **Frontend:**
 - POST /api/auth/login - authentication
-- GET /api/users/students/{userId} - display student profile
-- GET /api/students/leaderboard - display rankings
+- GET /api/users/students/{userId} - display student nickname
+- Leaderboard display: Progress Service returns studentId + XP, Frontend fetches nickname from User Service
 
-### Communication Patterns:
-
-| Integration Point | Pattern | Consistency | Justification |
-|------------------|---------|-------------|---------------|
-| XP Update | Sync REST API | Strong | Immediate feedback needed |
-| Student Identity | Async Events | Eventual | Rare changes, acceptable delay |
-| Student Lookup | Sync REST API | Strong | Validation requires immediate response |
-
-## Decizii Arhitecturale (AI Context)
+## Decizii Arhitecturale
 
 ### @MapsId Strategy:
 **Decision:** Un singur ID partajat intre credentials/users/students/teachers
@@ -437,21 +399,30 @@ userServiceClient.addStudentXp(studentId, 100);
 
 **Trade-off:** Credentials table leaked implementation detail (user_id = credential_id)
 
-**Alternative rejected:** Separate IDs cu FK relationships → mai complex, no real benefit
-
----
+**Implementation:**
+```java
+@Entity
+@Table(name = "students")
+public class Student {
+    @Id
+    private Long userId;  // NOT auto-increment
+    
+    @MapsId
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+}
+```
 
 ### Cascade Operations:
-**Decision:** CascadeType.ALL de la Credential → User → Student/Teacher
+**Decision:** CascadeType.ALL de la Credential -> User -> Student/Teacher
 
 **Justification:**
 - Un singur `save(credential)` salveaza tot graful
-- Delete user → sterge automat credentials, student/teacher data
+- Delete user -> sterge automat credentials, student/teacher data
 - Simplifica transaction management
 
 **Trade-off:** Cannot partially delete (ex: keep user, delete student) - all-or-nothing
-
----
 
 ### LAZY Fetch:
 **Decision:** FetchType.LAZY pe toate relatiile @OneToOne/@ManyToOne
@@ -462,8 +433,6 @@ userServiceClient.addStudentXp(studentId, 100);
 
 **Requirement:** @Transactional pe Service methods pentru Hibernate session active
 
----
-
 ### JWT fara Validation Filter:
 **Decision:** User Service genereaza JWT, dar NU valideaza in requests
 
@@ -473,8 +442,6 @@ userServiceClient.addStudentXp(studentId, 100);
 - User Service = Authentication Authority, Gateway = Authorization Enforcer
 
 **Current State:** `anyRequest().permitAll()` - NO PROTECTION (temporary pentru licenta)
-
----
 
 ### Manual DTO Mapping:
 **Decision:** No Lombok, no MapStruct - manual getters/setters/mapping
@@ -495,125 +462,137 @@ private UserDto mapToUserDto(User user) {
 }
 ```
 
----
+### Nickname Field:
+**Decision:** Students table contine doar userId + nickname (optional)
 
-### Event Publishing Pattern:
-**Decision:** Fire-and-forget event publishing DUPA database commit
+**Purpose:**
+- Optional display name pentru gamification (e.g., "DragonSlayer123")
+- Alternative la afisare full_name in leaderboard
+- Social feature enabler (viitor)
 
-**Justification:**
-- Eventual consistency acceptable pentru student identity
-- Prevents distributed transaction complexity (2PC)
-- Consumer handles idempotency (duplicate events possible)
+**Default:** NULL la inregistrare, poate fi setat mai tarziu prin endpoint dedicat
 
-**Trade-off:** Events pot fi pierdute daca RabbitMQ down → acceptable risk
+**Usage Pattern:**
+```
+Register student -> nickname=NULL
+Later: PUT /students/{id}/nickname?newNickname=DragonSlayer
+Leaderboard: Progress Service returneaza studentId + XP
+Frontend: Fetch nickname din User Service pentru display
+```
 
-**Alternative rejected:** Transactional Outbox pattern → prea complex pentru licenta
+## Configurare
 
----
+### application.properties (Local):
+```properties
+server.port=8082
 
-### Level Calculation Formula:
-**Decision:** `level = (xpTotal / 1000) + 1`
+# Database
+spring.datasource.url=jdbc:postgresql://localhost:5432/user_database
+spring.datasource.username=postgres
+spring.datasource.password=kuso
+spring.datasource.driver-class-name=org.postgresql.Driver
 
-**Justification:**
-- Simple, predictable progression
-- 1000 XP per level = ~10 lessons per level (assuming 100 XP/lesson)
-- Linear scaling (poate fi schimbat la exponential daca needed)
+# JPA
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
 
----
+# Security Logging
+logging.level.org.springframework.security=INFO
 
-### RabbitMQ vs REST for Student Sync:
-**Decision:** Events (async) pentru student identity, REST (sync) pentru XP updates
+# JWT
+application.security.jwt.secret-key=404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+application.security.jwt.expiration=86400000
+```
 
-**Justification:**
+### Docker Environment Variables (override local):
+```yaml
+environment:
+  SPRING_DATASOURCE_URL: jdbc:postgresql://user-database:5432/user_database
+  SPRING_DATASOURCE_USERNAME: postgres
+  SPRING_DATASOURCE_PASSWORD: kuso
+  SPRING_JPA_HIBERNATE_DDL_AUTO: update
+  SPRING_JPA_SHOW_SQL: "true"
+```
 
-**Student Identity (events):**
-- Changes rare (register, name change, delete)
-- No immediate consistency requirement
-- Reduces coupling between services
+### Setup DB Local:
+```sql
+CREATE DATABASE user_database;
+```
 
-**XP Updates (REST):**
-- Frequent operations (every lesson completion)
-- Immediate feedback desired (student sees XP increase)
-- Strong consistency needed (no partial XP awards)
+### Rulare Local:
+```bash
+mvn spring-boot:run
+```
 
-**Mixed approach = best of both worlds**
+### Rulare Docker:
+```bash
+docker-compose up --build user-service
+```
 
 ## Test Scenarios (Swagger)
 
 ### 1. Register + Login Flow:
 ```
 POST /api/auth/register {email, password, fullName, role: "STUDENT"}
-  → Verify: response contains JWT token
-  → Verify: studentId present
-  → Check RabbitMQ: StudentCreatedEvent published
+  -> Verify: response contains JWT token
+  -> Verify: studentId present
 
 POST /api/auth/login {email, password}
-  → Verify: new JWT token (different from register)
-  → Verify: userId matches registered user
+  -> Verify: new JWT token (different from register)
+  -> Verify: userId matches registered user
 ```
 
-### 2. XP Calculation & Level Up:
-```
-POST /api/auth/register (creates student with xp=0, level=1)
-PUT /api/users/students/1/xp?xpToAdd=500
-  → Verify: xpTotal=500, level=1
-PUT /api/users/students/1/xp?xpToAdd=600
-  → Verify: xpTotal=1100, level=2 (level up!)
-```
-
-### 3. Leaderboard:
-```
-Register 3 students
-PUT /students/1/xp?xpToAdd=2000  (level 3)
-PUT /students/2/xp?xpToAdd=500   (level 1)
-PUT /students/3/xp?xpToAdd=1500  (level 2)
-
-GET /students/leaderboard
-  → Verify: Order by xpTotal DESC [student1, student3, student2]
-```
-
-### 4. CRUD Operations:
+### 2. CRUD Operations:
 ```
 GET /api/users
-  → List all users
+  -> List all users
 GET /api/users/search?name=John
-  → Search by name fragment
+  -> Search by name fragment
 PUT /api/users/1/name?newName=John Updated
-  → Update name
-  → Check RabbitMQ: StudentUpdatedEvent (if STUDENT)
+  -> Update name
 DELETE /api/users/1
-  → Cascade delete
-  → Check RabbitMQ: StudentDeletedEvent (if STUDENT)
+  -> Cascade delete
 ```
 
-### 5. Admin vs Student Registration:
+### 3. Student Nickname:
+```
+POST /api/auth/register {role: "STUDENT"}
+  -> Verify: nickname=NULL in database
+
+PUT /api/users/students/1/nickname?newNickname=DragonSlayer
+  -> Verify: nickname updated
+
+GET /api/users/students/1
+  -> Verify: {userId: 1, nickname: "DragonSlayer"}
+```
+
+### 4. Admin vs Student Registration:
 ```
 POST /api/auth/register {role: "ADMIN"}
-  → Verify: NO Student entity created
-  → Verify: NO StudentCreatedEvent published
+  -> Verify: NO Student entity created
 
 POST /api/auth/register {role: "STUDENT"}
-  → Verify: Student entity created (xp=0, level=1)
-  → Verify: StudentCreatedEvent published
+  -> Verify: Student entity created (nickname=NULL)
 ```
 
-### 6. Event Integration Test:
+### 5. Integration Test cu Progress Service:
 ```
-1. Start RabbitMQ Management UI (http://localhost:15672)
-2. POST /api/auth/register {role: "STUDENT"}
-3. Check Exchanges → user.events.exchange → 1 message out
-4. Check Queues → progress.student.created.queue → 1 message delivered
+1. Register student in User Service (userId=42)
+2. Progress Service: Submit first attempt
+3. Progress Service calls: GET /api/users/42
+4. Verify: User Service returns valid student data
+5. Progress Service: Creates student replica
 ```
 
-## Known Issues & Limitations
+## Known Limitations
 
 **Current Implementation:**
-- No JWT validation in User Service (delegat la API Gateway viitor)
 - No email verification flow (email assumed valid)
 - No password reset functionality
 - No rate limiting pe register/login (vulnerable to brute force)
 - No audit trail (cine a modificat ce si cand)
-- Event publishing failure NU rollback transaction (eventual consistency risk)
+- No password complexity requirements
 
 **Security Gaps (acceptable pentru licenta, NU production):**
 - `anyRequest().permitAll()` - no authentication required
@@ -627,7 +606,6 @@ POST /api/auth/register {role: "STUDENT"}
 - Add refresh token support
 - Add rate limiting (Spring Cloud Gateway)
 - Add audit logging (created_by, updated_by, timestamps)
-- Add RabbitMQ retry policy cu Dead Letter Queue
 - Add password complexity validation
 - Add externalized secrets management (Vault, K8s Secrets)
 
@@ -637,34 +615,59 @@ POST /api/auth/register {role: "STUDENT"}
 
 **Dependencies:**
 - user-database (PostgreSQL 16)
-- rabbitmq (RabbitMQ 3 Management)
 - Network: chinese-learning-network
 
 **Ports:**
 - Internal: 8082
 - External: 8082
 
-**Health Check:** Depends on user-database healthy AND rabbitmq healthy
+**Health Check:** Depends on user-database healthy
 
 **Startup Order:**
 1. PostgreSQL starts + healthcheck passes
-2. RabbitMQ starts + healthcheck passes
-3. User Service starts (depends_on both)
+2. User Service starts
 
-## RabbitMQ Management
+## AI Agent Quick Reference
 
-**Access:** http://localhost:15672 (guest/guest)
+**Service Identity:**
+- Name: User Service
+- Domain: Identity & Authentication
+- Database: user_database
+- Port: 8082
+- Tech Stack: Java 21, Spring Boot 4, PostgreSQL 16
 
-**Monitoring:**
-- Exchanges → `user.events.exchange` → verify message rate
-- Queues → `progress.student.*.queue` → verify consumption
-- Connections → verify User Service connected
+**Core Responsibilities:**
+- User registration (STUDENT/TEACHER/ADMIN roles)
+- JWT authentication
+- User profile CRUD (full_name, email, nickname)
+- Student/Teacher entity management
 
-**Debugging Events:**
-- Get messages → retrieve event payload
-- Purge queue → clear test data
-- Dead letter queue → check failed events (future enhancement)
+**Key Integration Points:**
+- Exposes: GET /api/users/{id} for Progress Service
+- Pattern: On-demand REST API (synchronous)
+- No event publishing (no RabbitMQ)
 
----
+**Database Schema:**
+- credentials (id PK, email UNIQUE, password_hash, role, created_at)
+- users (id PK via @MapsId, full_name)
+- students (user_id PK via @MapsId, nickname)
+- teachers (user_id PK via @MapsId, title)
 
-**Context AI:** README conceput pentru LLM assistance cu focus pe event-driven integration patterns. Toate deciziile arhitecturale justificate, trade-offs explicati, limitations documentate transparent pentru a ajuta AI sa inteleaga constrangerile si sa sugereze solutii adecvate.
+**Critical Implementation Details:**
+- @MapsId strategy: credentials.id = users.id = students.user_id
+- Cascade: ALL operations propagate down entity graph
+- Fetch: LAZY on all relationships
+- Security: permitAll() for thesis (JWT validation in Gateway)
+
+**NOT Managed Here:**
+- XP/level tracking -> Progress Service
+- Exercise attempts -> Progress Service
+- Lesson progress -> Progress Service
+- Leaderboard data -> Progress Service
+
+**Typical Usage by AI Agent:**
+When implementing new features:
+1. Check if feature is Identity-related -> User Service
+2. Check if feature is Progress-related -> Progress Service
+3. Integration: Use REST API GET /users/{id} for validation
+4. No cross-service data duplication (Single Source of Truth)
