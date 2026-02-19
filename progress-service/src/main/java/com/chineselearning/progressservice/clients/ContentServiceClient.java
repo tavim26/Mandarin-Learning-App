@@ -11,7 +11,8 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 @Service
-public class ContentServiceClient {
+public class ContentServiceClient
+{
 
     private static final Logger log = LoggerFactory.getLogger(ContentServiceClient.class);
 
@@ -20,11 +21,13 @@ public class ContentServiceClient {
 
     private final RestTemplate restTemplate;
 
-    public ContentServiceClient(RestTemplate restTemplate) {
+    public ContentServiceClient(RestTemplate restTemplate)
+    {
         this.restTemplate = restTemplate;
     }
 
-    public ExerciseResponseDto getExercise(Long exerciseId) {
+    public ExerciseResponseDto getExercise(Long exerciseId)
+    {
         String url = contentServiceUrl + "/api/content/exercises/" + exerciseId;
 
         try {
@@ -33,7 +36,8 @@ public class ContentServiceClient {
             // Deserializare directa in DTO tipizat - elimina cast-urile Map<String, Object>
             ExerciseResponseDto exercise = restTemplate.getForObject(url, ExerciseResponseDto.class);
 
-            if (exercise == null) {
+            if (exercise == null)
+            {
                 throw new IllegalArgumentException("Exercitiul nu a fost gasit: " + exerciseId);
             }
 
@@ -41,8 +45,10 @@ public class ContentServiceClient {
             return exercise;
 
         } catch (HttpClientErrorException e) {
+
             // Diferentiem 404 (exercitiu inexistent) de alte erori HTTP
-            if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
+            if (e.getStatusCode() == HttpStatus.NOT_FOUND)
+            {
                 throw new IllegalArgumentException("Exercitiul nu exista in content-service: " + exerciseId);
             }
             log.error("HTTP error fetching exercise: exerciseId={}, status={}", exerciseId, e.getStatusCode());
@@ -52,35 +58,38 @@ public class ContentServiceClient {
             throw e;
 
         } catch (Exception e) {
-            // Erori de retea, timeout, content-service indisponibil
             log.error("Unexpected error fetching exercise: exerciseId={}, error={}", exerciseId, e.getMessage());
             throw new IllegalStateException("Content-service indisponibil: " + e.getMessage());
         }
     }
 
-    public LessonResponseDto getLesson(Long lessonId) {
+
+
+    public LessonResponseDto getLesson(Long lessonId)
+    {
         String url = contentServiceUrl + "/api/content/lessons/" + lessonId;
 
         try {
             log.debug("Fetching lesson from Content Service: lessonId={}", lessonId);
 
-            // Deserializare directa in DTO tipizat - lista de exercitii este populata automat
+            // Deserializare directa in DTO tipizat
             LessonResponseDto lesson = restTemplate.getForObject(url, LessonResponseDto.class);
 
-            if (lesson == null) {
+            if (lesson == null)
+            {
                 throw new IllegalArgumentException("Lectia nu a fost gasita: " + lessonId);
             }
 
-            log.debug("Lesson fetched successfully: lessonId={}, exercisesCount={}, xpReward={}",
-                    lessonId,
-                    lesson.getExercises() != null ? lesson.getExercises().size() : 0,
-                    lesson.getXpReward());
+            log.debug("Lesson fetched successfully: lessonId={}, exercisesCount={}, xpReward={}", lessonId, lesson.getExercises() != null ? lesson.getExercises().size() : 0, lesson.getXpReward());
             return lesson;
 
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
+        } catch (HttpClientErrorException e)
+        {
+            if (e.getStatusCode() == HttpStatus.NOT_FOUND)
+            {
                 throw new IllegalArgumentException("Lectia nu exista in content-service: " + lessonId);
             }
+
             log.error("HTTP error fetching lesson: lessonId={}, status={}", lessonId, e.getStatusCode());
             throw new IllegalStateException("Eroare la comunicarea cu content-service: " + e.getMessage());
 

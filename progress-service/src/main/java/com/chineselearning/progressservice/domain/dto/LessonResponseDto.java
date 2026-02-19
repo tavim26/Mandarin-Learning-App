@@ -4,7 +4,8 @@ import java.util.List;
 
 // DTO folosit exclusiv pentru deserializarea raspunsurilor HTTP de la content-service
 // Nu este expus prin niciun endpoint al progress-service
-public class LessonResponseDto {
+public class LessonResponseDto
+{
 
     private Long id;
     private Integer xpReward;

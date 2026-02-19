@@ -4,7 +4,8 @@ import java.util.Map;
 
 // DTO folosit exclusiv pentru deserializarea raspunsurilor HTTP de la content-service
 // Nu este expus prin niciun endpoint al progress-service
-public class ExerciseResponseDto {
+public class ExerciseResponseDto
+{
 
     private Long id;
     private Long lessonId;

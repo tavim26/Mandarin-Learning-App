@@ -1,6 +1,7 @@
 package com.chineselearning.progressservice.domain.dto;
 
-public class StudentReplicaDto {
+public class StudentReplicaDto
+{
 
     private Long studentId;
     private Integer xpTotal;

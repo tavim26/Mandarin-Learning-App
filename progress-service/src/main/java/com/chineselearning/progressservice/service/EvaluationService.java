@@ -98,8 +98,7 @@ public class EvaluationService
         if (overlapScore.compareTo(new BigDecimal("40")) >= 0)
         {
             return new EvaluationResultDto(
-                    new BigDecimal("50"),
-                    "Partial corect (" + overlapScore.toPlainString() + "% cuvinte potrivite). Raspuns asteptat: " + acceptedAnswers.get(0)
+                    new BigDecimal("50"), "Partial corect (" + overlapScore.toPlainString() + "% cuvinte potrivite). Raspuns asteptat: " + acceptedAnswers.get(0)
             );
         }
 
@@ -107,7 +106,8 @@ public class EvaluationService
     }
 
 
-    private EvaluationResultDto evaluateFillBlank(Map<String, Object> contentData, Map<String, Object> submittedAnswer) {
+    private EvaluationResultDto evaluateFillBlank(Map<String, Object> contentData, Map<String, Object> submittedAnswer)
+    {
 
         List<String> correctAnswers = safeCast(contentData.get("correctAnswers"), List.class, "correctAnswers");
         List<String> userAnswers = safeCast(submittedAnswer.get("answers"), List.class, "answers");
@@ -124,8 +124,7 @@ public class EvaluationService
 
         if (correctAnswers.size() != userAnswers.size())
         {
-            return new EvaluationResultDto(BigDecimal.ZERO,
-                    "Numar incorect de raspunsuri. Asteptat: " + correctAnswers.size());
+            return new EvaluationResultDto(BigDecimal.ZERO, "Numar incorect de raspunsuri. Asteptat: " + correctAnswers.size());
         }
 
         int correct = 0;
@@ -149,7 +148,8 @@ public class EvaluationService
     }
 
 
-    private EvaluationResultDto evaluateMatching(Map<String, Object> contentData, Map<String, Object> submittedAnswer) {
+    private EvaluationResultDto evaluateMatching(Map<String, Object> contentData, Map<String, Object> submittedAnswer)
+    {
 
         List<Map<String, String>> correctPairs = safeCast(contentData.get("pairs"), List.class, "pairs");
         Map<String, String> userMatches = safeCast(submittedAnswer.get("matches"), Map.class, "matches");

@@ -3,7 +3,8 @@ package com.chineselearning.progressservice.domain.dto;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-public class StudentLessonProgressDto {
+public class StudentLessonProgressDto
+{
 
     private Long id;
     private Long studentId;

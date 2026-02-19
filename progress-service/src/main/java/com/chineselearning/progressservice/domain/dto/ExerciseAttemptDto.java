@@ -4,7 +4,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-public class ExerciseAttemptDto {
+public class ExerciseAttemptDto
+{
 
     private Long id;
     private Long studentId;

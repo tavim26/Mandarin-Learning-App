@@ -19,7 +19,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/progress")
-@Tag(name = "Progress Tracking", description = "Endpoints for exercise attempts and lesson progress")
+@Tag(name = "Progress Tracking", description = "Endpointuri pentru gestionarea incercarilor la exercitii si progresul lectiilor")
 public class ProgressController
 {
 
@@ -31,21 +31,27 @@ public class ProgressController
     }
 
     @PostMapping("/attempts")
-    @Operation(summary = "Submit exercise attempt", description = "Trimite raspunsul studentului pentru evaluare. Creeaza automat replica studentului la prima incercare.")
-    public ResponseEntity<?> submitAttempt(@Valid @RequestBody SubmitAttemptRequest request) {
+    @Operation(
+            summary = "Trimite o incercare la un exercitiu",
+            description = "Evalueaza raspunsul studentului si actualizeaza progresul lectiei. Creeaza automat replica studentului la prima incercare."
+    )
+    public ResponseEntity<?> submitAttempt(@Valid @RequestBody SubmitAttemptRequest request)
+    {
         try {
             ExerciseAttemptDto result = progressService.submitAttempt(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(result);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (IllegalStateException e) {
-            // Erori de comunicare cu content-service
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(e.getMessage());
         }
     }
 
     @GetMapping("/attempts/student/{studentId}/exercise/{exerciseId}")
-    @Operation(summary = "Get all attempts for exercise", description = "Returns all attempts made by a student on a specific exercise, ordered by attempt number")
+    @Operation(
+            summary = "Obtine toate incercarile unui student la un exercitiu",
+            description = "Returneaza lista incercarilor unui student pentru un exercitiu specific, ordonate dupa numarul incercarii."
+    )
     public ResponseEntity<?> getStudentAttemptsForExercise(@PathVariable Long studentId, @PathVariable Long exerciseId)
     {
         try {
@@ -57,7 +63,10 @@ public class ProgressController
     }
 
     @GetMapping("/lessons/student/{studentId}/lesson/{lessonId}")
-    @Operation(summary = "Get lesson progress", description = "Returns progress for a specific lesson (completion %, status, XP awarded)")
+    @Operation(
+            summary = "Obtine progresul unui student la o lectie",
+            description = "Returneaza procentul de completare, statusul si XP-ul acordat pentru o lectie specifica."
+    )
     public ResponseEntity<?> getLessonProgress(@PathVariable Long studentId, @PathVariable Long lessonId)
     {
         try {
@@ -69,7 +78,10 @@ public class ProgressController
     }
 
     @GetMapping("/lessons/student/{studentId}")
-    @Operation(summary = "Get all progress for student", description = "Returns all lesson progress records for a student")
+    @Operation(
+            summary = "Obtine tot progresul unui student",
+            description = "Returneaza toate inregistrarile de progres ale unui student, pentru toate lectiile incepute."
+    )
     public ResponseEntity<List<StudentLessonProgressDto>> getAllProgressForStudent(@PathVariable Long studentId)
     {
         List<StudentLessonProgressDto> progressList = progressService.getAllProgressForStudent(studentId);
@@ -77,7 +89,10 @@ public class ProgressController
     }
 
     @GetMapping("/lessons/student/{studentId}/in-progress")
-    @Operation(summary = "Get in-progress lessons", description = "Returns only lessons with status IN_PROGRESS for a student")
+    @Operation(
+            summary = "Obtine lectiile in curs de desfasurare",
+            description = "Returneaza doar lectiile cu statusul IN_PROGRESS pentru un student."
+    )
     public ResponseEntity<List<StudentLessonProgressDto>> getInProgressLessons(@PathVariable Long studentId)
     {
         List<StudentLessonProgressDto> inProgress = progressService.getInProgressLessons(studentId);
@@ -85,7 +100,10 @@ public class ProgressController
     }
 
     @GetMapping("/lessons/{lessonId}/leaderboard")
-    @Operation(summary = "Get lesson leaderboard", description = "Returns top 10 students by completion percentage for a specific lesson")
+    @Operation(
+            summary = "Obtine clasamentul unei lectii",
+            description = "Returneaza primii 10 studenti ordonati dupa procentul de completare pentru o lectie specifica."
+    )
     public ResponseEntity<List<StudentLessonProgressDto>> getLessonLeaderboard(@PathVariable Long lessonId)
     {
         List<StudentLessonProgressDto> leaderboard = progressService.getLessonLeaderboard(lessonId);

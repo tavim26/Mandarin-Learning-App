@@ -16,7 +16,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/progress/students")
-@Tag(name = "Student Progress Summary", description = "Endpoints for student XP, level, and leaderboard")
+@Tag(name = "Student Progress Summary", description = "Endpointuri pentru gestionarea XP-ului, nivelului si clasamentului studentilor")
 public class StudentReplicaController
 {
 
@@ -28,7 +28,10 @@ public class StudentReplicaController
     }
 
     @GetMapping("/leaderboard")
-    @Operation(summary = "Get global leaderboard", description = "Returns top 10 students by total XP across all lessons")
+    @Operation(
+            summary = "Obtine clasamentul global",
+            description = "Returneaza primii 10 studenti ordonati dupa XP-ul total acumulat din toate lectiile."
+    )
     public ResponseEntity<List<StudentReplicaDto>> getLeaderboard()
     {
         List<StudentReplicaDto> leaderboard = studentReplicaService.getLeaderboard();
@@ -36,7 +39,10 @@ public class StudentReplicaController
     }
 
     @GetMapping("/{studentId}")
-    @Operation(summary = "Get student progress summary", description = "Returns student XP total and level")
+    @Operation(
+            summary = "Obtine rezumatul progresului unui student",
+            description = "Returneaza XP-ul total si nivelul curent al studentului."
+    )
     public ResponseEntity<?> getStudentById(@PathVariable Long studentId)
     {
         Optional<StudentReplicaDto> student = studentReplicaService.getStudentById(studentId);
@@ -49,7 +55,10 @@ public class StudentReplicaController
     }
 
     @GetMapping("/{studentId}/exists")
-    @Operation(summary = "Check if student replica exists", description = "Returns true if student has submitted at least one attempt (replica created)")
+    @Operation(
+            summary = "Verifica existenta replicii unui student",
+            description = "Returneaza true daca studentul a trimis cel putin o incercare si replica a fost creata."
+    )
     public ResponseEntity<Boolean> studentExists(@PathVariable Long studentId)
     {
         boolean exists = studentReplicaService.studentExists(studentId);
@@ -57,7 +66,10 @@ public class StudentReplicaController
     }
 
     @GetMapping("/admin/all")
-    @Operation(summary = "Get all student replicas (admin)", description = "Returns all student progress summaries - for admin/debugging purposes")
+    @Operation(
+            summary = "Obtine toate replicile studentilor (admin)",
+            description = "Returneaza rezumatele de progres ale tuturor studentilor. Acces restrictionat la rolul ADMIN prin API Gateway."
+    )
     public ResponseEntity<List<StudentReplicaDto>> getAllStudents()
     {
         List<StudentReplicaDto> students = studentReplicaService.getAllStudents();
