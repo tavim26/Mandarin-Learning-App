@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+// Clasa care face bridging intre domeniul nostru si contractul Spring Security
+// Spring Security nu stie despre Credential sau ICredentialDao
+// Prin implementarea UserDetailsService, ii spunem Spring Security cum sa incarce un utilizator din DB
 @Service
 public class CustomUserDetailsService implements UserDetailsService
 {
@@ -21,13 +24,16 @@ public class CustomUserDetailsService implements UserDetailsService
         this.credentialDao = credentialDao;
     }
 
-
+    // Spring Security apeleaza aceasta metoda automat in timpul autentificarii
+    // Parametrul "username" este de fapt email-ul in cazul nostru
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException
     {
         Credential credential = credentialDao.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
+        // Construim obiectul UserDetails pe care Spring Security il va folosi intern
+        // Rolul este prefixat cu "ROLE_" conform conventiei Spring Security (ex: ROLE_STUDENT)
         return new org.springframework.security.core.userdetails.User(
                 credential.getEmail(),
                 credential.getPasswordHash(),

@@ -21,21 +21,17 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-public class UserService {
+public class UserService
+{
 
     private final IUserDao userDao;
     private final IStudentDao studentDao;
     private final ITeacherDao teacherDao;
     private final ICredentialDao credentialDao;
+
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(
-            IUserDao userDao,
-            IStudentDao studentDao,
-            ITeacherDao teacherDao,
-            ICredentialDao credentialDao,
-            PasswordEncoder passwordEncoder
-    ) {
+    public UserService(IUserDao userDao, IStudentDao studentDao, ITeacherDao teacherDao, ICredentialDao credentialDao, PasswordEncoder passwordEncoder) {
         this.userDao = userDao;
         this.studentDao = studentDao;
         this.teacherDao = teacherDao;
@@ -43,7 +39,6 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    // ========== USER OPERATIONS ==========
 
     @Transactional
     public UserDto createUser(RegisterRequestDto request) {
@@ -76,7 +71,9 @@ public class UserService {
             student.setNickname(null); // Nickname can be set later
             student.setUser(user);
             user.setStudent(student);
-        } else {
+        }
+        else
+        {
             Teacher teacher = new Teacher();
             teacher.setTitle("");
             teacher.setUser(user);
@@ -129,7 +126,9 @@ public class UserService {
         userDao.deleteById(id);
     }
 
-    // ========== STUDENT OPERATIONS ==========
+
+
+
 
     public StudentDto getStudentById(Long userId) {
         Student student = studentDao.findById(userId)
@@ -148,7 +147,9 @@ public class UserService {
         return mapToStudentDto(updated);
     }
 
-    // ========== TEACHER OPERATIONS ==========
+
+
+
 
     public TeacherDto getTeacherById(Long userId) {
         Teacher teacher = teacherDao.findById(userId)
@@ -166,6 +167,9 @@ public class UserService {
 
         return mapToTeacherDto(updated);
     }
+
+
+
 
     // ========== PRIVATE MAPPING METHODS ==========
 

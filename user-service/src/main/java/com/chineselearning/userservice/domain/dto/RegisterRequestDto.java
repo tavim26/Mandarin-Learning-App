@@ -5,11 +5,12 @@ public class RegisterRequestDto
     private String email;
     private String password;
     private String fullName;
-    private String role; // STUDENT sau TEACHER
+    private String role;
 
     public RegisterRequestDto() {}
 
-    public RegisterRequestDto(String email, String password, String fullName, String role) {
+    public RegisterRequestDto(String email, String password, String fullName, String role)
+    {
         this.email = email;
         this.password = password;
         this.fullName = fullName;

@@ -3,7 +3,10 @@ package com.chineselearning.userservice.controller;
 import com.chineselearning.userservice.domain.dto.AuthRequestDto;
 import com.chineselearning.userservice.domain.dto.AuthResponseDto;
 import com.chineselearning.userservice.domain.dto.RegisterRequestDto;
+
+import com.chineselearning.userservice.domain.dto.RegisterResponseDto;
 import com.chineselearning.userservice.service.AuthService;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
@@ -24,14 +27,12 @@ public class AuthController
     }
 
     @PostMapping("/register")
-    @Operation(summary = "Register new user", description = "Creates a new user account (Student or Teacher) and returns JWT token")
+    @Operation(summary = "Register new user", description = "Creates a new user account (Student or Teacher) and returns user info")
     public ResponseEntity<?> register(@RequestBody RegisterRequestDto request)
     {
         try {
-
-            AuthResponseDto response = authService.register(request);
+            RegisterResponseDto response = authService.register(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
-
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

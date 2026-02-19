@@ -5,7 +5,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "credentials")
-public class Credential {
+public class Credential
+{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,13 +19,14 @@ public class Credential {
     private String passwordHash;
 
     @Column(nullable = false)
-    private String role; // STUDENT, TEACHER, ADMIN
+    private String role;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
     @OneToOne(mappedBy = "credential", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private User user;
+
 
     public Credential() {}
 
