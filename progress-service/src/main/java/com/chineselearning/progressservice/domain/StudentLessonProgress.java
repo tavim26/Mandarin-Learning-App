@@ -12,7 +12,8 @@ import java.time.LocalDateTime;
                 @Index(name = "idx_progress_student_status", columnList = "student_id, status")
         }
 )
-public class StudentLessonProgress {
+public class StudentLessonProgress
+{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

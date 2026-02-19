@@ -22,7 +22,8 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional
-public class ContentService {
+public class ContentService
+{
 
     private final ICourseUnitDao courseUnitDao;
     private final ILessonDao lessonDao;
@@ -100,7 +101,8 @@ public class ContentService {
                 .collect(Collectors.toList());
     }
 
-    public LessonDto getLesson(Long id) {
+    public LessonDto getLesson(Long id)
+    {
         Lesson lesson = lessonDao.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lesson not found with id: " + id));
 
@@ -194,6 +196,11 @@ public class ContentService {
 
     public void deleteLessonMaterial(Long id)
     {
+
+        if (!lessonMaterialDao.existsById(id))
+        {
+            throw new RuntimeException("LessonMaterial not found: " + id);
+        }
         lessonMaterialDao.deleteById(id);
     }
 
@@ -202,9 +209,8 @@ public class ContentService {
     // EXERCISES LOGIC
 
 
-    // In ContentService class
-
-    public ExerciseDto getExercise(Long id) {
+    public ExerciseDto getExercise(Long id)
+    {
         Exercise exercise = exerciseDao.findById(id)
                 .orElseThrow(() -> new RuntimeException("Exercise not found with id: " + id));
         return mapExerciseToDto(exercise);
@@ -251,6 +257,10 @@ public class ContentService {
 
     public void deleteExercise(Long id)
     {
+        if (!exerciseDao.existsById(id))
+        {
+            throw new RuntimeException("Exercise not found: " + id);
+        }
         exerciseDao.deleteById(id);
     }
 

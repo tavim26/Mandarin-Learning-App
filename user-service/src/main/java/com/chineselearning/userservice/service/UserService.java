@@ -4,10 +4,12 @@ import com.chineselearning.userservice.domain.Credential;
 import com.chineselearning.userservice.domain.Student;
 import com.chineselearning.userservice.domain.Teacher;
 import com.chineselearning.userservice.domain.User;
+
 import com.chineselearning.userservice.domain.dao.ICredentialDao;
 import com.chineselearning.userservice.domain.dao.IStudentDao;
 import com.chineselearning.userservice.domain.dao.ITeacherDao;
 import com.chineselearning.userservice.domain.dao.IUserDao;
+
 import com.chineselearning.userservice.domain.dto.RegisterRequestDto;
 import com.chineselearning.userservice.domain.dto.StudentDto;
 import com.chineselearning.userservice.domain.dto.TeacherDto;
@@ -41,14 +43,17 @@ public class UserService
 
 
     @Transactional
-    public UserDto createUser(RegisterRequestDto request) {
+    public UserDto createUser(RegisterRequestDto request)
+    {
         // 1. Validate: Check if email already exists
-        if (credentialDao.existsByEmail(request.getEmail())) {
+        if (credentialDao.existsByEmail(request.getEmail()))
+        {
             throw new IllegalArgumentException("Email already registered");
         }
 
         // 2. Validate: Check role (only STUDENT or TEACHER)
-        if (!request.getRole().equals("STUDENT") && !request.getRole().equals("TEACHER")) {
+        if (!request.getRole().equals("STUDENT") && !request.getRole().equals("TEACHER"))
+        {
             throw new IllegalArgumentException("Role must be STUDENT or TEACHER");
         }
 
@@ -87,26 +92,31 @@ public class UserService
         return mapToUserDto(savedCredential.getUser());
     }
 
-    public List<UserDto> getAllUsers() {
+    public List<UserDto> getAllUsers()
+    {
         return userDao.findAll().stream()
                 .map(this::mapToUserDto)
                 .collect(Collectors.toList());
     }
 
-    public UserDto getUserById(Long id) {
+    public UserDto getUserById(Long id)
+    {
         User user = userDao.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
         return mapToUserDto(user);
     }
 
-    public List<UserDto> searchUsersByName(String nameFragment) {
+    public List<UserDto> searchUsersByName(String nameFragment)
+    {
         return userDao.findByFullNameContaining(nameFragment).stream()
                 .map(this::mapToUserDto)
                 .collect(Collectors.toList());
     }
 
+
     @Transactional
-    public UserDto updateUserName(Long id, String newName) {
+    public UserDto updateUserName(Long id, String newName)
+    {
         User user = userDao.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
 
@@ -117,8 +127,10 @@ public class UserService
     }
 
     @Transactional
-    public void deleteUser(Long id) {
-        if (!userDao.existsById(id)) {
+    public void deleteUser(Long id)
+    {
+        if (!userDao.existsById(id))
+        {
             throw new IllegalArgumentException("User not found with id: " + id);
         }
 
@@ -130,14 +142,16 @@ public class UserService
 
 
 
-    public StudentDto getStudentById(Long userId) {
+    public StudentDto getStudentById(Long userId)
+    {
         Student student = studentDao.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Student not found with id: " + userId));
         return mapToStudentDto(student);
     }
 
     @Transactional
-    public StudentDto updateStudentNickname(Long userId, String newNickname) {
+    public StudentDto updateStudentNickname(Long userId, String newNickname)
+    {
         Student student = studentDao.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Student not found with id: " + userId));
 
@@ -151,14 +165,16 @@ public class UserService
 
 
 
-    public TeacherDto getTeacherById(Long userId) {
+    public TeacherDto getTeacherById(Long userId)
+    {
         Teacher teacher = teacherDao.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Teacher not found with id: " + userId));
         return mapToTeacherDto(teacher);
     }
 
     @Transactional
-    public TeacherDto updateTeacherTitle(Long userId, String newTitle) {
+    public TeacherDto updateTeacherTitle(Long userId, String newTitle)
+    {
         Teacher teacher = teacherDao.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Teacher not found with id: " + userId));
 

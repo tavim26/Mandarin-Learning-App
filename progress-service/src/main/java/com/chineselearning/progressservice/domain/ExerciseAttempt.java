@@ -16,8 +16,8 @@ import java.util.Map;
                 @Index(name = "idx_attempts_exercise_correct", columnList = "exercise_id, is_correct")
         }
 )
-public class ExerciseAttempt {
-
+public class ExerciseAttempt
+{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -50,9 +50,7 @@ public class ExerciseAttempt {
     // Constructors
     public ExerciseAttempt() {}
 
-    public ExerciseAttempt(Long studentId, Long exerciseId, Integer attemptNumber,
-                           LocalDateTime submittedAt, Map<String, Object> submittedAnswer,
-                           Boolean isCorrect, BigDecimal score, String feedbackText) {
+    public ExerciseAttempt(Long studentId, Long exerciseId, Integer attemptNumber, LocalDateTime submittedAt, Map<String, Object> submittedAnswer, Boolean isCorrect, BigDecimal score, String feedbackText) {
         this.studentId = studentId;
         this.exerciseId = exerciseId;
         this.attemptNumber = attemptNumber;

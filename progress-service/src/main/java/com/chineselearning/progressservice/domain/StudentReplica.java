@@ -9,7 +9,8 @@ import jakarta.persistence.*;
                 @Index(name = "idx_students_xp_leaderboard", columnList = "xp_total DESC")
         }
 )
-public class StudentReplica {
+public class StudentReplica
+{
 
     @Id
     @Column(name = "student_id")

@@ -24,8 +24,6 @@ public class CourseUnit {
     @Column(name = "order_index", nullable = false)
     private Integer orderIndex;
 
-    // Relatia one-to-many cu Lesson
-    // Cascade all
     @OneToMany(mappedBy = "unit", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Lesson> lessons = new ArrayList<>();
 

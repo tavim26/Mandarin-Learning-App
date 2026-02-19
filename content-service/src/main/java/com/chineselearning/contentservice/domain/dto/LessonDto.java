@@ -16,8 +16,7 @@ public class LessonDto {
     public LessonDto() {
     }
 
-    public LessonDto(Long id, Long unitId, String title, String description,
-                     Integer xpReward, Integer orderIndex) {
+    public LessonDto(Long id, Long unitId, String title, String description, Integer xpReward, Integer orderIndex) {
         this.id = id;
         this.unitId = unitId;
         this.title = title;

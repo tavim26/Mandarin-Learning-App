@@ -19,7 +19,8 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/content")
-public class ContentController {
+public class ContentController
+{
 
     private final ContentService contentService;
 
@@ -150,7 +151,8 @@ public class ContentController {
     // 4. EXERCISES ENDPOINTS
 
     @GetMapping("/exercises/{id}")
-    public ResponseEntity<ExerciseDto> getExercise(@PathVariable Long id) {
+    public ResponseEntity<ExerciseDto> getExercise(@PathVariable Long id)
+    {
         try {
             ExerciseDto exercise = contentService.getExercise(id);
             return ResponseEntity.ok(exercise);
