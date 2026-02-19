@@ -33,7 +33,8 @@ public class ContentServiceClient
 
             Map<String, Object> exercise = restTemplate.getForObject(url, Map.class);
 
-            if (exercise == null) {
+            if (exercise == null)
+            {
                 throw new IllegalArgumentException("Exercise not found: " + exerciseId);
             }
 
@@ -42,8 +43,7 @@ public class ContentServiceClient
                 throw new IllegalArgumentException("Invalid exercise structure from Content Service");
             }
 
-            log.debug("Successfully fetched exercise: exerciseId={}, type={}",
-                    exerciseId, exercise.get("type"));
+            log.debug("Successfully fetched exercise: exerciseId={}, type={}", exerciseId, exercise.get("type"));
             return exercise;
 
         } catch (Exception e) {

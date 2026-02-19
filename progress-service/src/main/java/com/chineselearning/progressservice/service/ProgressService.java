@@ -32,12 +32,14 @@ public class ProgressService
     private final IStudentReplicaDao studentReplicaDao;
     private final IExerciseAttemptDao exerciseAttemptDao;
     private final IStudentLessonProgressDao lessonProgressDao;
+
     private final ContentServiceClient contentServiceClient;
     private final UserServiceClient userServiceClient;
+
     private final EvaluationService evaluationService;
 
-    public ProgressService(IStudentReplicaDao studentReplicaDao, IExerciseAttemptDao exerciseAttemptDao, IStudentLessonProgressDao lessonProgressDao, ContentServiceClient contentServiceClient, UserServiceClient userServiceClient, EvaluationService evaluationService
-    ) {
+    public ProgressService(IStudentReplicaDao studentReplicaDao, IExerciseAttemptDao exerciseAttemptDao, IStudentLessonProgressDao lessonProgressDao, ContentServiceClient contentServiceClient, UserServiceClient userServiceClient, EvaluationService evaluationService)
+    {
         this.studentReplicaDao = studentReplicaDao;
         this.exerciseAttemptDao = exerciseAttemptDao;
         this.lessonProgressDao = lessonProgressDao;
@@ -86,8 +88,7 @@ public class ProgressService
         attempt.setFeedbackText(result.getFeedback());
 
         ExerciseAttempt saved = exerciseAttemptDao.save(attempt);
-        log.info("Saved attempt: studentId={}, exerciseId={}, attemptNumber={}, isCorrect={}",
-                studentId, exerciseId, attemptNumber, isCorrect);
+        log.info("Saved attempt: studentId={}, exerciseId={}, attemptNumber={}, isCorrect={}", studentId, exerciseId, attemptNumber, isCorrect);
 
         // STEP 7: Update lesson progress (completion % + XP award if completed)
         updateLessonProgress(studentId, lessonId);
@@ -98,8 +99,7 @@ public class ProgressService
     public StudentLessonProgressDto getLessonProgress(Long studentId, Long lessonId)
     {
         StudentLessonProgress progress = lessonProgressDao.findByStudentIdAndLessonId(studentId, lessonId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "No progress found for studentId=" + studentId + ", lessonId=" + lessonId));
+                .orElseThrow(() -> new IllegalArgumentException("No progress found for studentId=" + studentId + ", lessonId=" + lessonId));
 
         return mapToStudentLessonProgressDto(progress);
     }
@@ -183,7 +183,8 @@ public class ProgressService
                 .orElse(new StudentLessonProgress(studentId, lessonId));
 
         // STEP 6: Set started_at if first attempt
-        if (progress.getStartedAt() == null) {
+        if (progress.getStartedAt() == null)
+        {
             progress.setStartedAt(LocalDateTime.now());
         }
 
@@ -192,38 +193,47 @@ public class ProgressService
         progress.setLastAccessedAt(LocalDateTime.now());
 
         // STEP 8: Status management + XP award logic
-        if (completionPct.compareTo(new BigDecimal("100")) == 0) {
+        if (completionPct.compareTo(new BigDecimal("100")) == 0)
+        {
             // Lesson 100% complete
 
-            if (!"COMPLETED".equals(progress.getStatus())) {
+            if (!"COMPLETED".equals(progress.getStatus()))
+            {
                 // Just became completed
                 progress.setStatus("COMPLETED");
                 progress.setCompletedAt(LocalDateTime.now());
 
                 // Award XP ONLY if not already awarded (duplicate prevention)
-                if (progress.getXpAwarded() == null || progress.getXpAwarded() == 0) {
+                if (progress.getXpAwarded() == null || progress.getXpAwarded() == 0)
+                {
                     int xpReward = ((Number) lesson.get("xpReward")).intValue();
                     progress.setXpAwarded(xpReward);
 
                     // Update student replica XP + level
                     awardXpToStudent(studentId, xpReward);
 
-                    log.info("Awarded {} XP to student {} for completing lesson {}",
-                            xpReward, studentId, lessonId);
-                } else {
+                    log.info("Awarded {} XP to student {} for completing lesson {}", xpReward, studentId, lessonId);
+                }
+                else
+                {
                     log.info("XP already awarded for lesson {}, skipping duplicate award", lessonId);
                 }
             }
 
-        } else if (completionPct.compareTo(BigDecimal.ZERO) > 0) {
+        }
+        else if (completionPct.compareTo(BigDecimal.ZERO) > 0)
+        {
             // Partially complete (0% < completion < 100%)
 
-            if (!"IN_PROGRESS".equals(progress.getStatus())) {
+            if (!"IN_PROGRESS".equals(progress.getStatus()))
+            {
                 progress.setStatus("IN_PROGRESS");
                 progress.setCompletedAt(null);
             }
 
-        } else {
+        }
+        else
+        {
             // Not started (0% completion)
             progress.setStatus("NOT_STARTED");
             progress.setCompletedAt(null);
@@ -231,8 +241,7 @@ public class ProgressService
 
         // STEP 9: Save progress
         lessonProgressDao.save(progress);
-        log.info("Updated lesson progress: studentId={}, lessonId={}, completionPct={}, status={}",
-                studentId, lessonId, completionPct, progress.getStatus());
+        log.info("Updated lesson progress: studentId={}, lessonId={}, completionPct={}, status={}", studentId, lessonId, completionPct, progress.getStatus());
     }
 
     private void awardXpToStudent(Long studentId, int xpToAdd)

@@ -33,7 +33,8 @@ public class UserServiceClient
 
             Map<String, Object> user = restTemplate.getForObject(url, Map.class);
 
-            if (user == null) {
+            if (user == null)
+            {
                 throw new IllegalArgumentException("User not found in User Service: " + userId);
             }
 
@@ -48,8 +49,7 @@ public class UserServiceClient
             return user;
 
         } catch (Exception e) {
-            log.error("Failed to validate user in User Service: userId={}, error={}",
-                    userId, e.getMessage());
+            log.error("Failed to validate user in User Service: userId={}, error={}", userId, e.getMessage());
             throw new IllegalArgumentException("User validation failed: " + e.getMessage());
         }
     }

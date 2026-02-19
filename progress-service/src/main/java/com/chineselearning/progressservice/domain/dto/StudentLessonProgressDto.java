@@ -17,10 +17,7 @@ public class StudentLessonProgressDto {
 
     public StudentLessonProgressDto() {}
 
-    public StudentLessonProgressDto(Long id, Long studentId, Long lessonId, String status,
-                                    BigDecimal completionPct, Integer xpAwarded,
-                                    LocalDateTime startedAt, LocalDateTime lastAccessedAt,
-                                    LocalDateTime completedAt) {
+    public StudentLessonProgressDto(Long id, Long studentId, Long lessonId, String status, BigDecimal completionPct, Integer xpAwarded, LocalDateTime startedAt, LocalDateTime lastAccessedAt, LocalDateTime completedAt) {
         this.id = id;
         this.studentId = studentId;
         this.lessonId = lessonId;

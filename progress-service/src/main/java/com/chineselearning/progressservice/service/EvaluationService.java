@@ -32,32 +32,37 @@ public class EvaluationService
         }
     }
 
-    private EvaluationResult evaluateMultipleChoice(Map<String, Object> contentData,
-                                                    Map<String, Object> submittedAnswer) {
+
+    private EvaluationResult evaluateMultipleChoice(Map<String, Object> contentData, Map<String, Object> submittedAnswer) {
 
         List<String> options = (List<String>) contentData.get("options");
         Integer correctIndex = (Integer) contentData.get("correctIndex");
         Integer selectedIndex = (Integer) submittedAnswer.get("selectedIndex");
 
-        if (options == null || correctIndex == null) {
+        if (options == null || correctIndex == null)
+        {
             return new EvaluationResult(BigDecimal.ZERO, "Invalid exercise configuration");
         }
 
-        if (selectedIndex == null) {
+        if (selectedIndex == null)
+        {
             return new EvaluationResult(BigDecimal.ZERO, "No option selected");
         }
 
-        if (correctIndex.equals(selectedIndex)) {
+        if (correctIndex.equals(selectedIndex))
+        {
             return new EvaluationResult(new BigDecimal("100"), "Correct!");
-        } else {
+        }
+        else
+        {
             String correctAnswer = options.get(correctIndex);
-            return new EvaluationResult(BigDecimal.ZERO,
-                    "Incorrect. The correct answer was: " + correctAnswer);
+            return new EvaluationResult(BigDecimal.ZERO, "Incorrect. The correct answer was: " + correctAnswer);
         }
     }
 
-    private EvaluationResult evaluateTranslation(Map<String, Object> contentData,
-                                                 Map<String, Object> submittedAnswer) {
+
+
+    private EvaluationResult evaluateTranslation(Map<String, Object> contentData, Map<String, Object> submittedAnswer) {
 
         List<String> acceptedAnswers = (List<String>) contentData.get("acceptedAnswers");
         String userTranslation = (String) submittedAnswer.get("translation");
@@ -74,16 +79,21 @@ public class EvaluationService
         String normalizedUser = userTranslation.toLowerCase().trim();
 
         // Check against all accepted answers
-        for (String accepted : acceptedAnswers) {
-            if (accepted.toLowerCase().trim().equals(normalizedUser)) {
+        for (String accepted : acceptedAnswers)
+        {
+            if (accepted.toLowerCase().trim().equals(normalizedUser))
+            {
                 return new EvaluationResult(new BigDecimal("100"), "Perfect translation!");
             }
         }
 
         // Partial credit: check if user answer contains key words
-        for (String accepted : acceptedAnswers) {
+        for (String accepted : acceptedAnswers)
+        {
             String normalizedAccepted = accepted.toLowerCase().trim();
-            if (normalizedUser.contains(normalizedAccepted) || normalizedAccepted.contains(normalizedUser)) {
+
+            if (normalizedUser.contains(normalizedAccepted) || normalizedAccepted.contains(normalizedUser))
+            {
                 return new EvaluationResult(new BigDecimal("50"),
                         "Partially correct. Expected: " + acceptedAnswers.get(0));
             }
@@ -134,6 +144,8 @@ public class EvaluationService
         return new EvaluationResult(score, feedback);
     }
 
+
+
     private EvaluationResult evaluateMatching(Map<String, Object> contentData, Map<String, Object> submittedAnswer) {
 
         List<Map<String, String>> correctPairs = (List<Map<String, String>>) contentData.get("pairs");
@@ -173,6 +185,9 @@ public class EvaluationService
 
         return new EvaluationResult(score, feedback);
     }
+
+
+
 
     public static class EvaluationResult
     {

@@ -10,19 +10,17 @@ import java.util.List;
 public interface IExerciseAttemptDao extends JpaRepository<ExerciseAttempt, Long>
 {
 
-    // Count total attempts for a specific student on a specific exercise
-    // Used to calculate next attempt_number
+    // numarul de incercari ale unui student pentru un anumit exercitiu
     int countByStudentIdAndExerciseId(Long studentId, Long exerciseId);
 
-    // Get all attempts for a specific student on a specific exercise
+    // toate incercarile unui student pentru un anumit exercitiu
     List<ExerciseAttempt> findByStudentIdAndExerciseIdOrderByAttemptNumberAsc(Long studentId, Long exerciseId);
 
-    // Count distinct exercises answered correctly by student from a given list
-    // Used for lesson completion percentage calculation
+    // numara exercitiile distincte la care studentul a raspuns corect
+    // folosit pt a calcula procentul de completare al unei lectii
     @Query("SELECT COUNT(DISTINCT ea.exerciseId) FROM ExerciseAttempt ea " +
             "WHERE ea.studentId = :studentId " +
             "AND ea.exerciseId IN :exerciseIds " +
             "AND ea.isCorrect = true")
-    long countDistinctCorrectExercises(@Param("studentId") Long studentId,
-                                       @Param("exerciseIds") List<Long> exerciseIds);
+    long countDistinctCorrectExercises(@Param("studentId") Long studentId, @Param("exerciseIds") List<Long> exerciseIds);
 }

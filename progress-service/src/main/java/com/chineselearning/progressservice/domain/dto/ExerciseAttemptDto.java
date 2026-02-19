@@ -18,9 +18,7 @@ public class ExerciseAttemptDto {
 
     public ExerciseAttemptDto() {}
 
-    public ExerciseAttemptDto(Long id, Long studentId, Long exerciseId, Integer attemptNumber,
-                              LocalDateTime submittedAt, Map<String, Object> submittedAnswer,
-                              Boolean isCorrect, BigDecimal score, String feedbackText) {
+    public ExerciseAttemptDto(Long id, Long studentId, Long exerciseId, Integer attemptNumber, LocalDateTime submittedAt, Map<String, Object> submittedAnswer, Boolean isCorrect, BigDecimal score, String feedbackText) {
         this.id = id;
         this.studentId = studentId;
         this.exerciseId = exerciseId;

@@ -2,7 +2,8 @@ package com.chineselearning.progressservice.domain.dto;
 
 import java.util.Map;
 
-public class SubmitAttemptRequest {
+public class SubmitAttemptRequest
+{
 
     private Long studentId;
     private Long exerciseId;
@@ -10,7 +11,8 @@ public class SubmitAttemptRequest {
 
     public SubmitAttemptRequest() {}
 
-    public SubmitAttemptRequest(Long studentId, Long exerciseId, Map<String, Object> submittedAnswer) {
+    public SubmitAttemptRequest(Long studentId, Long exerciseId, Map<String, Object> submittedAnswer)
+    {
         this.studentId = studentId;
         this.exerciseId = exerciseId;
         this.submittedAnswer = submittedAnswer;
