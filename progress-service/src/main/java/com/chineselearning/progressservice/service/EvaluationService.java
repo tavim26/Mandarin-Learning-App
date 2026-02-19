@@ -1,167 +1,169 @@
 package com.chineselearning.progressservice.service;
 
+import com.chineselearning.progressservice.domain.dto.EvaluationResultDto;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.Arrays;
 
 @Service
 public class EvaluationService
 {
 
-    public EvaluationResult evaluate(String exerciseType, Map<String, Object> contentData, Map<String, Object> submittedAnswer) {
+    public EvaluationResultDto evaluate(String exerciseType, Map<String, Object> contentData, Map<String, Object> submittedAnswer) {
 
-        if (contentData == null || submittedAnswer == null)
+        if (exerciseType == null || contentData == null || submittedAnswer == null)
         {
-            return new EvaluationResult(BigDecimal.ZERO, "Invalid exercise or answer data");
+            return new EvaluationResultDto(BigDecimal.ZERO, "Date invalide pentru evaluare");
         }
 
         switch (exerciseType)
         {
-            case "MULTIPLE_CHOICE":
-                return evaluateMultipleChoice(contentData, submittedAnswer);
-            case "TRANSLATION":
-                return evaluateTranslation(contentData, submittedAnswer);
-            case "FILL_BLANK":
-                return evaluateFillBlank(contentData, submittedAnswer);
-            case "MATCHING":
-                return evaluateMatching(contentData, submittedAnswer);
+            case "MULTIPLE_CHOICE": return evaluateMultipleChoice(contentData, submittedAnswer);
+            case "TRANSLATION":     return evaluateTranslation(contentData, submittedAnswer);
+            case "FILL_BLANK":      return evaluateFillBlank(contentData, submittedAnswer);
+            case "MATCHING":        return evaluateMatching(contentData, submittedAnswer);
             default:
-                return new EvaluationResult(BigDecimal.ZERO, "Unknown exercise type: " + exerciseType);
+                throw new IllegalArgumentException("Tip de exercitiu necunoscut: " + exerciseType);
         }
     }
 
 
-    private EvaluationResult evaluateMultipleChoice(Map<String, Object> contentData, Map<String, Object> submittedAnswer) {
+    private EvaluationResultDto evaluateMultipleChoice(Map<String, Object> contentData, Map<String, Object> submittedAnswer) {
 
-        List<String> options = (List<String>) contentData.get("options");
-        Integer correctIndex = (Integer) contentData.get("correctIndex");
-        Integer selectedIndex = (Integer) submittedAnswer.get("selectedIndex");
+        List<String> options = safeCast(contentData.get("options"), List.class, "options");
+        Integer correctIndex = safeCast(contentData.get("correctIndex"), Integer.class, "correctIndex");
+        Integer selectedIndex = safeCast(submittedAnswer.get("selectedIndex"), Integer.class, "selectedIndex");
 
         if (options == null || correctIndex == null)
         {
-            return new EvaluationResult(BigDecimal.ZERO, "Invalid exercise configuration");
+            return new EvaluationResultDto(BigDecimal.ZERO, "Configuratie invalida a exercitiului");
         }
 
         if (selectedIndex == null)
         {
-            return new EvaluationResult(BigDecimal.ZERO, "No option selected");
+            return new EvaluationResultDto(BigDecimal.ZERO, "Nicio optiune selectata");
+        }
+
+        if (correctIndex < 0 || correctIndex >= options.size())
+        {
+            return new EvaluationResultDto(BigDecimal.ZERO, "Index corect invalid in configuratia exercitiului");
         }
 
         if (correctIndex.equals(selectedIndex))
         {
-            return new EvaluationResult(new BigDecimal("100"), "Correct!");
+            return new EvaluationResultDto(new BigDecimal("100"), "Corect!");
         }
-        else
-        {
-            String correctAnswer = options.get(correctIndex);
-            return new EvaluationResult(BigDecimal.ZERO, "Incorrect. The correct answer was: " + correctAnswer);
-        }
+
+        return new EvaluationResultDto(BigDecimal.ZERO, "Incorect. Raspunsul corect era: " + options.get(correctIndex));
     }
 
 
+    private EvaluationResultDto evaluateTranslation(Map<String, Object> contentData, Map<String, Object> submittedAnswer) {
 
-    private EvaluationResult evaluateTranslation(Map<String, Object> contentData, Map<String, Object> submittedAnswer) {
+        List<String> acceptedAnswers = safeCast(contentData.get("acceptedAnswers"), List.class, "acceptedAnswers");
+        String userTranslation = safeCast(submittedAnswer.get("translation"), String.class, "translation");
 
-        List<String> acceptedAnswers = (List<String>) contentData.get("acceptedAnswers");
-        String userTranslation = (String) submittedAnswer.get("translation");
-
-        if (acceptedAnswers == null || acceptedAnswers.isEmpty()) {
-            return new EvaluationResult(BigDecimal.ZERO, "Invalid exercise configuration");
+        if (acceptedAnswers == null || acceptedAnswers.isEmpty())
+        {
+            return new EvaluationResultDto(BigDecimal.ZERO, "Configuratie invalida a exercitiului");
         }
 
-        if (userTranslation == null || userTranslation.trim().isEmpty()) {
-            return new EvaluationResult(BigDecimal.ZERO, "No translation provided");
+        if (userTranslation == null || userTranslation.trim().isEmpty())
+        {
+            return new EvaluationResultDto(BigDecimal.ZERO, "Nu a fost furnizata nicio traducere");
         }
 
-        // Normalize for comparison (lowercase, trim)
-        String normalizedUser = userTranslation.toLowerCase().trim();
+        String normalizedUser = normalize(userTranslation);
 
-        // Check against all accepted answers
+        // Verificare potrivire exacta cu oricare din raspunsurile acceptate
         for (String accepted : acceptedAnswers)
         {
-            if (accepted.toLowerCase().trim().equals(normalizedUser))
+            if (normalize(accepted).equals(normalizedUser))
             {
-                return new EvaluationResult(new BigDecimal("100"), "Perfect translation!");
+                return new EvaluationResultDto(new BigDecimal("100"), "Traducere corecta!");
             }
         }
 
-        // Partial credit: check if user answer contains key words
-        for (String accepted : acceptedAnswers)
-        {
-            String normalizedAccepted = accepted.toLowerCase().trim();
+        // Credit partial bazat pe procentul de cuvinte cheie comune
+        // Se calculeaza fata de primul raspuns acceptat (considerat referinta principala)
+        BigDecimal overlapScore = calculateWordOverlapScore(normalizedUser, normalize(acceptedAnswers.get(0)));
 
-            if (normalizedUser.contains(normalizedAccepted) || normalizedAccepted.contains(normalizedUser))
-            {
-                return new EvaluationResult(new BigDecimal("50"),
-                        "Partially correct. Expected: " + acceptedAnswers.get(0));
-            }
+        // Pragul de 40% overlap acorda credit partial de 50 de puncte
+        if (overlapScore.compareTo(new BigDecimal("40")) >= 0)
+        {
+            return new EvaluationResultDto(
+                    new BigDecimal("50"),
+                    "Partial corect (" + overlapScore.toPlainString() + "% cuvinte potrivite). Raspuns asteptat: " + acceptedAnswers.get(0)
+            );
         }
 
-        return new EvaluationResult(BigDecimal.ZERO,
-                "Incorrect. Correct translation: " + acceptedAnswers.get(0));
+        return new EvaluationResultDto(BigDecimal.ZERO, "Incorect. Traducere corecta: " + acceptedAnswers.get(0));
     }
 
-    private EvaluationResult evaluateFillBlank(Map<String, Object> contentData, Map<String, Object> submittedAnswer) {
 
-        List<String> correctAnswers = (List<String>) contentData.get("correctAnswers");
-        List<String> userAnswers = (List<String>) submittedAnswer.get("answers");
+    private EvaluationResultDto evaluateFillBlank(Map<String, Object> contentData, Map<String, Object> submittedAnswer) {
+
+        List<String> correctAnswers = safeCast(contentData.get("correctAnswers"), List.class, "correctAnswers");
+        List<String> userAnswers = safeCast(submittedAnswer.get("answers"), List.class, "answers");
 
         if (correctAnswers == null || correctAnswers.isEmpty())
         {
-            return new EvaluationResult(BigDecimal.ZERO, "Invalid exercise configuration");
+            return new EvaluationResultDto(BigDecimal.ZERO, "Configuratie invalida a exercitiului");
         }
 
         if (userAnswers == null)
         {
-            return new EvaluationResult(BigDecimal.ZERO, "No answers provided");
+            return new EvaluationResultDto(BigDecimal.ZERO, "Nu au fost furnizate raspunsuri");
         }
 
         if (correctAnswers.size() != userAnswers.size())
         {
-            return new EvaluationResult(BigDecimal.ZERO, "Invalid number of answers. Expected: " + correctAnswers.size());
+            return new EvaluationResultDto(BigDecimal.ZERO,
+                    "Numar incorect de raspunsuri. Asteptat: " + correctAnswers.size());
         }
 
-        // Compare each blank
         int correct = 0;
         for (int i = 0; i < correctAnswers.size(); i++)
         {
-            if (correctAnswers.get(i).equalsIgnoreCase(userAnswers.get(i)))
+            // trim() previne penalizarea pentru spatii accidentale la inceput/sfarsit
+            if (correctAnswers.get(i).trim().equalsIgnoreCase(userAnswers.get(i).trim()))
             {
                 correct++;
             }
         }
 
-        // Calculate score
         BigDecimal score = BigDecimal.valueOf((correct * 100.0) / correctAnswers.size())
-                .setScale(2, BigDecimal.ROUND_HALF_UP);
+                .setScale(2, RoundingMode.HALF_UP);
 
-        String feedback = correct == correctAnswers.size()
-                ? "All correct!"
-                : String.format("You got %d out of %d correct", correct, correctAnswers.size());
+        String feedback = (correct == correctAnswers.size())
+                ? "Toate raspunsurile sunt corecte!"
+                : String.format("Ai completat corect %d din %d spatii", correct, correctAnswers.size());
 
-        return new EvaluationResult(score, feedback);
+        return new EvaluationResultDto(score, feedback);
     }
 
 
+    private EvaluationResultDto evaluateMatching(Map<String, Object> contentData, Map<String, Object> submittedAnswer) {
 
-    private EvaluationResult evaluateMatching(Map<String, Object> contentData, Map<String, Object> submittedAnswer) {
-
-        List<Map<String, String>> correctPairs = (List<Map<String, String>>) contentData.get("pairs");
-        Map<String, String> userMatches = (Map<String, String>) submittedAnswer.get("matches");
+        List<Map<String, String>> correctPairs = safeCast(contentData.get("pairs"), List.class, "pairs");
+        Map<String, String> userMatches = safeCast(submittedAnswer.get("matches"), Map.class, "matches");
 
         if (correctPairs == null || correctPairs.isEmpty())
         {
-            return new EvaluationResult(BigDecimal.ZERO, "Invalid exercise configuration");
+            return new EvaluationResultDto(BigDecimal.ZERO, "Configuratie invalida a exercitiului");
         }
 
         if (userMatches == null || userMatches.isEmpty())
         {
-            return new EvaluationResult(BigDecimal.ZERO, "No matches provided");
+            return new EvaluationResultDto(BigDecimal.ZERO, "Nu au fost furnizate asocieri");
         }
 
-        // Compare pairs
         int correct = 0;
         for (Map<String, String> pair : correctPairs)
         {
@@ -175,37 +177,59 @@ public class EvaluationService
             }
         }
 
-        // Calculate score
         BigDecimal score = BigDecimal.valueOf((correct * 100.0) / correctPairs.size())
-                .setScale(2, BigDecimal.ROUND_HALF_UP);
+                .setScale(2, RoundingMode.HALF_UP);
 
-        String feedback = correct == correctPairs.size()
-                ? "All pairs matched correctly!"
-                : String.format("You matched %d out of %d pairs correctly", correct, correctPairs.size());
+        String feedback = (correct == correctPairs.size())
+                ? "Toate asocierile sunt corecte!"
+                : String.format("Ai asociat corect %d din %d perechi", correct, correctPairs.size());
 
-        return new EvaluationResult(score, feedback);
+        return new EvaluationResultDto(score, feedback);
     }
 
 
 
 
-    public static class EvaluationResult
+
+
+
+
+    // Normalizare string pentru comparatie: lowercase + eliminare spatii multiple
+    private String normalize(String input)
     {
-        private final BigDecimal score;
-        private final String feedback;
+        return input.toLowerCase().trim().replaceAll("\\s+", " ");
+    }
 
-        public EvaluationResult(BigDecimal score, String feedback)
+    // Calculeaza procentul de cuvinte comune intre doua stringuri normalizate
+    // Folosit pentru credit partial la exercitii de tip TRANSLATION
+    private BigDecimal calculateWordOverlapScore(String userAnswer, String referenceAnswer)
+    {
+        Set<String> userWords = Arrays.stream(userAnswer.split("\\s+"))
+                .collect(Collectors.toSet());
+        Set<String> referenceWords = Arrays.stream(referenceAnswer.split("\\s+"))
+                .collect(Collectors.toSet());
+
+        if (referenceWords.isEmpty()) return BigDecimal.ZERO;
+
+        long commonWords = userWords.stream()
+                .filter(referenceWords::contains)
+                .count();
+
+        return BigDecimal.valueOf((commonWords * 100.0) / referenceWords.size())
+                .setScale(2, RoundingMode.HALF_UP);
+    }
+
+    // Cast sigur cu logging - returneaza null in loc sa arunce ClassCastException
+    @SuppressWarnings("unchecked")
+    private <T> T safeCast(Object value, Class<T> type, String fieldName)
+    {
+        if (value == null) return null;
+        if (!type.isInstance(value))
         {
-            this.score = score;
-            this.feedback = feedback;
+            throw new IllegalArgumentException(
+                    "Camp '" + fieldName + "' are tip neasteptat: " + value.getClass().getSimpleName()
+            );
         }
-
-        public BigDecimal getScore() {
-            return score;
-        }
-
-        public String getFeedback() {
-            return feedback;
-        }
+        return (T) value;
     }
 }

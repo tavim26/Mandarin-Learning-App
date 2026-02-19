@@ -8,6 +8,7 @@ import com.chineselearning.progressservice.service.ProgressService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,14 +31,16 @@ public class ProgressController
     }
 
     @PostMapping("/attempts")
-    @Operation(summary = "Submit exercise attempt", description = "Submit student answer for evaluation. Automatically creates student replica on first attempt (lazy creation).")
-    public ResponseEntity<?> submitAttempt(@RequestBody SubmitAttemptRequest request)
-    {
+    @Operation(summary = "Submit exercise attempt", description = "Trimite raspunsul studentului pentru evaluare. Creeaza automat replica studentului la prima incercare.")
+    public ResponseEntity<?> submitAttempt(@Valid @RequestBody SubmitAttemptRequest request) {
         try {
             ExerciseAttemptDto result = progressService.submitAttempt(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(result);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (IllegalStateException e) {
+            // Erori de comunicare cu content-service
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(e.getMessage());
         }
     }
 
