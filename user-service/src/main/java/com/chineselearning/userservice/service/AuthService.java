@@ -20,7 +20,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Service
-public class AuthService {
+public class AuthService
+{
 
     private final ICredentialDao credentialDao;
     private final PasswordEncoder passwordEncoder;
@@ -28,12 +29,7 @@ public class AuthService {
     private final CustomUserDetailsService userDetailsService;
     private final AuthenticationManager authenticationManager;
 
-    public AuthService(
-            ICredentialDao credentialDao,
-            PasswordEncoder passwordEncoder,
-            JwtService jwtService,
-            CustomUserDetailsService userDetailsService,
-            AuthenticationManager authenticationManager
+    public AuthService(ICredentialDao credentialDao, PasswordEncoder passwordEncoder, JwtService jwtService, CustomUserDetailsService userDetailsService, AuthenticationManager authenticationManager
     ) {
         this.credentialDao = credentialDao;
         this.passwordEncoder = passwordEncoder;
@@ -42,17 +38,18 @@ public class AuthService {
         this.authenticationManager = authenticationManager;
     }
 
+
     @Transactional
-    public AuthResponseDto register(RegisterRequestDto request) {
+    public AuthResponseDto register(RegisterRequestDto request)
+    {
         // 1. Validate: Check if email already exists
-        if (credentialDao.existsByEmail(request.getEmail())) {
+        if (credentialDao.existsByEmail(request.getEmail()))
+        {
             throw new IllegalArgumentException("Email already registered");
         }
 
         // 2. Validate: Check role
-        if (!request.getRole().equals("STUDENT") &&
-                !request.getRole().equals("TEACHER") &&
-                !request.getRole().equals("ADMIN")) {
+        if (!request.getRole().equals("STUDENT") && !request.getRole().equals("TEACHER") && !request.getRole().equals("ADMIN")) {
             throw new IllegalArgumentException("Role must be STUDENT, TEACHER or ADMIN");
         }
 
@@ -70,19 +67,22 @@ public class AuthService {
         credential.setUser(user);
 
         // 5. Create Student or Teacher entity
-        if (request.getRole().equals("STUDENT")) {
+        if (request.getRole().equals("STUDENT"))
+        {
             Student student = new Student();
-            student.setNickname(null); // Nickname can be set later via dedicated endpoint
+            student.setNickname(null);
             student.setUser(user);
             user.setStudent(student);
-        } else if (request.getRole().equals("TEACHER")) {
+        }
+        else if (request.getRole().equals("TEACHER"))
+        {
             Teacher teacher = new Teacher();
             teacher.setTitle("");
             teacher.setUser(user);
             user.setTeacher(teacher);
         }
 
-        // 6. Save (cascade saves all entities)
+        // 6. Save
         Credential savedCredential = credentialDao.save(credential);
 
         // 7. Generate JWT token
@@ -101,7 +101,10 @@ public class AuthService {
         );
     }
 
-    public AuthResponseDto login(AuthRequestDto request) {
+
+
+    public AuthResponseDto login(AuthRequestDto request)
+    {
         // 1. Authenticate using Spring Security
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(

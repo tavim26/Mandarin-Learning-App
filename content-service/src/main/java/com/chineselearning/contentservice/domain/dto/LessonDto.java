@@ -16,7 +16,6 @@ public class LessonDto {
     public LessonDto() {
     }
 
-    // Constructor FARA exercises (backward compatibility)
     public LessonDto(Long id, Long unitId, String title, String description,
                      Integer xpReward, Integer orderIndex) {
         this.id = id;

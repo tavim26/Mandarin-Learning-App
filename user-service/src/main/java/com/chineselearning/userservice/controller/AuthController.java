@@ -28,8 +28,10 @@ public class AuthController
     public ResponseEntity<?> register(@RequestBody RegisterRequestDto request)
     {
         try {
+
             AuthResponseDto response = authService.register(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
+
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -40,8 +42,10 @@ public class AuthController
     public ResponseEntity<?> login(@RequestBody AuthRequestDto request)
     {
         try {
+
             AuthResponseDto response = authService.login(request);
             return ResponseEntity.ok(response);
+
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         } catch (Exception e) {

@@ -8,6 +8,6 @@ import java.util.List;
 
 @Repository
 public interface ILessonDao extends JpaRepository<Lesson, Long> {
-    // Gaseste toate lectiile dintr-un Unit
+
     List<Lesson> findByUnitIdOrderByOrderIndexAsc(Long unitId);
 }

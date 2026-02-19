@@ -1,6 +1,7 @@
 package com.chineselearning.userservice.domain.dto;
 
-public class RegisterRequestDto {
+public class RegisterRequestDto
+{
     private String email;
     private String password;
     private String fullName;

@@ -4,7 +4,8 @@ import jakarta.persistence.*;
 
 @Entity
 @Table(name = "users")
-public class User {
+public class User
+{
 
     @Id
     private Long id;
@@ -13,11 +14,11 @@ public class User {
     private String fullName;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @MapsId // Asta ii spune lui Hibernate: "Foloseste ID-ul din relatia 'credential' ca fiind ID-ul meu"
+    @MapsId
     @JoinColumn(name = "id") // Cheia straina care este si cheie primara
     private Credential credential;
 
-    // Relatii optionale catre Student sau Teacher
+
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Student student;
 

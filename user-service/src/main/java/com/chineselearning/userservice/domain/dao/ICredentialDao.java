@@ -7,7 +7,8 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface ICredentialDao extends JpaRepository<Credential, Long> {
+public interface ICredentialDao extends JpaRepository<Credential, Long>
+{
 
     // pentru Login: Gaseste utilizatorul dupa email
     Optional<Credential> findByEmail(String email);

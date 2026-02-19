@@ -1,6 +1,7 @@
 package com.chineselearning.userservice.domain.dto;
 
-public class TeacherDto {
+public class TeacherDto
+{
     private Long userId;
     private String title;
 

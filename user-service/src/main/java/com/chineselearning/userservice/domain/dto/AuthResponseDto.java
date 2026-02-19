@@ -1,6 +1,7 @@
 package com.chineselearning.userservice.domain.dto;
 
-public class AuthResponseDto {
+public class AuthResponseDto
+{
     private String token;
     private Long userId;
     private String role;

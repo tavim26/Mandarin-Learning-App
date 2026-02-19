@@ -9,7 +9,7 @@ public class ExerciseDto {
     private String type;
     private String prompt;
     private Integer difficulty;
-    private Map<String, Object> contentData; // JSON-ul cu raspunsurile
+    private Map<String, Object> contentData;
 
     public ExerciseDto() {}
 

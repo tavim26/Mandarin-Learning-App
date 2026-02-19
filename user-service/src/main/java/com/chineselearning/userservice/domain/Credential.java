@@ -23,8 +23,6 @@ public class Credential {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    // Relatia OneToOne catre User
-    // Cascade ALL inseamna ca daca salvam Credential, se salveaza si User
     @OneToOne(mappedBy = "credential", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private User user;
 
@@ -47,6 +45,7 @@ public class Credential {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
     public User getUser() { return user; }
+
     public void setUser(User user) {
         this.user = user;
         if (user != null) {
