@@ -1,0 +1,30 @@
+package com.chineselearning.chatbotservice.domain.dto;
+
+import java.time.LocalDateTime;
+
+public class ChatSessionDto
+{
+
+    private Long id;
+    private Long studentId;
+    private String title;
+    private LocalDateTime startedAt;
+    private LocalDateTime endedAt;
+
+    public ChatSessionDto() {}
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public Long getStudentId() { return studentId; }
+    public void setStudentId(Long studentId) { this.studentId = studentId; }
+
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+
+    public LocalDateTime getStartedAt() { return startedAt; }
+    public void setStartedAt(LocalDateTime startedAt) { this.startedAt = startedAt; }
+
+    public LocalDateTime getEndedAt() { return endedAt; }
+    public void setEndedAt(LocalDateTime endedAt) { this.endedAt = endedAt; }
+}
