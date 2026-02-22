@@ -9,7 +9,7 @@ DATABASE_URL: str = "postgresql+psycopg2://postgres:kuso@localhost:5432/text_ana
 
 engine = create_engine(
     DATABASE_URL,
-    echo=True,  # vezi SQL in consola (util pentru debug)
+    echo=True,
 )
 
 
