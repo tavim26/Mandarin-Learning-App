@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 # fisier JSON cu structura: { "hanzi": nivel_hsk }
-# ex: { "你": 1, "学习": 2, "经济": 5 }
+
 HSK_PATH = Path(__file__).parent.parent / "resources" / "hsk_words.json"
 
 

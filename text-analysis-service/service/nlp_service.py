@@ -1,14 +1,12 @@
 import jieba
 from pypinyin import pinyin, Style
 
-from service.cedict_service import CedictService
 from service.hsk_service import HskService
 
 
 class NlpService:
 
-    def __init__(self, cedict_service: CedictService, hsk_service: HskService):
-        self._cedict = cedict_service
+    def __init__(self, hsk_service: HskService):
         self._hsk = hsk_service
 
     def process(self, text: str) -> list[dict]:
@@ -28,7 +26,6 @@ class NlpService:
             result.append({
                 "hanzi": token,
                 "pinyin": pinyin_str,
-                "translation": self._cedict.lookup(token),
                 "hsk_level": self._hsk.get_level(token),
                 "position_index": index,
             })

@@ -12,6 +12,8 @@ class TextAnalysisDto(BaseModel):
     source_type: str
     overall_hsk_level: int | None
     created_at: datetime
+    translated_text: str | None
+    translation_language: str | None
     tokens: list[AnalysisTokenDto]
 
     class Config:

@@ -13,7 +13,8 @@ class TextAnalysis(Base):
     student_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     raw_text: Mapped[str] = mapped_column(Text, nullable=False)
 
-    # MANUAL = text introdus de student | OCR = extras din imagine
+    # MANUAL = text introdus de student
+    # OCR = extras din imagine
     source_type: Mapped[str] = mapped_column(String(20), nullable=False)
 
     # nivelul HSK calculat ca medie ponderata a tokenurilor
@@ -23,7 +24,12 @@ class TextAnalysis(Base):
         DateTime, nullable=False, default=func.now()
     )
 
-    # relatie one-to-many cu tokenurile extrase
+    # traducerea contextuala a textului integral
+    translated_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # limba in care s-a facut traducerea
+    translation_language: Mapped[str | None] = mapped_column(String(10), nullable=True)
+
     tokens: Mapped[list["AnalysisToken"]] = relationship(
         "AnalysisToken",
         back_populates="analysis",

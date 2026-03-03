@@ -1,7 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from sqlalchemy.orm import Session
 
-from config.database import get_db
 from domain.dto.analyze_request_dto import AnalyzeTextRequestDto
 from domain.dto.text_analysis_dto import TextAnalysisDto
 from service.analysis_service import AnalysisService
@@ -9,8 +7,8 @@ from utils.dependencies import get_analysis_service
 
 router = APIRouter(prefix="/api/analysis", tags=["analysis"])
 
-
 # http://localhost:8085/docs
+
 
 @router.post("/text", response_model=TextAnalysisDto, status_code=201)
 def analyze_text(
@@ -24,10 +22,11 @@ def analyze_text(
 async def analyze_image(
     student_id: int = Form(..., gt=0),
     image: UploadFile = File(...),
+    translation_language: str | None = Form(default=None),
     service: AnalysisService = Depends(get_analysis_service),
 ):
     image_bytes = await image.read()
-    return service.analyze_image(student_id, image_bytes)
+    return service.analyze_image(student_id, image_bytes, translation_language)
 
 
 @router.get("/student/{student_id}", response_model=list[TextAnalysisDto])
