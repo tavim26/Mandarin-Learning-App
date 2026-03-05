@@ -21,8 +21,6 @@ public class FlashcardSet {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "origin", nullable = false, length = 50)
-    private String origin;
 
     @OneToMany(mappedBy = "set", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Flashcard> flashcards = new ArrayList<>();
@@ -40,9 +38,6 @@ public class FlashcardSet {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
-
-    public String getOrigin() { return origin; }
-    public void setOrigin(String origin) { this.origin = origin; }
 
     public List<Flashcard> getFlashcards() { return flashcards; }
     public void setFlashcards(List<Flashcard> flashcards) { this.flashcards = flashcards; }

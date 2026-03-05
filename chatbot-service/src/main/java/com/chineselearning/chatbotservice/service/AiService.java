@@ -35,6 +35,7 @@ public class AiService
 
     private final RestTemplate restTemplate = new RestTemplate();
 
+
     // Construieste request-ul catre Gemini cu system prompt + fereastra de context + mesajul curent
     public String chat(String userMessage, List<ContextMessage> contextHistory)
     {

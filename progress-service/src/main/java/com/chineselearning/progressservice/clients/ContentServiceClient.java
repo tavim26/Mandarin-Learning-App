@@ -2,6 +2,7 @@ package com.chineselearning.progressservice.clients;
 
 import com.chineselearning.progressservice.domain.dto.ExerciseResponseDto;
 import com.chineselearning.progressservice.domain.dto.LessonResponseDto;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

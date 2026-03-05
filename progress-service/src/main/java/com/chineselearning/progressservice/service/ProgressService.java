@@ -1,6 +1,7 @@
 package com.chineselearning.progressservice.service;
 
 import com.chineselearning.progressservice.clients.ContentServiceClient;
+
 import com.chineselearning.progressservice.domain.ExerciseAttempt;
 import com.chineselearning.progressservice.domain.StudentLessonProgress;
 import com.chineselearning.progressservice.domain.StudentReplica;
