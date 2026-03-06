@@ -1,13 +1,15 @@
 package com.chineselearning.userservice.domain.dao;
 
 import com.chineselearning.userservice.domain.User;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
 import java.util.List;
+import java.util.Optional;
 
-@Repository
-public interface IUserDao extends JpaRepository<User, Long> {
-
+public interface IUserDao
+{
+     User save(User user);
+     Optional<User> findById(Long id);
+     List<User> findAll();
      List<User> findByFullNameContaining(String fragment);
+     boolean existsById(Long id);
+     void deleteById(Long id);
 }

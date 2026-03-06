@@ -1,10 +1,10 @@
 package com.chineselearning.userservice.domain.dao;
 
 import com.chineselearning.userservice.domain.Teacher;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import java.util.Optional;
 
-@Repository
-public interface ITeacherDao extends JpaRepository<Teacher, Long> {
-
+public interface ITeacherDao
+{
+    Teacher save(Teacher teacher);
+    Optional<Teacher> findById(Long userId);
 }

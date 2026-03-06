@@ -2,6 +2,7 @@ package com.chineselearning.userservice.service;
 
 import com.chineselearning.userservice.domain.Credential;
 import com.chineselearning.userservice.domain.dao.ICredentialDao;
+
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

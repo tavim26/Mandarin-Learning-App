@@ -1,24 +1,13 @@
 package com.chineselearning.userservice.domain;
 
-import jakarta.persistence.*;
-
-@Entity
-@Table(name = "teachers")
-public class Teacher {
-
-    @Id
+public class Teacher
+{
     private Long userId;
-
     private String title;
-
-    @OneToOne(fetch = FetchType.LAZY)
-    @MapsId
-    @JoinColumn(name = "user_id")
     private User user;
 
     public Teacher() {}
 
-    // Getters and Setters
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
 

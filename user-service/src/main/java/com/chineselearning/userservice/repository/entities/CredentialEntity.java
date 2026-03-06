@@ -1,17 +1,32 @@
-package com.chineselearning.userservice.domain;
+package com.chineselearning.userservice.repository.entities;
 
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-public class Credential
+@Entity
+@Table(name = "credentials")
+public class CredentialEntity
 {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String email;
-    private String passwordHash;
-    private String role;
-    private LocalDateTime createdAt;
-    private User user;
 
-    public Credential() {}
+    @Column(unique = true, nullable = false)
+    private String email;
+
+    @Column(name = "password_hash", nullable = false)
+    private String passwordHash;
+
+    @Column(nullable = false)
+    private String role;
+
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+
+    @OneToOne(mappedBy = "credential", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private UserEntity user;
+
+    public CredentialEntity() {}
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -28,13 +43,6 @@ public class Credential
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    public User getUser() { return user; }
-    public void setUser(User user)
-    {
-        this.user = user;
-        if (user != null)
-        {
-            user.setCredential(this);
-        }
-    }
+    public UserEntity getUser() { return user; }
+    public void setUser(UserEntity user) { this.user = user; }
 }

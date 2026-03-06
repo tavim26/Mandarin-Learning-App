@@ -1,6 +1,7 @@
 package com.chineselearning.userservice.config;
 
 import com.chineselearning.userservice.service.CustomUserDetailsService;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
