@@ -12,7 +12,7 @@ public class UserEntity
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.EAGER)
     @MapsId
     @JoinColumn(name = "id")
     private CredentialEntity credential;

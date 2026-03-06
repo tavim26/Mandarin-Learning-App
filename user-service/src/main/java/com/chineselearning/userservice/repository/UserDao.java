@@ -1,5 +1,6 @@
 package com.chineselearning.userservice.repository;
 
+import com.chineselearning.userservice.domain.Credential;
 import com.chineselearning.userservice.domain.Student;
 import com.chineselearning.userservice.domain.Teacher;
 import com.chineselearning.userservice.domain.User;
@@ -94,6 +95,18 @@ public class UserDao implements IUserDao
         User user = new User();
         user.setId(entity.getId());
         user.setFullName(entity.getFullName());
+
+        // Setam Credential pe User pentru a putea accesa role-ul in service
+        if (entity.getCredential() != null)
+        {
+            Credential credential = new Credential();
+            credential.setId(entity.getCredential().getId());
+            credential.setEmail(entity.getCredential().getEmail());
+            credential.setPasswordHash(entity.getCredential().getPasswordHash());
+            credential.setRole(entity.getCredential().getRole());
+            credential.setCreatedAt(entity.getCredential().getCreatedAt());
+            user.setCredential(credential);
+        }
 
         if (entity.getStudent() != null)
         {
