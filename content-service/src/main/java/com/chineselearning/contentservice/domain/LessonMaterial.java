@@ -1,35 +1,14 @@
 package com.chineselearning.contentservice.domain;
 
-import jakarta.persistence.*;
-
-@Entity
-@Table(name = "lesson_materials")
 public class LessonMaterial {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "lesson_id", nullable = false)
     private Lesson lesson;
-
-    @Column(nullable = false)
     private String title;
-
-    @Column(nullable = false)
     private String type;
-
-    @Column(nullable = false, length = 1000)
     private String url;
 
     public LessonMaterial() {}
-
-    public LessonMaterial(String title, String type, String url) {
-        this.title = title;
-        this.type = type;
-        this.url = url;
-    }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

@@ -1,23 +1,42 @@
-package com.chineselearning.contentservice.domain;
+package com.chineselearning.contentservice.repository.entities;
+
+import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.Map;
 
-public class Exercise {
+@Entity
+@Table(name = "exercises")
+public class ExerciseEntity {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private Lesson lesson;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "lesson_id", nullable = false)
+    private LessonEntity lesson;
+
+    @Column(nullable = false)
     private String type;
+
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String prompt;
+
     private Integer difficulty;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "content_data", columnDefinition = "jsonb")
     private Map<String, Object> contentData;
 
-    public Exercise() {}
+    public ExerciseEntity() {}
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    public Lesson getLesson() { return lesson; }
-    public void setLesson(Lesson lesson) { this.lesson = lesson; }
+    public LessonEntity getLesson() { return lesson; }
+    public void setLesson(LessonEntity lesson) { this.lesson = lesson; }
 
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }

@@ -1,13 +1,19 @@
 package com.chineselearning.contentservice.domain.dao;
 
 import com.chineselearning.contentservice.domain.Exercise;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
-@Repository
-public interface IExerciseDao extends JpaRepository<Exercise, Long> {
+public interface IExerciseDao {
 
     List<Exercise> findByLessonId(Long lessonId);
+
+    Optional<Exercise> findById(Long id);
+
+    Exercise save(Exercise exercise);
+
+    void deleteById(Long id);
+
+    boolean existsById(Long id);
 }

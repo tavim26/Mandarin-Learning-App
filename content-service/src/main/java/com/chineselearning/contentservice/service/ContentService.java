@@ -106,11 +106,9 @@ public class ContentService
         Lesson lesson = lessonDao.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lesson not found with id: " + id));
 
-        // Map lesson to DTO
         LessonDto dto = mapLessonToDto(lesson);
 
-        // CRITICAL: Load and attach exercises
-        List<ExerciseDto> exerciseDtos = lesson.getExercises().stream()
+        List<ExerciseDto> exerciseDtos = exerciseDao.findByLessonId(id).stream()
                 .map(this::mapExerciseToDto)
                 .collect(Collectors.toList());
 

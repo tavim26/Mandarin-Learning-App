@@ -1,18 +1,33 @@
-package com.chineselearning.contentservice.domain;
+package com.chineselearning.contentservice.repository.entities;
 
+import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CourseUnit {
+@Entity
+@Table(name = "course_units")
+public class CourseUnitEntity {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String title;
-    private String description;
-    private Integer hskLevel;
-    private Integer orderIndex;
-    private List<Lesson> lessons = new ArrayList<>();
 
-    public CourseUnit() {}
+    @Column(nullable = false)
+    private String title;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "hsk_level")
+    private Integer hskLevel;
+
+    @Column(name = "order_index", nullable = false)
+    private Integer orderIndex;
+
+    @OneToMany(mappedBy = "unit", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<LessonEntity> lessons = new ArrayList<>();
+
+    public CourseUnitEntity() {}
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -29,6 +44,6 @@ public class CourseUnit {
     public Integer getOrderIndex() { return orderIndex; }
     public void setOrderIndex(Integer orderIndex) { this.orderIndex = orderIndex; }
 
-    public List<Lesson> getLessons() { return lessons; }
-    public void setLessons(List<Lesson> lessons) { this.lessons = lessons; }
+    public List<LessonEntity> getLessons() { return lessons; }
+    public void setLessons(List<LessonEntity> lessons) { this.lessons = lessons; }
 }

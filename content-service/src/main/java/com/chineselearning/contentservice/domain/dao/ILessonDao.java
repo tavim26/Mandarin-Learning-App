@@ -1,13 +1,19 @@
 package com.chineselearning.contentservice.domain.dao;
 
 import com.chineselearning.contentservice.domain.Lesson;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
-@Repository
-public interface ILessonDao extends JpaRepository<Lesson, Long> {
+public interface ILessonDao {
 
     List<Lesson> findByUnitIdOrderByOrderIndexAsc(Long unitId);
+
+    Optional<Lesson> findById(Long id);
+
+    Lesson save(Lesson lesson);
+
+    void deleteById(Long id);
+
+    boolean existsById(Long id);
 }
