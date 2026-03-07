@@ -1,37 +1,53 @@
-package com.chineselearning.progressservice.domain;
+package com.chineselearning.progressservice.repository.entities;
+
+import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-// Clasa de domeniu pura - zero dependente externe
-// Nu contine adnotari JPA sau Spring
-public class ExerciseAttempt {
+@Entity
+@Table(
+        name = "exercise_attempts",
+        indexes = {
+                @Index(name = "idx_attempts_student_exercise", columnList = "student_id, exercise_id, submitted_at"),
+                @Index(name = "idx_attempts_exercise_correct", columnList = "exercise_id, is_correct")
+        }
+)
+public class ExerciseAttemptEntity {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "student_id", nullable = false)
     private Long studentId;
+
+    @Column(name = "exercise_id", nullable = false)
     private Long exerciseId;
+
+    @Column(name = "attempt_number", nullable = false)
     private Integer attemptNumber;
+
+    @Column(name = "submitted_at", nullable = false)
     private LocalDateTime submittedAt;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "submitted_answer", columnDefinition = "jsonb", nullable = false)
     private Map<String, Object> submittedAnswer;
+
+    @Column(name = "is_correct", nullable = false)
     private Boolean isCorrect;
+
+    @Column(name = "score", nullable = false, precision = 5, scale = 2)
     private BigDecimal score;
+
+    @Column(name = "feedback_text", columnDefinition = "TEXT")
     private String feedbackText;
 
-    public ExerciseAttempt() {}
-
-    public ExerciseAttempt(Long studentId, Long exerciseId, Integer attemptNumber,
-                           LocalDateTime submittedAt, Map<String, Object> submittedAnswer,
-                           Boolean isCorrect, BigDecimal score, String feedbackText) {
-        this.studentId = studentId;
-        this.exerciseId = exerciseId;
-        this.attemptNumber = attemptNumber;
-        this.submittedAt = submittedAt;
-        this.submittedAnswer = submittedAnswer;
-        this.isCorrect = isCorrect;
-        this.score = score;
-        this.feedbackText = feedbackText;
-    }
+    public ExerciseAttemptEntity() {}
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

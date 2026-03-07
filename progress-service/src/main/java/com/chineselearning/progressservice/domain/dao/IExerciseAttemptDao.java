@@ -1,26 +1,23 @@
 package com.chineselearning.progressservice.domain.dao;
 
 import com.chineselearning.progressservice.domain.ExerciseAttempt;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface IExerciseAttemptDao extends JpaRepository<ExerciseAttempt, Long>
-{
+// Interfata pura Java - defineste contractul de persistenta fara detalii de implementare
+// Niciun import Spring sau JPA
+public interface IExerciseAttemptDao {
 
-    // numarul de incercari ale unui student pentru un anumit exercitiu
+    ExerciseAttempt save(ExerciseAttempt attempt);
+
+    // Numara toate incercarile unui student la un exercitiu specific
+    // Folosit pentru calculul attemptNumber la o incercare noua
     int countByStudentIdAndExerciseId(Long studentId, Long exerciseId);
 
-    // toate incercarile unui student pentru un anumit exercitiu
+    // Toate incercarile unui student la un exercitiu, ordonate dupa attemptNumber
     List<ExerciseAttempt> findByStudentIdAndExerciseIdOrderByAttemptNumberAsc(Long studentId, Long exerciseId);
 
-    // numara exercitiile distincte la care studentul a raspuns corect
-    // folosit pt a calcula procentul de completare al unei lectii
-    @Query("SELECT COUNT(DISTINCT ea.exerciseId) FROM ExerciseAttempt ea " +
-            "WHERE ea.studentId = :studentId " +
-            "AND ea.exerciseId IN :exerciseIds " +
-            "AND ea.isCorrect = true")
-    long countDistinctCorrectExercises(@Param("studentId") Long studentId, @Param("exerciseIds") List<Long> exerciseIds);
+    // Numarul de exercitii distincte rezolvate corect de un student dintr-o lista data
+    // Folosit pentru calculul procentului de completare a lectiei
+    long countDistinctCorrectExercises(Long studentId, List<Long> exerciseIds);
 }

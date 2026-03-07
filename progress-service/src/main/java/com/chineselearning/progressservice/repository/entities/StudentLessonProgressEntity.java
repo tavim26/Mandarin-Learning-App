@@ -1,32 +1,54 @@
-package com.chineselearning.progressservice.domain;
+package com.chineselearning.progressservice.repository.entities;
+
+import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-// Clasa de domeniu pura - zero dependente externe
-public class StudentLessonProgress {
+@Entity
+@Table(
+        name = "student_lesson_progress",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uq_student_lesson",
+                        columnNames = {"student_id", "lesson_id"}
+                )
+        },
+        indexes = {
+                @Index(name = "idx_progress_student_status", columnList = "student_id, status")
+        }
+)
+public class StudentLessonProgressEntity {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "student_id", nullable = false)
     private Long studentId;
+
+    @Column(name = "lesson_id", nullable = false)
     private Long lessonId;
+
+    @Column(name = "status", nullable = false, length = 20)
     private String status;
+
+    @Column(name = "completion_pct", nullable = false, precision = 5, scale = 2)
     private BigDecimal completionPct;
+
+    @Column(name = "xp_awarded")
     private Integer xpAwarded;
+
+    @Column(name = "started_at")
     private LocalDateTime startedAt;
+
+    @Column(name = "last_accessed_at")
     private LocalDateTime lastAccessedAt;
+
+    @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
-    public StudentLessonProgress() {
-        this.status = "NOT_STARTED";
-        this.completionPct = BigDecimal.ZERO;
-    }
-
-    public StudentLessonProgress(Long studentId, Long lessonId) {
-        this.studentId = studentId;
-        this.lessonId = lessonId;
-        this.status = "NOT_STARTED";
-        this.completionPct = BigDecimal.ZERO;
-    }
+    public StudentLessonProgressEntity() {}
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

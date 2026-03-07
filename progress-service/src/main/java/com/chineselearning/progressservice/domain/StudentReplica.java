@@ -1,28 +1,13 @@
 package com.chineselearning.progressservice.domain;
 
-import jakarta.persistence.*;
+// Clasa de domeniu pura - zero dependente externe
+// Replica locala a datelor din user-service pentru operatii frecvente (XP, nivel, clasament)
+public class StudentReplica {
 
-@Entity
-@Table(
-        name = "students_replica",
-        indexes = {
-                @Index(name = "idx_students_xp_leaderboard", columnList = "xp_total DESC")
-        }
-)
-public class StudentReplica
-{
-
-    @Id
-    @Column(name = "student_id")
     private Long studentId;
-
-    @Column(name = "xp_total", nullable = false)
     private Integer xpTotal;
-
-    @Column(name = "level", nullable = false)
     private Integer level;
 
-    // Constructors
     public StudentReplica() {
         this.xpTotal = 0;
         this.level = 1;
@@ -40,37 +25,22 @@ public class StudentReplica
         this.level = level;
     }
 
-    // Getters and Setters
-    public Long getStudentId() {
-        return studentId;
-    }
+    public Long getStudentId() { return studentId; }
+    public void setStudentId(Long studentId) { this.studentId = studentId; }
 
-    public void setStudentId(Long studentId) {
-        this.studentId = studentId;
-    }
+    public Integer getXpTotal() { return xpTotal; }
+    public void setXpTotal(Integer xpTotal) { this.xpTotal = xpTotal; }
 
-    public Integer getXpTotal() {
-        return xpTotal;
-    }
+    public Integer getLevel() { return level; }
+    public void setLevel(Integer level) { this.level = level; }
 
-    public void setXpTotal(Integer xpTotal) {
-        this.xpTotal = xpTotal;
-    }
-
-    public Integer getLevel() {
-        return level;
-    }
-
-    public void setLevel(Integer level) {
-        this.level = level;
-    }
-
-    // Business logic methods
+    // Logica de business a domeniului - adauga XP si recalculeaza nivelul
     public void addXp(Integer xpToAdd) {
         this.xpTotal += xpToAdd;
         recalculateLevel();
     }
 
+    // Formula nivel: fiecare 100 XP = 1 nivel
     public void recalculateLevel() {
         this.level = (this.xpTotal / 100) + 1;
     }
