@@ -1,37 +1,17 @@
+from dataclasses import dataclass, field
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Text, String, Integer, DateTime, func
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from config.database import Base
+@dataclass
+class TextAnalysis:
+    student_id: int
+    raw_text: str
+    source_type: str
+    translation_language: str
+    id: int = 0
+    overall_hsk_level: int | None = None
+    translated_text: str | None = None
+    created_at: datetime = field(default_factory=datetime.now)
 
-
-class TextAnalysis(Base):
-    __tablename__ = "text_analyses"
-
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    student_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    raw_text: Mapped[str] = mapped_column(Text, nullable=False)
-
-    # MANUAL = text introdus de student
-    # OCR = extras din imagine
-    source_type: Mapped[str] = mapped_column(String(20), nullable=False)
-
-    # nivelul HSK calculat ca medie ponderata a tokenurilor
-    overall_hsk_level: Mapped[int | None] = mapped_column(Integer, nullable=True)
-
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=func.now()
-    )
-
-    # traducerea contextuala a textului integral
-    translated_text: Mapped[str | None] = mapped_column(Text, nullable=True)
-
-    # limba in care s-a facut traducerea
-    translation_language: Mapped[str | None] = mapped_column(String(10), nullable=True)
-
-    tokens: Mapped[list["AnalysisToken"]] = relationship(
-        "AnalysisToken",
-        back_populates="analysis",
-        cascade="all, delete-orphan",
-    )
+    # lista de tokeni asociati acestei analize
+    tokens: list = field(default_factory=list)

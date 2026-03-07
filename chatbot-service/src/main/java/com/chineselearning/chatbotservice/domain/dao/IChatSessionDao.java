@@ -1,11 +1,16 @@
 package com.chineselearning.chatbotservice.domain.dao;
 
 import com.chineselearning.chatbotservice.domain.ChatSession;
-import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
+import java.util.Optional;
 
-public interface IChatSessionDao extends JpaRepository<ChatSession, Long>
-{
+public interface IChatSessionDao {
+
+    ChatSession save(ChatSession session);
+
+    Optional<ChatSession> findById(Long id);
+
+    boolean existsById(Long id);
 
     List<ChatSession> findByStudentIdOrderByStartedAtDesc(Long studentId);
 }

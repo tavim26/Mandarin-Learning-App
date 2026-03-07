@@ -2,10 +2,13 @@ package com.chineselearning.contentservice.repository;
 
 import com.chineselearning.contentservice.domain.Exercise;
 import com.chineselearning.contentservice.domain.Lesson;
+
 import com.chineselearning.contentservice.domain.dao.IExerciseDao;
+
 import com.chineselearning.contentservice.repository.entities.ExerciseEntity;
 import com.chineselearning.contentservice.repository.jpa.ExerciseJpaRepository;
 import com.chineselearning.contentservice.repository.jpa.LessonJpaRepository;
+
 import org.springframework.stereotype.Repository;
 
 import java.util.List;

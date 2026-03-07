@@ -8,8 +8,8 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from config.database import get_db
-from domain.dao.analysis_token_dao import AnalysisTokenDao
-from domain.dao.text_analysis_dao import TextAnalysisDao
+from domain.dao.i_analysis_token_dao import AnalysisTokenDao
+from domain.dao.i_text_analysis_dao import TextAnalysisDao
 from service.analysis_service import AnalysisService
 from service.hsk_service import HskService
 from service.nlp_service import NlpService

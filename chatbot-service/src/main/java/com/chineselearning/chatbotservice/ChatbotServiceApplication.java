@@ -5,11 +5,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication
-@EnableJpaRepositories(basePackages = "com.chineselearning.chatbotservice.domain.dao")
-public class ChatbotServiceApplication
-{
-    public static void main(String[] args)
-    {
+@EnableJpaRepositories(basePackages = "com.chineselearning.chatbotservice.repository.jpa")
+public class ChatbotServiceApplication {
+    public static void main(String[] args) {
         SpringApplication.run(ChatbotServiceApplication.class, args);
     }
 }

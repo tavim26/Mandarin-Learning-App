@@ -1,19 +1,34 @@
-package com.chineselearning.chatbotservice.domain;
+package com.chineselearning.chatbotservice.repository.entities;
 
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ChatSession {
+@Entity
+@Table(name = "chat_sessions")
+public class ChatSessionEntity {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private Long studentId;
-    private String title;
-    private LocalDateTime startedAt;
-    private LocalDateTime endedAt;
-    private List<ChatMessage> messages = new ArrayList<>();
 
-    public ChatSession() {}
+    @Column(name = "student_id", nullable = false)
+    private Long studentId;
+
+    @Column(name = "title")
+    private String title;
+
+    @Column(name = "started_at", nullable = false)
+    private LocalDateTime startedAt;
+
+    @Column(name = "ended_at")
+    private LocalDateTime endedAt;
+
+    @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ChatMessageEntity> messages = new ArrayList<>();
+
+    public ChatSessionEntity() {}
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -30,6 +45,6 @@ public class ChatSession {
     public LocalDateTime getEndedAt() { return endedAt; }
     public void setEndedAt(LocalDateTime endedAt) { this.endedAt = endedAt; }
 
-    public List<ChatMessage> getMessages() { return messages; }
-    public void setMessages(List<ChatMessage> messages) { this.messages = messages; }
+    public List<ChatMessageEntity> getMessages() { return messages; }
+    public void setMessages(List<ChatMessageEntity> messages) { this.messages = messages; }
 }

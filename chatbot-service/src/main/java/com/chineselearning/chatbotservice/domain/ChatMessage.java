@@ -1,28 +1,13 @@
 package com.chineselearning.chatbotservice.domain;
 
-import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "chat_messages")
-public class ChatMessage
-{
+public class ChatMessage {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "session_id", nullable = false)
     private ChatSession session;
-
-    @Column(name = "sender", nullable = false, length = 20)
     private String sender;
-
-    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
-
-    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
     public ChatMessage() {}
@@ -30,6 +15,7 @@ public class ChatMessage
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
+    // sessionId in loc de referinta directa la ChatSession — domeniu pur, fara relatii JPA
     public ChatSession getSession() { return session; }
     public void setSession(ChatSession session) { this.session = session; }
 
