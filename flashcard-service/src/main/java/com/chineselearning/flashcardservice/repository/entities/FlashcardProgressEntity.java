@@ -9,7 +9,8 @@ import java.time.LocalDateTime;
         @Index(name = "idx_progress_student_flashcard", columnList = "student_id, flashcard_id", unique = true),
         @Index(name = "idx_progress_student_next_review", columnList = "student_id, next_review_at")
 })
-public class FlashcardProgressEntity {
+public class FlashcardProgressEntity
+{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,7 +19,6 @@ public class FlashcardProgressEntity {
     @Column(name = "student_id", nullable = false)
     private Long studentId;
 
-    // FetchType.EAGER - id-ul flashcard-ului este necesar in conversie, accesat imediat
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "flashcard_id", nullable = false)
     private FlashcardEntity flashcard;

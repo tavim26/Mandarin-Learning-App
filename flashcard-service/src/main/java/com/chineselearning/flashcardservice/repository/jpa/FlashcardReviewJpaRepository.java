@@ -5,7 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface FlashcardReviewJpaRepository extends JpaRepository<FlashcardReviewEntity, Long> {
+public interface FlashcardReviewJpaRepository extends JpaRepository<FlashcardReviewEntity, Long>
+{
 
     List<FlashcardReviewEntity> findByStudentIdAndFlashcardIdOrderByReviewedAtAsc(Long studentId, Long flashcardId);
 }

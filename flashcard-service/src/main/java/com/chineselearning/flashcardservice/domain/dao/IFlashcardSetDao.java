@@ -5,7 +5,8 @@ import com.chineselearning.flashcardservice.domain.FlashcardSet;
 import java.util.List;
 import java.util.Optional;
 
-public interface IFlashcardSetDao {
+public interface IFlashcardSetDao
+{
 
     FlashcardSet save(FlashcardSet flashcardSet);
 

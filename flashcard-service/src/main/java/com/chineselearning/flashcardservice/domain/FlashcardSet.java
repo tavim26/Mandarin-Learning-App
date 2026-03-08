@@ -3,7 +3,8 @@ package com.chineselearning.flashcardservice.domain;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FlashcardSet {
+public class FlashcardSet
+{
 
     private Long id;
     private Long studentId;

@@ -21,15 +21,15 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
-public class ReviewService {
+public class ReviewService
+{
 
     private final IFlashcardDao flashcardDao;
     private final IFlashcardProgressDao flashcardProgressDao;
     private final IFlashcardReviewDao flashcardReviewDao;
 
-    public ReviewService(IFlashcardDao flashcardDao,
-                         IFlashcardProgressDao flashcardProgressDao,
-                         IFlashcardReviewDao flashcardReviewDao) {
+    public ReviewService(IFlashcardDao flashcardDao, IFlashcardProgressDao flashcardProgressDao, IFlashcardReviewDao flashcardReviewDao)
+    {
         this.flashcardDao = flashcardDao;
         this.flashcardProgressDao = flashcardProgressDao;
         this.flashcardReviewDao = flashcardReviewDao;
@@ -37,11 +37,12 @@ public class ReviewService {
 
     // Fluxul principal: primeste scorul studentului, ruleaza SM-2, salveaza recenzia si actualizeaza progresul
     @Transactional
-    public ReviewResultDto submitReview(SubmitReviewRequest request) {
+    public ReviewResultDto submitReview(SubmitReviewRequest request)
+    {
         // Verificam ca flashcard-ul exista inainte de orice operatie
         Flashcard flashcard = flashcardDao.findById(request.getFlashcardId())
-                .orElseThrow(() -> new RuntimeException(
-                        "Flashcard-ul cu id " + request.getFlashcardId() + " nu exista"));
+                .orElseThrow(() -> new RuntimeException("Flashcard-ul cu id " + request.getFlashcardId() + " nu exista"));
+
 
         // Incarcam starea SM-2 existenta sau cream una noua daca studentul vede cardul prima data
         FlashcardProgress progress = flashcardProgressDao
@@ -64,7 +65,7 @@ public class ReviewService {
         progress.setLastReviewedAt(LocalDateTime.now());
         FlashcardProgress savedProgress = flashcardProgressDao.save(progress);
 
-        // Salvam recenzia in istoricul de audit - acest rand nu va fi niciodata modificat
+        // Salvam recenzia in istoricul de audit
         FlashcardReview review = new FlashcardReview();
         review.setStudentId(request.getStudentId());
         review.setFlashcardId(request.getFlashcardId());
@@ -81,7 +82,8 @@ public class ReviewService {
 
     // Returneaza toate cardurile scadente pentru recenzie ale unui student la momentul curent
     @Transactional(readOnly = true)
-    public List<FlashcardProgressDto> getDueFlashcards(Long studentId) {
+    public List<FlashcardProgressDto> getDueFlashcards(Long studentId)
+    {
         return flashcardProgressDao
                 .findByStudentIdAndNextReviewAtLessThanEqual(studentId, LocalDateTime.now())
                 .stream()
@@ -91,7 +93,8 @@ public class ReviewService {
 
     // Returneaza istoricul complet al recenziilor unui student pentru un card specific
     @Transactional(readOnly = true)
-    public List<FlashcardReviewDto> getReviewHistory(Long studentId, Long flashcardId) {
+    public List<FlashcardReviewDto> getReviewHistory(Long studentId, Long flashcardId)
+    {
         return flashcardReviewDao
                 .findByStudentIdAndFlashcardIdOrderByReviewedAtAsc(studentId, flashcardId)
                 .stream()
@@ -101,33 +104,34 @@ public class ReviewService {
 
     // Returneaza starea SM-2 curenta a unui student pentru un card specific
     @Transactional(readOnly = true)
-    public FlashcardProgressDto getProgress(Long studentId, Long flashcardId) {
+    public FlashcardProgressDto getProgress(Long studentId, Long flashcardId)
+    {
         FlashcardProgress progress = flashcardProgressDao
                 .findByStudentIdAndFlashcardId(studentId, flashcardId)
-                .orElseThrow(() -> new RuntimeException(
-                        "Nu exista progres pentru studentul " + studentId +
-                                " si flashcard-ul " + flashcardId));
+                .orElseThrow(() -> new RuntimeException("Nu exista progres pentru studentul " + studentId + " si flashcard-ul " + flashcardId));
         return toProgressDto(progress);
     }
 
-    // -------------------------
-    // METODE HELPER PRIVATE
-    // -------------------------
+
+
+
+    // METODE HELPER
 
     // Creeaza o inregistrare initiala de progres cu valorile default SM-2
-    private FlashcardProgress createInitialProgress(Long studentId, Long flashcardId) {
+    private FlashcardProgress createInitialProgress(Long studentId, Long flashcardId)
+    {
         FlashcardProgress progress = new FlashcardProgress();
         progress.setStudentId(studentId);
         progress.setFlashcardId(flashcardId);
-        // Valori initiale SM-2: EF=2.5, interval=0, repetitii=0
         progress.setEasinessFactor(new BigDecimal("2.5"));
         progress.setIntervalDays(0);
         progress.setRepetitionCount(0);
         return progress;
     }
 
-    // Mapping domain -> DTO pentru FlashcardProgress
-    private FlashcardProgressDto toProgressDto(FlashcardProgress progress) {
+
+    private FlashcardProgressDto toProgressDto(FlashcardProgress progress)
+    {
         FlashcardProgressDto dto = new FlashcardProgressDto();
         dto.setId(progress.getId());
         dto.setStudentId(progress.getStudentId());
@@ -140,8 +144,8 @@ public class ReviewService {
         return dto;
     }
 
-    // Mapping domain -> DTO pentru FlashcardReview
-    private FlashcardReviewDto toReviewDto(FlashcardReview review) {
+    private FlashcardReviewDto toReviewDto(FlashcardReview review)
+    {
         FlashcardReviewDto dto = new FlashcardReviewDto();
         dto.setId(review.getId());
         dto.setStudentId(review.getStudentId());

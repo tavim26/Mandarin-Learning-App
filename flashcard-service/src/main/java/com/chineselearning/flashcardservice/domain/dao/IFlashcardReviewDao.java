@@ -4,7 +4,8 @@ import com.chineselearning.flashcardservice.domain.FlashcardReview;
 
 import java.util.List;
 
-public interface IFlashcardReviewDao {
+public interface IFlashcardReviewDao
+{
 
     FlashcardReview save(FlashcardReview flashcardReview);
 

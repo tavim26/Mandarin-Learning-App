@@ -7,7 +7,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-public interface FlashcardProgressJpaRepository extends JpaRepository<FlashcardProgressEntity, Long> {
+public interface FlashcardProgressJpaRepository extends JpaRepository<FlashcardProgressEntity, Long>
+{
 
     Optional<FlashcardProgressEntity> findByStudentIdAndFlashcardId(Long studentId, Long flashcardId);
 

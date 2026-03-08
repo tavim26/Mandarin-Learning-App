@@ -1,6 +1,7 @@
 package com.chineselearning.flashcardservice.domain;
 
-public class Flashcard {
+public class Flashcard
+{
 
     private Long id;
     private Long setId;

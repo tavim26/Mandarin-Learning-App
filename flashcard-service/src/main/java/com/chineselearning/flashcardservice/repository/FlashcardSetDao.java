@@ -12,29 +12,34 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public class FlashcardSetDao implements IFlashcardSetDao {
+public class FlashcardSetDao implements IFlashcardSetDao
+{
 
     private final FlashcardSetJpaRepository flashcardSetJpaRepository;
 
-    public FlashcardSetDao(FlashcardSetJpaRepository flashcardSetJpaRepository) {
+    public FlashcardSetDao(FlashcardSetJpaRepository flashcardSetJpaRepository)
+    {
         this.flashcardSetJpaRepository = flashcardSetJpaRepository;
     }
 
     @Override
-    public FlashcardSet save(FlashcardSet flashcardSet) {
+    public FlashcardSet save(FlashcardSet flashcardSet)
+    {
         FlashcardSetEntity entity = toEntity(flashcardSet);
         FlashcardSetEntity saved = flashcardSetJpaRepository.save(entity);
         return toDomain(saved);
     }
 
     @Override
-    public Optional<FlashcardSet> findById(Long id) {
+    public Optional<FlashcardSet> findById(Long id)
+    {
         return flashcardSetJpaRepository.findById(id)
                 .map(this::toDomain);
     }
 
     @Override
-    public List<FlashcardSet> findByStudentIdOrderByIdDesc(Long studentId) {
+    public List<FlashcardSet> findByStudentIdOrderByIdDesc(Long studentId)
+    {
         return flashcardSetJpaRepository.findByStudentIdOrderByIdDesc(studentId)
                 .stream()
                 .map(this::toDomain)
@@ -42,18 +47,16 @@ public class FlashcardSetDao implements IFlashcardSetDao {
     }
 
     @Override
-    public void delete(FlashcardSet flashcardSet) {
+    public void delete(FlashcardSet flashcardSet)
+    {
         flashcardSetJpaRepository.deleteById(flashcardSet.getId());
     }
 
-    // -------------------------
-    // METODE DE CONVERSIE
-    // -------------------------
 
     // Conversie domain -> entity pentru persistenta
-    private FlashcardSetEntity toEntity(FlashcardSet domain) {
+    private FlashcardSetEntity toEntity(FlashcardSet domain)
+    {
         FlashcardSetEntity entity = new FlashcardSetEntity();
-        // Daca id-ul este null, JPA genereaza unul nou la save
         entity.setId(domain.getId());
         entity.setStudentId(domain.getStudentId());
         entity.setTitle(domain.getTitle());
@@ -61,15 +64,15 @@ public class FlashcardSetDao implements IFlashcardSetDao {
         return entity;
     }
 
-    // Conversie entity -> domain, inclusiv lista de flashcard-uri asociate
-    private FlashcardSet toDomain(FlashcardSetEntity entity) {
+    // Conversie entity -> domain
+    private FlashcardSet toDomain(FlashcardSetEntity entity)
+    {
         FlashcardSet domain = new FlashcardSet();
         domain.setId(entity.getId());
         domain.setStudentId(entity.getStudentId());
         domain.setTitle(entity.getTitle());
         domain.setDescription(entity.getDescription());
 
-        // Convertim fiecare FlashcardEntity din lista in obiect de domeniu
         List<Flashcard> flashcards = entity.getFlashcards()
                 .stream()
                 .map(this::flashcardToDomain)
@@ -79,7 +82,6 @@ public class FlashcardSetDao implements IFlashcardSetDao {
         return domain;
     }
 
-    // Conversie auxiliara pentru entitatile FlashcardEntity din lista setului
     private Flashcard flashcardToDomain(FlashcardEntity entity) {
         Flashcard domain = new Flashcard();
         domain.setId(entity.getId());

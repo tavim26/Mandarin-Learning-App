@@ -6,7 +6,8 @@ import java.util.List;
 
 @Entity
 @Table(name = "flashcard_sets")
-public class FlashcardSetEntity {
+public class FlashcardSetEntity
+{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,7 +22,6 @@ public class FlashcardSetEntity {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    // Cascade ALL - stergerea setului sterge automat toate cardurile din el
     @OneToMany(mappedBy = "set", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<FlashcardEntity> flashcards = new ArrayList<>();
 

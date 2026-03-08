@@ -8,7 +8,8 @@ import java.time.LocalDateTime;
         @Index(name = "idx_reviews_student_id", columnList = "student_id"),
         @Index(name = "idx_reviews_student_flashcard", columnList = "student_id, flashcard_id")
 })
-public class FlashcardReviewEntity {
+public class FlashcardReviewEntity
+{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -17,7 +18,6 @@ public class FlashcardReviewEntity {
     @Column(name = "student_id", nullable = false)
     private Long studentId;
 
-    // FetchType.EAGER - id-ul flashcard-ului este necesar in conversie, accesat imediat
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "flashcard_id", nullable = false)
     private FlashcardEntity flashcard;

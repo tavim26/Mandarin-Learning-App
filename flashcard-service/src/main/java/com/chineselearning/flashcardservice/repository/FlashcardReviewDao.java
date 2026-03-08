@@ -11,27 +11,28 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public class FlashcardReviewDao implements IFlashcardReviewDao {
+public class FlashcardReviewDao implements IFlashcardReviewDao
+{
 
     private final FlashcardReviewJpaRepository flashcardReviewJpaRepository;
     private final FlashcardJpaRepository flashcardJpaRepository;
 
-    public FlashcardReviewDao(FlashcardReviewJpaRepository flashcardReviewJpaRepository,
-                              FlashcardJpaRepository flashcardJpaRepository) {
+    public FlashcardReviewDao(FlashcardReviewJpaRepository flashcardReviewJpaRepository, FlashcardJpaRepository flashcardJpaRepository) {
         this.flashcardReviewJpaRepository = flashcardReviewJpaRepository;
         this.flashcardJpaRepository = flashcardJpaRepository;
     }
 
     @Override
-    public FlashcardReview save(FlashcardReview flashcardReview) {
+    public FlashcardReview save(FlashcardReview flashcardReview)
+    {
         FlashcardReviewEntity entity = toEntity(flashcardReview);
         FlashcardReviewEntity saved = flashcardReviewJpaRepository.save(entity);
         return toDomain(saved);
     }
 
     @Override
-    public List<FlashcardReview> findByStudentIdAndFlashcardIdOrderByReviewedAtAsc(Long studentId,
-                                                                                   Long flashcardId) {
+    public List<FlashcardReview> findByStudentIdAndFlashcardIdOrderByReviewedAtAsc(Long studentId, Long flashcardId)
+    {
         return flashcardReviewJpaRepository
                 .findByStudentIdAndFlashcardIdOrderByReviewedAtAsc(studentId, flashcardId)
                 .stream()
@@ -39,13 +40,11 @@ public class FlashcardReviewDao implements IFlashcardReviewDao {
                 .toList();
     }
 
-    // -------------------------
-    // METODE DE CONVERSIE
-    // -------------------------
 
     // Conversie domain -> entity
     // Necesita incarcarea FlashcardEntity din DB pentru a seta relatia JPA corecta
-    private FlashcardReviewEntity toEntity(FlashcardReview domain) {
+    private FlashcardReviewEntity toEntity(FlashcardReview domain)
+    {
         FlashcardReviewEntity entity = new FlashcardReviewEntity();
         entity.setId(domain.getId());
         entity.setStudentId(domain.getStudentId());
@@ -54,16 +53,15 @@ public class FlashcardReviewDao implements IFlashcardReviewDao {
 
         // Relatia JPA necesita referinta la entitatea flashcard, nu doar id-ul
         FlashcardEntity flashcardEntity = flashcardJpaRepository.findById(domain.getFlashcardId())
-                .orElseThrow(() -> new RuntimeException(
-                        "Flashcard-ul cu id " + domain.getFlashcardId() + " nu exista"));
+                .orElseThrow(() -> new RuntimeException("Flashcard-ul cu id " + domain.getFlashcardId() + " nu exista"));
         entity.setFlashcard(flashcardEntity);
 
         return entity;
     }
 
     // Conversie entity -> domain
-    // FetchType.EAGER pe relatia flashcard garanteaza ca getId() nu arunca LazyInitializationException
-    private FlashcardReview toDomain(FlashcardReviewEntity entity) {
+    private FlashcardReview toDomain(FlashcardReviewEntity entity)
+    {
         FlashcardReview domain = new FlashcardReview();
         domain.setId(entity.getId());
         domain.setStudentId(entity.getStudentId());

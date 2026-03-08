@@ -2,12 +2,12 @@ package com.chineselearning.flashcardservice.domain;
 
 import java.time.LocalDateTime;
 
-public class FlashcardReview {
+public class FlashcardReview
+{
 
     private Long id;
     private Long studentId;
 
-    // Referinta prin ID - clasa de domeniu nu cunoaste detalii de persistenta
     private Long flashcardId;
 
     private LocalDateTime reviewedAt;

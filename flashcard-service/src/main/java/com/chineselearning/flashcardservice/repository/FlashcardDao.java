@@ -12,32 +12,35 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public class FlashcardDao implements IFlashcardDao {
+public class FlashcardDao implements IFlashcardDao
+{
 
     private final FlashcardJpaRepository flashcardJpaRepository;
     private final FlashcardSetJpaRepository flashcardSetJpaRepository;
 
-    public FlashcardDao(FlashcardJpaRepository flashcardJpaRepository,
-                        FlashcardSetJpaRepository flashcardSetJpaRepository) {
+    public FlashcardDao(FlashcardJpaRepository flashcardJpaRepository, FlashcardSetJpaRepository flashcardSetJpaRepository) {
         this.flashcardJpaRepository = flashcardJpaRepository;
         this.flashcardSetJpaRepository = flashcardSetJpaRepository;
     }
 
     @Override
-    public Flashcard save(Flashcard flashcard) {
+    public Flashcard save(Flashcard flashcard)
+    {
         FlashcardEntity entity = toEntity(flashcard);
         FlashcardEntity saved = flashcardJpaRepository.save(entity);
         return toDomain(saved);
     }
 
     @Override
-    public Optional<Flashcard> findById(Long id) {
+    public Optional<Flashcard> findById(Long id)
+    {
         return flashcardJpaRepository.findById(id)
                 .map(this::toDomain);
     }
 
     @Override
-    public List<Flashcard> findBySetId(Long setId) {
+    public List<Flashcard> findBySetId(Long setId)
+    {
         return flashcardJpaRepository.findBySetId(setId)
                 .stream()
                 .map(this::toDomain)
@@ -45,36 +48,33 @@ public class FlashcardDao implements IFlashcardDao {
     }
 
     @Override
-    public void delete(Flashcard flashcard) {
+    public void delete(Flashcard flashcard)
+    {
         flashcardJpaRepository.deleteById(flashcard.getId());
     }
 
-    // -------------------------
-    // METODE DE CONVERSIE
-    // -------------------------
+
 
     // Conversie domain -> entity
-    // Necesita incarcarea FlashcardSetEntity din DB pentru a seta relatia JPA corecta
-    private FlashcardEntity toEntity(Flashcard domain) {
+    private FlashcardEntity toEntity(Flashcard domain)
+    {
         FlashcardEntity entity = new FlashcardEntity();
         entity.setId(domain.getId());
         entity.setFrontText(domain.getFrontText());
         entity.setBackText(domain.getBackText());
 
-        // Relatia JPA necesita referinta la entitatea parinte, nu doar id-ul
         FlashcardSetEntity setEntity = flashcardSetJpaRepository.findById(domain.getSetId())
-                .orElseThrow(() -> new RuntimeException(
-                        "Setul cu id " + domain.getSetId() + " nu exista"));
+                .orElseThrow(() -> new RuntimeException("Setul cu id " + domain.getSetId() + " nu exista"));
         entity.setSet(setEntity);
 
         return entity;
     }
 
     // Conversie entity -> domain
-    private Flashcard toDomain(FlashcardEntity entity) {
+    private Flashcard toDomain(FlashcardEntity entity)
+    {
         Flashcard domain = new Flashcard();
         domain.setId(entity.getId());
-        // Extragem doar id-ul setului, fara sa incarcam intregul set
         domain.setSetId(entity.getSet().getId());
         domain.setFrontText(entity.getFrontText());
         domain.setBackText(entity.getBackText());

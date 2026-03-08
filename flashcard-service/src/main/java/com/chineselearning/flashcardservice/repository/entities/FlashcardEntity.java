@@ -6,13 +6,13 @@ import jakarta.persistence.*;
 @Table(name = "flashcards", indexes = {
         @Index(name = "idx_flashcards_set_id", columnList = "set_id")
 })
-public class FlashcardEntity {
+public class FlashcardEntity
+{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // FetchType.LAZY - setul nu este incarcat automat la accesarea unui card
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "set_id", nullable = false)
     private FlashcardSetEntity set;
