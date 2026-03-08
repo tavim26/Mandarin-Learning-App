@@ -1,28 +1,14 @@
 package com.chineselearning.flashcardservice.domain;
 
-import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
 
-@Entity
-@Table(name = "flashcard_sets")
 public class FlashcardSet {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(name = "student_id", nullable = false)
     private Long studentId;
-
-    @Column(name = "title", nullable = false, length = 255)
     private String title;
-
-    @Column(name = "description", columnDefinition = "TEXT")
     private String description;
-
-
-    @OneToMany(mappedBy = "set", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Flashcard> flashcards = new ArrayList<>();
 
     public FlashcardSet() {}

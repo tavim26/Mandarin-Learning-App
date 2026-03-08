@@ -1,14 +1,16 @@
 package com.chineselearning.flashcardservice.domain.dao;
 
 import com.chineselearning.flashcardservice.domain.FlashcardProgress;
-import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-public interface IFlashcardProgressDao extends JpaRepository<FlashcardProgress, Long> {
+public interface IFlashcardProgressDao {
 
+    FlashcardProgress save(FlashcardProgress flashcardProgress);
+
+    // Starea SM-2 pentru o pereche unica (student, flashcard)
     Optional<FlashcardProgress> findByStudentIdAndFlashcardId(Long studentId, Long flashcardId);
 
     // Cardurile scadente pentru recenzie: next_review_at <= momentul curent
