@@ -10,19 +10,24 @@ class NlpService:
         self._hsk = hsk_service
 
     def process(self, text: str) -> list[dict]:
+        # cut_all=False = modul precis
         tokens = list(jieba.cut(text, cut_all=False))
         result = []
 
         for index, token in enumerate(tokens):
             token = token.strip()
 
-            # sarim spatiile si caracterele goale produse de jieba
+            # jieba poate produce tokeni goi sau spatii; astia sunt ignorati
             if not token:
                 continue
 
+            # Style.TONE = pinyin cu diacritice tonale
             pinyin_result = pinyin(token, style=Style.TONE)
+
+            # fiecare silaba este o lista cu un singur element
             pinyin_str = " ".join([p[0] for p in pinyin_result])
 
+            # position_index reflecta pozitia din lista jieba
             result.append({
                 "hanzi": token,
                 "pinyin": pinyin_str,

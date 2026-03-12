@@ -18,7 +18,12 @@ class AnalysisTokenDao(IAnalysisTokenDao):
         self.db.add_all(entities)
         self.db.commit()
 
+        for entity in entities:
+            self.db.refresh(entity)
+
         return [self._to_domain(e) for e in entities]
+
+
 
     def find_all_by_analysis_id(self, analysis_id: int) -> list[AnalysisToken]:
         entities = (
