@@ -200,6 +200,7 @@ public class EvaluationService
         return input.toLowerCase().trim().replaceAll("\\s+", " ");
     }
 
+
     // Calculeaza procentul de cuvinte comune intre doua stringuri normalizate
     // Folosit pentru credit partial la exercitii de tip TRANSLATION
     private BigDecimal calculateWordOverlapScore(String userAnswer, String referenceAnswer)
@@ -219,7 +220,6 @@ public class EvaluationService
                 .setScale(2, RoundingMode.HALF_UP);
     }
 
-    // Cast sigur cu logging - returneaza null in loc sa arunce ClassCastException
     @SuppressWarnings("unchecked")
     private <T> T safeCast(Object value, Class<T> type, String fieldName)
     {

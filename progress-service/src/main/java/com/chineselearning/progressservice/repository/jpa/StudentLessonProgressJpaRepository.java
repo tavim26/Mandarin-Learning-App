@@ -6,7 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
 
-public interface StudentLessonProgressJpaRepository extends JpaRepository<StudentLessonProgressEntity, Long> {
+public interface StudentLessonProgressJpaRepository extends JpaRepository<StudentLessonProgressEntity, Long>
+{
 
     // Progresul unui student la o lectie specifica
     Optional<StudentLessonProgressEntity> findByStudentIdAndLessonId(Long studentId, Long lessonId);

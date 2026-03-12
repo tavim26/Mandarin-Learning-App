@@ -45,7 +45,6 @@ public class StudentReplicaDao implements IStudentReplicaDao
     @Override
     public List<StudentReplica> findAllOrderByXpTotalDesc()
     {
-        // Sortare DESC dupa xpTotal - limitarea la top 10 se face in StudentReplicaService
         return jpaRepository.findAll(Sort.by(Sort.Direction.DESC, "xpTotal"))
                 .stream()
                 .map(this::toDomain)

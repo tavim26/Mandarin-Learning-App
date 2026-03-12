@@ -51,7 +51,6 @@ public class ChatSessionDao implements IChatSessionDao
 
 
 
-    // Conversie domain -> entity pentru persistenta
     private ChatSessionEntity toEntity(ChatSession session)
     {
         ChatSessionEntity entity = new ChatSessionEntity();
@@ -63,7 +62,6 @@ public class ChatSessionDao implements IChatSessionDao
         return entity;
     }
 
-    // Conversie entity -> domain, mesajele nu sunt mapate aici pentru a evita lazy loading
     private ChatSession toDomain(ChatSessionEntity entity)
     {
         ChatSession session = new ChatSession();

@@ -55,8 +55,6 @@ class TextAnalysisDao(ITextAnalysisDao):
 
 
 
-    # --- metode private de conversie ---
-
     def _to_entity(self, analysis: TextAnalysis) -> TextAnalysisEntity:
         return TextAnalysisEntity(
             id=analysis.id if analysis.id != 0 else None,
@@ -81,7 +79,6 @@ class TextAnalysisDao(ITextAnalysisDao):
             translation_language=entity.translation_language,
         )
 
-        # conversie tokeni daca sunt incarcati de ORM
         if entity.tokens:
             analysis.tokens = [
                 AnalysisToken(

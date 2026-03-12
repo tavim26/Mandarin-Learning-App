@@ -6,8 +6,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "chat_messages",
         indexes = @Index(name = "idx_chat_messages_session_id", columnList = "session_id"))
-public class ChatMessageEntity {
-
+public class ChatMessageEntity
+{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

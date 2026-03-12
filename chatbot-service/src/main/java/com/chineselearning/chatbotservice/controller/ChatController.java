@@ -45,7 +45,7 @@ public class ChatController
 
 
 
-    // --- MESAJE ---
+    // MESAJE
 
     @PostMapping("/sessions/{sessionId}/messages")
     public ResponseEntity<SendMessageResponse> sendMessage(@PathVariable Long sessionId, @Valid @RequestBody SendMessageRequest request)

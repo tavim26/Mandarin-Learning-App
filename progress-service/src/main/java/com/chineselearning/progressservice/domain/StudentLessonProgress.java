@@ -3,8 +3,8 @@ package com.chineselearning.progressservice.domain;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-// Clasa de domeniu pura - zero dependente externe
-public class StudentLessonProgress {
+public class StudentLessonProgress
+{
 
     private Long id;
     private Long studentId;

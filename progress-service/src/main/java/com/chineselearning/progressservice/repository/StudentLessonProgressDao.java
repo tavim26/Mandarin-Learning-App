@@ -56,7 +56,8 @@ public class StudentLessonProgressDao implements IStudentLessonProgressDao {
                 .collect(Collectors.toList());
     }
 
-    // ========== CONVERSIE ==========
+
+
 
     private StudentLessonProgressEntity toEntity(StudentLessonProgress domain) {
         StudentLessonProgressEntity entity = new StudentLessonProgressEntity();

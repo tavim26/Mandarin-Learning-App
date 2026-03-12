@@ -3,7 +3,6 @@ package com.chineselearning.progressservice.domain.dto;
 import java.util.Map;
 
 // DTO folosit exclusiv pentru deserializarea raspunsurilor HTTP de la content-service
-// Nu este expus prin niciun endpoint al progress-service
 public class ExerciseResponseDto
 {
 
@@ -11,7 +10,6 @@ public class ExerciseResponseDto
     private Long lessonId;
     private String type;
 
-    // contentData este stocat ca JSONB in content-service si deserializat ca Map
     private Map<String, Object> contentData;
 
     public ExerciseResponseDto() {}

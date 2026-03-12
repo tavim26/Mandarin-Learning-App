@@ -38,8 +38,6 @@ class AnalysisTokenDao(IAnalysisTokenDao):
 
 
 
-    # --- metode private de conversie ---
-
     def _to_entity(self, token: AnalysisToken) -> AnalysisTokenEntity:
         return AnalysisTokenEntity(
             id=token.id if token.id != 0 else None,

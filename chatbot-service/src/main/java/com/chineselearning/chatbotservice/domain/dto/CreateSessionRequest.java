@@ -1,11 +1,7 @@
 package com.chineselearning.chatbotservice.domain.dto;
 
-import jakarta.validation.constraints.NotNull;
-
 public class CreateSessionRequest
 {
-
-    @NotNull
     private Long studentId;
 
     private String title;

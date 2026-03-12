@@ -4,7 +4,8 @@ import com.chineselearning.chatbotservice.domain.ChatSession;
 import java.util.List;
 import java.util.Optional;
 
-public interface IChatSessionDao {
+public interface IChatSessionDao
+{
 
     ChatSession save(ChatSession session);
 

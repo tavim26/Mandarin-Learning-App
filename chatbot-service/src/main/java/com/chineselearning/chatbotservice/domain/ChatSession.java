@@ -4,7 +4,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ChatSession {
+public class ChatSession
+{
 
     private Long id;
     private Long studentId;

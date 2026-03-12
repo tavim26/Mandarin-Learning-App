@@ -1,7 +1,5 @@
 package com.chineselearning.progressservice.domain;
 
-// Clasa de domeniu pura - zero dependente externe
-// Replica locala a datelor din user-service pentru operatii frecvente (XP, nivel, clasament)
 public class StudentReplica {
 
     private Long studentId;
@@ -34,13 +32,11 @@ public class StudentReplica {
     public Integer getLevel() { return level; }
     public void setLevel(Integer level) { this.level = level; }
 
-    // Logica de business a domeniului - adauga XP si recalculeaza nivelul
     public void addXp(Integer xpToAdd) {
         this.xpTotal += xpToAdd;
         recalculateLevel();
     }
 
-    // Formula nivel: fiecare 100 XP = 1 nivel
     public void recalculateLevel() {
         this.level = (this.xpTotal / 100) + 1;
     }

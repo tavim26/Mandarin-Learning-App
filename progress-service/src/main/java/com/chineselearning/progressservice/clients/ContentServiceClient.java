@@ -34,7 +34,6 @@ public class ContentServiceClient
         try {
             log.debug("Fetching exercise from Content Service: exerciseId={}", exerciseId);
 
-            // Deserializare directa in DTO tipizat - elimina cast-urile Map<String, Object>
             ExerciseResponseDto exercise = restTemplate.getForObject(url, ExerciseResponseDto.class);
 
             if (exercise == null)
@@ -47,7 +46,7 @@ public class ContentServiceClient
 
         } catch (HttpClientErrorException e) {
 
-            // Diferentiem 404 (exercitiu inexistent) de alte erori HTTP
+            // Diferentiere 404 (exercitiu inexistent) de alte erori HTTP
             if (e.getStatusCode() == HttpStatus.NOT_FOUND)
             {
                 throw new IllegalArgumentException("Exercitiul nu exista in content-service: " + exerciseId);
@@ -73,7 +72,6 @@ public class ContentServiceClient
         try {
             log.debug("Fetching lesson from Content Service: lessonId={}", lessonId);
 
-            // Deserializare directa in DTO tipizat
             LessonResponseDto lesson = restTemplate.getForObject(url, LessonResponseDto.class);
 
             if (lesson == null)

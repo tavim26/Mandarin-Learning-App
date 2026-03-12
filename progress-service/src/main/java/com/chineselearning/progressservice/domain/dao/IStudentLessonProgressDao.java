@@ -5,9 +5,8 @@ import com.chineselearning.progressservice.domain.StudentLessonProgress;
 import java.util.List;
 import java.util.Optional;
 
-// Interfata pura Java - defineste contractul de persistenta fara detalii de implementare
-public interface IStudentLessonProgressDao {
-
+public interface IStudentLessonProgressDao
+{
     StudentLessonProgress save(StudentLessonProgress progress);
 
     // Progresul unui student la o lectie specifica

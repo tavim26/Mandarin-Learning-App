@@ -1,18 +1,12 @@
 package com.chineselearning.progressservice.domain.dto;
 
-import jakarta.validation.constraints.NotNull;
 import java.util.Map;
 
 public class SubmitAttemptRequest
 {
 
-    @NotNull(message = "studentId este obligatoriu")
     private Long studentId;
-
-    @NotNull(message = "exerciseId este obligatoriu")
     private Long exerciseId;
-
-    @NotNull(message = "submittedAnswer este obligatoriu")
     private Map<String, Object> submittedAnswer;
 
     public SubmitAttemptRequest() {}

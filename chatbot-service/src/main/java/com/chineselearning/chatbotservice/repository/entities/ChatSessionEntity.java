@@ -7,8 +7,8 @@ import java.util.List;
 
 @Entity
 @Table(name = "chat_sessions")
-public class ChatSessionEntity {
-
+public class ChatSessionEntity
+{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

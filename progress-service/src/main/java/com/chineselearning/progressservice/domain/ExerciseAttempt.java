@@ -4,9 +4,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-// Clasa de domeniu pura - zero dependente externe
-// Nu contine adnotari JPA sau Spring
-public class ExerciseAttempt {
+public class ExerciseAttempt
+{
 
     private Long id;
     private Long studentId;

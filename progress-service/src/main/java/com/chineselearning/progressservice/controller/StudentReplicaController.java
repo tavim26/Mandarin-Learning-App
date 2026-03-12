@@ -47,9 +47,13 @@ public class StudentReplicaController
     {
         Optional<StudentReplicaDto> student = studentReplicaService.getStudentById(studentId);
 
-        if (student.isPresent()) {
+        if (student.isPresent())
+        {
             return ResponseEntity.ok(student.get());
-        } else {
+
+        }
+        else
+        {
             return ResponseEntity.notFound().build();
         }
     }
@@ -68,7 +72,7 @@ public class StudentReplicaController
     @GetMapping("/admin/all")
     @Operation(
             summary = "Obtine toate replicile studentilor (admin)",
-            description = "Returneaza rezumatele de progres ale tuturor studentilor. Acces restrictionat la rolul ADMIN prin API Gateway."
+            description = "Returneaza rezumatele de progres ale tuturor studentilor."
     )
     public ResponseEntity<List<StudentReplicaDto>> getAllStudents()
     {

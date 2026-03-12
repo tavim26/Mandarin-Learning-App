@@ -1,7 +1,5 @@
 package com.chineselearning.chatbotservice.domain.dto;
 
-import java.time.LocalDateTime;
-
 public class SendMessageResponse
 {
 

@@ -2,7 +2,8 @@ package com.chineselearning.chatbotservice.domain;
 
 import java.time.LocalDateTime;
 
-public class ChatMessage {
+public class ChatMessage
+{
 
     private Long id;
     private ChatSession session;
@@ -15,7 +16,6 @@ public class ChatMessage {
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    // sessionId in loc de referinta directa la ChatSession — domeniu pur, fara relatii JPA
     public ChatSession getSession() { return session; }
     public void setSession(ChatSession session) { this.session = session; }
 

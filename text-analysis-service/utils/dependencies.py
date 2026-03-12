@@ -17,7 +17,6 @@ from service.translation_service import TranslationService
 
 load_dotenv()
 
-# --- singletons pentru serviciile stateless (incarcate o singura data) ---
 
 # HskService incarca fisierul JSON in memorie la instantiere
 _hsk_service = HskService()
@@ -26,7 +25,7 @@ _nlp_service = NlpService(_hsk_service)
 # OcrService incarca modelul EasyOCR la instantiere (~300MB)
 _ocr_service = OcrService()
 
-# cheia API este citita din variabila de mediu / fisierul .env
+# cheia API este citita din  fisierul .env
 _google_api_key = os.getenv("GOOGLE_TRANSLATE_API_KEY", "")
 _translation_service = TranslationService(api_key=_google_api_key)
 

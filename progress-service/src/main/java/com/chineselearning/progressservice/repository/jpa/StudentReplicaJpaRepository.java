@@ -6,12 +6,12 @@ import org.springframework.data.domain.Sort;
 
 import java.util.List;
 
-public interface StudentReplicaJpaRepository extends JpaRepository<StudentReplicaEntity, Long> {
+public interface StudentReplicaJpaRepository extends JpaRepository<StudentReplicaEntity, Long>
+{
 
     // Verifica existenta replicii unui student
     boolean existsByStudentId(Long studentId);
 
     // Toate replicile ordonate dupa XP descrescator
-    // Limitarea la top 10 se face in clasa concreta Dao, nu aici
     List<StudentReplicaEntity> findAll(Sort sort);
 }

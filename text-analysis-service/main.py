@@ -6,7 +6,6 @@ from repository.base import Base
 
 from controller.analysis_controller import router as analysis_router
 
-# forteaza importul entitatilor SQLAlchemy pentru ca Base sa le inregistreze
 import repository.entities.text_analysis_entity
 import repository.entities.analysis_token_entity
 

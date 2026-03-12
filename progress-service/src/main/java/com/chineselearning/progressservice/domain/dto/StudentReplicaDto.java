@@ -9,7 +9,8 @@ public class StudentReplicaDto
 
     public StudentReplicaDto() {}
 
-    public StudentReplicaDto(Long studentId, Integer xpTotal, Integer level) {
+    public StudentReplicaDto(Long studentId, Integer xpTotal, Integer level)
+    {
         this.studentId = studentId;
         this.xpTotal = xpTotal;
         this.level = level;

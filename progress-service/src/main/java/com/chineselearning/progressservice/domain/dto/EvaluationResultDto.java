@@ -2,14 +2,12 @@ package com.chineselearning.progressservice.domain.dto;
 
 import java.math.BigDecimal;
 
-// Transporta rezultatul evaluarii unui raspuns intre EvaluationService si ProgressService
 public class EvaluationResultDto
 {
 
     private final BigDecimal score;
     private final String feedback;
 
-    // Un raspuns este considerat corect daca scorul este >= 70
     private final boolean correct;
 
     public EvaluationResultDto(BigDecimal score, String feedback)

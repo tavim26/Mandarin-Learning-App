@@ -54,20 +54,18 @@ public class ProgressService
         Long studentId = request.getStudentId();
         Long exerciseId = request.getExerciseId();
 
-        // STEP 1: Apel HTTP
         ExerciseResponseDto exercise = contentServiceClient.getExercise(exerciseId);
 
-        // STEP 2: Apel HTTP
         LessonResponseDto lesson = contentServiceClient.getLesson(exercise.getLessonId());
 
-        // STEP 3: Evaluare raspuns
+        //Evaluare raspuns
         EvaluationResultDto result = evaluationService.evaluate(
                 exercise.getType(),
                 exercise.getContentData(),
                 request.getSubmittedAnswer()
         );
 
-        // STEP 4: Toate operatiile de scriere in DB intr-o singura tranzactie
+        //Toate operatiile de scriere in DB intr-o singura tranzactie
         return saveAttemptAndUpdateProgress(studentId, exerciseId, lesson, request, result);
     }
 

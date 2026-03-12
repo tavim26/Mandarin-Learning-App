@@ -37,7 +37,7 @@ public class ChatService
     }
 
 
-    // --- SESIUNI ---
+    // SESIUNI
 
     @Transactional
     public ChatSessionDto createSession(CreateSessionRequest request)
@@ -71,7 +71,7 @@ public class ChatService
 
 
 
-    // --- MESAJE ---
+    // MESAJE
 
     @Transactional
     public SendMessageResponse sendMessage(Long sessionId, SendMessageRequest request)
@@ -92,7 +92,7 @@ public class ChatService
         userMessage.setCreatedAt(LocalDateTime.now());
         chatMessageDao.save(userMessage);
 
-        // Construim fereastra de context din ultimele N mesaje (exclusiv mesajul curent)
+        // Construim fereastra de context din ultimele N mesaje
         List<AiService.ContextMessage> context = buildContextWindow(sessionId, userMessage.getId());
 
         // Apelam Gemini
@@ -127,7 +127,7 @@ public class ChatService
     }
 
 
-    // --- HELPER PRIVAT: fereastra de context ---
+    // HELPER
 
     // Preia ultimele N mesaje anterioare mesajului curent si le inverseaza in ordine cronologica
     private List<AiService.ContextMessage> buildContextWindow(Long sessionId, Long excludeMessageId)
