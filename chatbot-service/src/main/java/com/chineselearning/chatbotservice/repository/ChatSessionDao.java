@@ -11,11 +11,13 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public class ChatSessionDao implements IChatSessionDao {
+public class ChatSessionDao implements IChatSessionDao
+{
 
     private final ChatSessionJpaRepository jpaRepository;
 
-    public ChatSessionDao(ChatSessionJpaRepository jpaRepository) {
+    public ChatSessionDao(ChatSessionJpaRepository jpaRepository)
+    {
         this.jpaRepository = jpaRepository;
     }
 
@@ -26,25 +28,32 @@ public class ChatSessionDao implements IChatSessionDao {
     }
 
     @Override
-    public Optional<ChatSession> findById(Long id) {
+    public Optional<ChatSession> findById(Long id)
+    {
         return jpaRepository.findById(id).map(this::toDomain);
     }
 
     @Override
-    public boolean existsById(Long id) {
+    public boolean existsById(Long id)
+    {
         return jpaRepository.existsById(id);
     }
 
     @Override
-    public List<ChatSession> findByStudentIdOrderByStartedAtDesc(Long studentId) {
+    public List<ChatSession> findByStudentIdOrderByStartedAtDesc(Long studentId)
+    {
         return jpaRepository.findByStudentIdOrderByStartedAtDesc(studentId)
                 .stream()
                 .map(this::toDomain)
                 .toList();
     }
 
+
+
+
     // Conversie domain -> entity pentru persistenta
-    private ChatSessionEntity toEntity(ChatSession session) {
+    private ChatSessionEntity toEntity(ChatSession session)
+    {
         ChatSessionEntity entity = new ChatSessionEntity();
         entity.setId(session.getId());
         entity.setStudentId(session.getStudentId());
@@ -55,7 +64,8 @@ public class ChatSessionDao implements IChatSessionDao {
     }
 
     // Conversie entity -> domain, mesajele nu sunt mapate aici pentru a evita lazy loading
-    private ChatSession toDomain(ChatSessionEntity entity) {
+    private ChatSession toDomain(ChatSessionEntity entity)
+    {
         ChatSession session = new ChatSession();
         session.setId(entity.getId());
         session.setStudentId(entity.getStudentId());

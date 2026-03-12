@@ -12,33 +12,39 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Repository
-public class StudentReplicaDao implements IStudentReplicaDao {
+public class StudentReplicaDao implements IStudentReplicaDao
+{
 
     private final StudentReplicaJpaRepository jpaRepository;
 
-    public StudentReplicaDao(StudentReplicaJpaRepository jpaRepository) {
+    public StudentReplicaDao(StudentReplicaJpaRepository jpaRepository)
+    {
         this.jpaRepository = jpaRepository;
     }
 
     @Override
-    public StudentReplica save(StudentReplica replica) {
+    public StudentReplica save(StudentReplica replica)
+    {
         StudentReplicaEntity saved = jpaRepository.save(toEntity(replica));
         return toDomain(saved);
     }
 
     @Override
-    public Optional<StudentReplica> findById(Long studentId) {
+    public Optional<StudentReplica> findById(Long studentId)
+    {
         return jpaRepository.findById(studentId)
                 .map(this::toDomain);
     }
 
     @Override
-    public boolean existsByStudentId(Long studentId) {
+    public boolean existsByStudentId(Long studentId)
+    {
         return jpaRepository.existsByStudentId(studentId);
     }
 
     @Override
-    public List<StudentReplica> findAllOrderByXpTotalDesc() {
+    public List<StudentReplica> findAllOrderByXpTotalDesc()
+    {
         // Sortare DESC dupa xpTotal - limitarea la top 10 se face in StudentReplicaService
         return jpaRepository.findAll(Sort.by(Sort.Direction.DESC, "xpTotal"))
                 .stream()
@@ -46,9 +52,10 @@ public class StudentReplicaDao implements IStudentReplicaDao {
                 .collect(Collectors.toList());
     }
 
-    // ========== CONVERSIE ==========
 
-    private StudentReplicaEntity toEntity(StudentReplica domain) {
+
+    private StudentReplicaEntity toEntity(StudentReplica domain)
+    {
         StudentReplicaEntity entity = new StudentReplicaEntity();
         entity.setStudentId(domain.getStudentId());
         entity.setXpTotal(domain.getXpTotal());
@@ -56,8 +63,8 @@ public class StudentReplicaDao implements IStudentReplicaDao {
         return entity;
     }
 
-    private StudentReplica toDomain(StudentReplicaEntity entity) {
-        // Folosim constructorul cu toti parametrii pentru a restaura starea completa
+    private StudentReplica toDomain(StudentReplicaEntity entity)
+    {
         return new StudentReplica(
                 entity.getStudentId(),
                 entity.getXpTotal(),

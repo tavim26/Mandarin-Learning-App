@@ -15,24 +15,28 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public class ChatMessageDao implements IChatMessageDao {
+public class ChatMessageDao implements IChatMessageDao
+{
 
     private final ChatMessageJpaRepository jpaRepository;
     private final ChatSessionJpaRepository sessionJpaRepository;
 
-    public ChatMessageDao(ChatMessageJpaRepository jpaRepository, ChatSessionJpaRepository sessionJpaRepository) {
+    public ChatMessageDao(ChatMessageJpaRepository jpaRepository, ChatSessionJpaRepository sessionJpaRepository)
+    {
         this.jpaRepository = jpaRepository;
         this.sessionJpaRepository = sessionJpaRepository;
     }
 
     @Override
-    public ChatMessage save(ChatMessage message) {
+    public ChatMessage save(ChatMessage message)
+    {
         ChatMessageEntity entity = toEntity(message);
         return toDomain(jpaRepository.save(entity));
     }
 
     @Override
-    public List<ChatMessage> findBySessionIdOrderByCreatedAtAsc(Long sessionId) {
+    public List<ChatMessage> findBySessionIdOrderByCreatedAtAsc(Long sessionId)
+    {
         return jpaRepository.findBySessionIdOrderByCreatedAtAsc(sessionId)
                 .stream()
                 .map(this::toDomain)
@@ -40,18 +44,23 @@ public class ChatMessageDao implements IChatMessageDao {
     }
 
     @Override
-    public List<ChatMessage> findTop20BySessionIdOrderByCreatedAtDesc(Long sessionId) {
+    public List<ChatMessage> findTop20BySessionIdOrderByCreatedAtDesc(Long sessionId)
+    {
         return jpaRepository.findTop20BySessionIdOrderByCreatedAtDesc(sessionId)
                 .stream()
                 .map(this::toDomain)
                 .toList();
     }
 
+
+
+
+
+
     private ChatMessageEntity toEntity(ChatMessage message)
     {
         ChatSessionEntity sessionEntity = sessionJpaRepository.findById(message.getSession().getId())
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Sesiunea cu id " + message.getSession().getId() + " nu exista."));
+                .orElseThrow(() -> new EntityNotFoundException("Sesiunea cu id " + message.getSession().getId() + " nu exista."));
 
         ChatMessageEntity entity = new ChatMessageEntity();
         entity.setId(message.getId());
@@ -62,14 +71,14 @@ public class ChatMessageDao implements IChatMessageDao {
         return entity;
     }
 
-    private ChatMessage toDomain(ChatMessageEntity entity) {
+    private ChatMessage toDomain(ChatMessageEntity entity)
+    {
         ChatMessage message = new ChatMessage();
         message.setId(entity.getId());
         message.setSender(entity.getSender());
         message.setContent(entity.getContent());
         message.setCreatedAt(entity.getCreatedAt());
 
-        // Reconstruim obiectul domain ChatSession din entity asociata
         ChatSession session = new ChatSession();
         session.setId(entity.getSession().getId());
         message.setSession(session);

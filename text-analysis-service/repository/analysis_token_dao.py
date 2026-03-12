@@ -29,6 +29,10 @@ class AnalysisTokenDao(IAnalysisTokenDao):
         )
         return [self._to_domain(e) for e in entities]
 
+
+
+
+
     # --- metode private de conversie ---
 
     def _to_entity(self, token: AnalysisToken) -> AnalysisTokenEntity:

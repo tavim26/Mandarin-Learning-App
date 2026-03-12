@@ -17,19 +17,21 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Repository
-public class LessonDao implements ILessonDao {
+public class LessonDao implements ILessonDao
+{
 
     private final LessonJpaRepository lessonJpaRepository;
     private final CourseUnitJpaRepository courseUnitJpaRepository;
 
-    public LessonDao(LessonJpaRepository lessonJpaRepository,
-                     CourseUnitJpaRepository courseUnitJpaRepository) {
+    public LessonDao(LessonJpaRepository lessonJpaRepository, CourseUnitJpaRepository courseUnitJpaRepository)
+    {
         this.lessonJpaRepository = lessonJpaRepository;
         this.courseUnitJpaRepository = courseUnitJpaRepository;
     }
 
     @Override
-    public List<Lesson> findByUnitIdOrderByOrderIndexAsc(Long unitId) {
+    public List<Lesson> findByUnitIdOrderByOrderIndexAsc(Long unitId)
+    {
         return lessonJpaRepository.findByUnitIdOrderByOrderIndexAsc(unitId).stream()
                 .map(this::toDomain)
                 .collect(Collectors.toList());
@@ -41,22 +43,29 @@ public class LessonDao implements ILessonDao {
     }
 
     @Override
-    public Lesson save(Lesson lesson) {
+    public Lesson save(Lesson lesson)
+    {
         LessonEntity saved = lessonJpaRepository.save(toEntity(lesson));
         return toDomain(saved);
     }
 
     @Override
-    public void deleteById(Long id) {
+    public void deleteById(Long id)
+    {
         lessonJpaRepository.deleteById(id);
     }
 
     @Override
-    public boolean existsById(Long id) {
+    public boolean existsById(Long id)
+    {
         return lessonJpaRepository.existsById(id);
     }
 
-    private Lesson toDomain(LessonEntity entity) {
+
+
+
+    private Lesson toDomain(LessonEntity entity)
+    {
         Lesson lesson = new Lesson();
         lesson.setId(entity.getId());
         lesson.setTitle(entity.getTitle());
@@ -71,7 +80,8 @@ public class LessonDao implements ILessonDao {
         return lesson;
     }
 
-    private LessonEntity toEntity(Lesson lesson) {
+    private LessonEntity toEntity(Lesson lesson)
+    {
         LessonEntity entity = new LessonEntity();
         entity.setId(lesson.getId());
         entity.setTitle(lesson.getTitle());

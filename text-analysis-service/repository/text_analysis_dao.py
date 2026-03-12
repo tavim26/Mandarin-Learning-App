@@ -19,6 +19,7 @@ class TextAnalysisDao(ITextAnalysisDao):
         self.db.refresh(entity)
         return self._to_domain(entity)
 
+
     def find_by_id(self, analysis_id: int) -> TextAnalysis | None:
         entity = (
             self.db.query(TextAnalysisEntity)
@@ -29,6 +30,7 @@ class TextAnalysisDao(ITextAnalysisDao):
             return None
         return self._to_domain(entity)
 
+
     def find_all_by_student_id(self, student_id: int) -> list[TextAnalysis]:
         entities = (
             self.db.query(TextAnalysisEntity)
@@ -37,6 +39,7 @@ class TextAnalysisDao(ITextAnalysisDao):
             .all()
         )
         return [self._to_domain(e) for e in entities]
+
 
     def delete(self, analysis: TextAnalysis) -> None:
         entity = (
@@ -47,6 +50,10 @@ class TextAnalysisDao(ITextAnalysisDao):
         if entity is not None:
             self.db.delete(entity)
             self.db.commit()
+
+
+
+
 
     # --- metode private de conversie ---
 

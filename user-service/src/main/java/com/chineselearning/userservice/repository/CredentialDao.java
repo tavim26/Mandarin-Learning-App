@@ -4,7 +4,6 @@ import com.chineselearning.userservice.domain.Credential;
 import com.chineselearning.userservice.domain.Student;
 import com.chineselearning.userservice.domain.Teacher;
 import com.chineselearning.userservice.domain.User;
-
 import com.chineselearning.userservice.domain.dao.ICredentialDao;
 
 import com.chineselearning.userservice.repository.entities.CredentialEntity;

@@ -12,41 +12,51 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Repository
-public class CourseUnitDao implements ICourseUnitDao {
+public class CourseUnitDao implements ICourseUnitDao
+{
 
     private final CourseUnitJpaRepository jpaRepository;
 
-    public CourseUnitDao(CourseUnitJpaRepository jpaRepository) {
+    public CourseUnitDao(CourseUnitJpaRepository jpaRepository)
+    {
         this.jpaRepository = jpaRepository;
     }
 
     @Override
-    public List<CourseUnit> findAllByOrderByOrderIndexAsc() {
+    public List<CourseUnit> findAllByOrderByOrderIndexAsc()
+    {
         return jpaRepository.findAllByOrderByOrderIndexAsc().stream()
                 .map(this::toDomain)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public Optional<CourseUnit> findById(Long id) {
+    public Optional<CourseUnit> findById(Long id)
+    {
         return jpaRepository.findById(id).map(this::toDomain);
     }
 
     @Override
-    public CourseUnit save(CourseUnit unit) {
+    public CourseUnit save(CourseUnit unit)
+    {
         CourseUnitEntity saved = jpaRepository.save(toEntity(unit));
         return toDomain(saved);
     }
 
     @Override
-    public void deleteById(Long id) {
+    public void deleteById(Long id)
+    {
         jpaRepository.deleteById(id);
     }
 
     @Override
-    public boolean existsById(Long id) {
+    public boolean existsById(Long id)
+    {
         return jpaRepository.existsById(id);
     }
+
+
+
 
     private CourseUnit toDomain(CourseUnitEntity entity) {
         CourseUnit unit = new CourseUnit();

@@ -16,46 +16,56 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Repository
-public class ExerciseDao implements IExerciseDao {
+public class ExerciseDao implements IExerciseDao
+{
 
     private final ExerciseJpaRepository exerciseJpaRepository;
     private final LessonJpaRepository lessonJpaRepository;
 
-    public ExerciseDao(ExerciseJpaRepository exerciseJpaRepository,
-                       LessonJpaRepository lessonJpaRepository) {
+    public ExerciseDao(ExerciseJpaRepository exerciseJpaRepository, LessonJpaRepository lessonJpaRepository)
+    {
         this.exerciseJpaRepository = exerciseJpaRepository;
         this.lessonJpaRepository = lessonJpaRepository;
     }
 
     @Override
-    public List<Exercise> findByLessonId(Long lessonId) {
+    public List<Exercise> findByLessonId(Long lessonId)
+    {
         return exerciseJpaRepository.findByLessonId(lessonId).stream()
                 .map(this::toDomain)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public Optional<Exercise> findById(Long id) {
+    public Optional<Exercise> findById(Long id)
+    {
         return exerciseJpaRepository.findById(id).map(this::toDomain);
     }
 
     @Override
-    public Exercise save(Exercise exercise) {
+    public Exercise save(Exercise exercise)
+    {
         ExerciseEntity saved = exerciseJpaRepository.save(toEntity(exercise));
         return toDomain(saved);
     }
 
     @Override
-    public void deleteById(Long id) {
+    public void deleteById(Long id)
+    {
         exerciseJpaRepository.deleteById(id);
     }
 
     @Override
-    public boolean existsById(Long id) {
+    public boolean existsById(Long id)
+    {
         return exerciseJpaRepository.existsById(id);
     }
 
-    private Exercise toDomain(ExerciseEntity entity) {
+
+
+
+    private Exercise toDomain(ExerciseEntity entity)
+    {
         Exercise exercise = new Exercise();
         exercise.setId(entity.getId());
         exercise.setType(entity.getType());
@@ -70,7 +80,8 @@ public class ExerciseDao implements IExerciseDao {
         return exercise;
     }
 
-    private ExerciseEntity toEntity(Exercise exercise) {
+    private ExerciseEntity toEntity(Exercise exercise)
+    {
         ExerciseEntity entity = new ExerciseEntity();
         entity.setId(exercise.getId());
         entity.setType(exercise.getType());

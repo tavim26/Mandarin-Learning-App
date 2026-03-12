@@ -20,7 +20,8 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/users")
 @Tag(name = "User Management", description = "Endpoints for managing users, students and teachers")
-public class UserController {
+public class UserController
+{
 
     private final UserService userService;
 

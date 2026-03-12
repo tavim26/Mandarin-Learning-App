@@ -57,11 +57,13 @@ class AnalysisService:
         analyses = self._text_analysis_dao.find_all_by_student_id(student_id)
         return [self._to_dto(a) for a in analyses]
 
+
     def get_analysis_by_id(self, analysis_id: int) -> TextAnalysisDto | None:
         analysis = self._text_analysis_dao.find_by_id(analysis_id)
         if analysis is None:
             return None
         return self._to_dto(analysis)
+
 
     def delete_analysis(self, analysis_id: int) -> bool:
         analysis = self._text_analysis_dao.find_by_id(analysis_id)
@@ -69,6 +71,8 @@ class AnalysisService:
             return False
         self._text_analysis_dao.delete(analysis)
         return True
+
+
 
     # --- metode private helper ---
 
@@ -117,12 +121,16 @@ class AnalysisService:
         saved_analysis = self._text_analysis_dao.find_by_id(saved_analysis.id)
         return self._to_dto(saved_analysis)
 
+
+
     def _calculate_overall_hsk(self, tokens: list[dict]) -> int | None:
         # media ponderata: fiecare token cu nivel HSK cunoscut contribuie egal
         levels = [t["hsk_level"] for t in tokens if t["hsk_level"] is not None]
         if not levels:
             return None
         return round(sum(levels) / len(levels))
+
+
 
     def _to_dto(self, analysis: TextAnalysis) -> TextAnalysisDto:
         return TextAnalysisDto(

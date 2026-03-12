@@ -24,6 +24,8 @@ class TranslationService:
 
         return response.json()["data"]["translations"][0]["translatedText"]
 
+
+
     def translate_bulk(self, texts: list[str], target_language: str) -> list[str]:
         # traducere toti tokenii intr-un singur apel API
         params = {

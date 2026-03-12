@@ -15,40 +15,51 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Repository
-public class LessonMaterialDao implements ILessonMaterialDao {
+public class LessonMaterialDao implements ILessonMaterialDao
+{
 
     private final LessonMaterialJpaRepository lessonMaterialJpaRepository;
     private final LessonJpaRepository lessonJpaRepository;
 
-    public LessonMaterialDao(LessonMaterialJpaRepository lessonMaterialJpaRepository, LessonJpaRepository lessonJpaRepository) {
+    public LessonMaterialDao(LessonMaterialJpaRepository lessonMaterialJpaRepository, LessonJpaRepository lessonJpaRepository)
+    {
         this.lessonMaterialJpaRepository = lessonMaterialJpaRepository;
         this.lessonJpaRepository = lessonJpaRepository;
     }
 
     @Override
-    public List<LessonMaterial> findByLessonId(Long lessonId) {
+    public List<LessonMaterial> findByLessonId(Long lessonId)
+    {
         return lessonMaterialJpaRepository.findByLessonId(lessonId).stream()
                 .map(this::toDomain)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public LessonMaterial save(LessonMaterial material) {
+    public LessonMaterial save(LessonMaterial material)
+    {
         LessonMaterialEntity saved = lessonMaterialJpaRepository.save(toEntity(material));
         return toDomain(saved);
     }
 
     @Override
-    public void deleteById(Long id) {
+    public void deleteById(Long id)
+    {
         lessonMaterialJpaRepository.deleteById(id);
     }
 
     @Override
-    public boolean existsById(Long id) {
+    public boolean existsById(Long id)
+    {
         return lessonMaterialJpaRepository.existsById(id);
     }
 
-    private LessonMaterial toDomain(LessonMaterialEntity entity) {
+
+
+
+
+    private LessonMaterial toDomain(LessonMaterialEntity entity)
+    {
         LessonMaterial material = new LessonMaterial();
         material.setId(entity.getId());
         material.setTitle(entity.getTitle());
@@ -62,7 +73,8 @@ public class LessonMaterialDao implements ILessonMaterialDao {
         return material;
     }
 
-    private LessonMaterialEntity toEntity(LessonMaterial material) {
+    private LessonMaterialEntity toEntity(LessonMaterial material)
+    {
         LessonMaterialEntity entity = new LessonMaterialEntity();
         entity.setId(material.getId());
         entity.setTitle(material.getTitle());

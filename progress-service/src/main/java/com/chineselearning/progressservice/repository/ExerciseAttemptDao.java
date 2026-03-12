@@ -10,27 +10,32 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Repository
-public class ExerciseAttemptDao implements IExerciseAttemptDao {
+public class ExerciseAttemptDao implements IExerciseAttemptDao
+{
 
     private final ExerciseAttemptJpaRepository jpaRepository;
 
-    public ExerciseAttemptDao(ExerciseAttemptJpaRepository jpaRepository) {
+    public ExerciseAttemptDao(ExerciseAttemptJpaRepository jpaRepository)
+    {
         this.jpaRepository = jpaRepository;
     }
 
     @Override
-    public ExerciseAttempt save(ExerciseAttempt attempt) {
+    public ExerciseAttempt save(ExerciseAttempt attempt)
+    {
         ExerciseAttemptEntity saved = jpaRepository.save(toEntity(attempt));
         return toDomain(saved);
     }
 
     @Override
-    public int countByStudentIdAndExerciseId(Long studentId, Long exerciseId) {
+    public int countByStudentIdAndExerciseId(Long studentId, Long exerciseId)
+    {
         return jpaRepository.countByStudentIdAndExerciseId(studentId, exerciseId);
     }
 
     @Override
-    public List<ExerciseAttempt> findByStudentIdAndExerciseIdOrderByAttemptNumberAsc(Long studentId, Long exerciseId) {
+    public List<ExerciseAttempt> findByStudentIdAndExerciseIdOrderByAttemptNumberAsc(Long studentId, Long exerciseId)
+    {
         return jpaRepository
                 .findByStudentIdAndExerciseIdOrderByAttemptNumberAsc(studentId, exerciseId)
                 .stream()
@@ -39,11 +44,14 @@ public class ExerciseAttemptDao implements IExerciseAttemptDao {
     }
 
     @Override
-    public long countDistinctCorrectExercises(Long studentId, List<Long> exerciseIds) {
+    public long countDistinctCorrectExercises(Long studentId, List<Long> exerciseIds)
+    {
         return jpaRepository.countDistinctCorrectExercises(studentId, exerciseIds);
     }
 
-    // ========== CONVERSIE ==========
+
+
+
 
     private ExerciseAttemptEntity toEntity(ExerciseAttempt domain) {
         ExerciseAttemptEntity entity = new ExerciseAttemptEntity();
