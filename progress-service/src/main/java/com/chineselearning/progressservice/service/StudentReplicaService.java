@@ -47,8 +47,8 @@ public class StudentReplicaService
     @Transactional(readOnly = true)
     public List<StudentReplicaDto> getLeaderboard()
     {
-        return studentReplicaDao.findAllOrderByXpTotalDesc().stream()
-                .limit(10)
+        return studentReplicaDao.findTop10OrderByXpTotalDesc()
+                .stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }

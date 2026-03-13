@@ -5,9 +5,12 @@ import com.chineselearning.userservice.domain.Student;
 import com.chineselearning.userservice.domain.Teacher;
 import com.chineselearning.userservice.domain.User;
 import com.chineselearning.userservice.domain.dao.IUserDao;
+
+import com.chineselearning.userservice.repository.entities.CredentialEntity;
 import com.chineselearning.userservice.repository.entities.StudentEntity;
 import com.chineselearning.userservice.repository.entities.TeacherEntity;
 import com.chineselearning.userservice.repository.entities.UserEntity;
+
 import com.chineselearning.userservice.repository.jpa.IUserJpaRepository;
 import org.springframework.stereotype.Component;
 import java.util.List;
@@ -71,6 +74,13 @@ public class UserDao implements IUserDao
         UserEntity entity = new UserEntity();
         entity.setId(user.getId());
         entity.setFullName(user.getFullName());
+
+        if (user.getCredential() != null)
+        {
+            CredentialEntity credentialEntity = new CredentialEntity();
+            credentialEntity.setId(user.getCredential().getId());
+            entity.setCredential(credentialEntity);
+        }
 
         if (user.getStudent() != null)
         {

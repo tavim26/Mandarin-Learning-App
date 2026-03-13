@@ -1,9 +1,8 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from domain.analysis_token import AnalysisToken
 from domain.dao.i_text_analysis_dao import ITextAnalysisDao
 from domain.text_analysis import TextAnalysis
-
 from repository.entities.text_analysis_entity import TextAnalysisEntity
 
 
@@ -14,15 +13,20 @@ class TextAnalysisDao(ITextAnalysisDao):
 
     def save(self, analysis: TextAnalysis) -> TextAnalysis:
         entity = self._to_entity(analysis)
-        self.db.add(entity)
-        self.db.commit()
-        self.db.refresh(entity)
-        return self._to_domain(entity)
-
+        try:
+            self.db.add(entity)
+            # flush fara commit — tranzactia ramane deschisa pentru operatiile ulterioare
+            self.db.flush()
+            self.db.refresh(entity)
+            return self._to_domain(entity)
+        except Exception:
+            self.db.rollback()
+            raise
 
     def find_by_id(self, analysis_id: int) -> TextAnalysis | None:
         entity = (
             self.db.query(TextAnalysisEntity)
+            .options(joinedload(TextAnalysisEntity.tokens))
             .filter(TextAnalysisEntity.id == analysis_id)
             .first()
         )
@@ -30,16 +34,15 @@ class TextAnalysisDao(ITextAnalysisDao):
             return None
         return self._to_domain(entity)
 
-
     def find_all_by_student_id(self, student_id: int) -> list[TextAnalysis]:
         entities = (
             self.db.query(TextAnalysisEntity)
+            .options(joinedload(TextAnalysisEntity.tokens))
             .filter(TextAnalysisEntity.student_id == student_id)
             .order_by(TextAnalysisEntity.created_at.desc())
             .all()
         )
         return [self._to_domain(e) for e in entities]
-
 
     def delete(self, analysis: TextAnalysis) -> None:
         entity = (
@@ -47,9 +50,15 @@ class TextAnalysisDao(ITextAnalysisDao):
             .filter(TextAnalysisEntity.id == analysis.id)
             .first()
         )
-        if entity is not None:
+        if entity is None:
+            raise ValueError(f"Analiza cu id={analysis.id} nu exista in baza de date")
+        try:
             self.db.delete(entity)
             self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+
 
 
 

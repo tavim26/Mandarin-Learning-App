@@ -4,6 +4,7 @@ import com.chineselearning.progressservice.domain.StudentReplica;
 import com.chineselearning.progressservice.domain.dao.IStudentReplicaDao;
 import com.chineselearning.progressservice.repository.entities.StudentReplicaEntity;
 import com.chineselearning.progressservice.repository.jpa.StudentReplicaJpaRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 
@@ -30,6 +31,16 @@ public class StudentReplicaDao implements IStudentReplicaDao
     }
 
     @Override
+    public void saveIfNotExists(StudentReplica replica)
+    {
+        try {
+            jpaRepository.saveAndFlush(toEntity(replica));
+        } catch (DataIntegrityViolationException e) {
+            // Alta cerere concurenta a inserat replica intre check si save — ignorat intentionat
+        }
+    }
+
+    @Override
     public Optional<StudentReplica> findById(Long studentId)
     {
         return jpaRepository.findById(studentId)
@@ -51,6 +62,14 @@ public class StudentReplicaDao implements IStudentReplicaDao
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public List<StudentReplica> findTop10OrderByXpTotalDesc()
+    {
+        return jpaRepository.findTop10ByOrderByXpTotalDesc()
+                .stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
 
 
     private StudentReplicaEntity toEntity(StudentReplica domain)

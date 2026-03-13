@@ -23,7 +23,7 @@ public class ExerciseAttemptDao implements IExerciseAttemptDao
     @Override
     public ExerciseAttempt save(ExerciseAttempt attempt)
     {
-        ExerciseAttemptEntity saved = jpaRepository.save(toEntity(attempt));
+        ExerciseAttemptEntity saved = jpaRepository.saveAndFlush(toEntity(attempt));
         return toDomain(saved);
     }
 

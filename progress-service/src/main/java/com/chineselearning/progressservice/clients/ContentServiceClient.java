@@ -3,6 +3,7 @@ package com.chineselearning.progressservice.clients;
 import com.chineselearning.progressservice.domain.dto.ExerciseResponseDto;
 import com.chineselearning.progressservice.domain.dto.LessonResponseDto;
 
+import com.chineselearning.progressservice.domain.ports.IContentServicePort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,7 +13,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 @Service
-public class ContentServiceClient
+public class ContentServiceClient implements IContentServicePort
 {
 
     private static final Logger log = LoggerFactory.getLogger(ContentServiceClient.class);

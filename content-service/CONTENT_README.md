@@ -1,171 +1,364 @@
 # content-service
 
-## 1. Scopul Microserviciului
+Microserviciu responsabil pentru gestionarea conținutului educațional al platformei de învățare a limbii chineze: unități de curs, lecții, materiale și exerciții.
 
-Microserviciu responsabil cu gestionarea **conținutului educațional** al platformei de învățare a limbii chineze. Administrează structura ierarhică a cursului: unități → lecții → exerciții/materiale.
-
-Face parte dintr-o arhitectură de microservicii. Rulează pe portul `8081`.
+- **Port:** `8081`
+- **Bază de date:** PostgreSQL — `content_database`
+- **Emite JWT:** Nu — validarea JWT este responsabilitatea API Gateway
+- **Swagger UI:** `http://localhost:8081/swagger-ui/index.html`
 
 ---
 
-## 2. Arhitectura și Structura Pachetelor
+## Tech Stack
 
-Arhitectura respectă principiile **Domain-Driven Design (DDD)**.
+- Java 21, Spring Boot, Spring Data JPA
+- PostgreSQL, Hibernate (JSONB support via `@JdbcTypeCode`)
+
+---
+
+## Schema bazei de date
 
 ```
-com.chineselearning.contentservice
-├── controller/
-│   └── ContentController.java         # REST endpoints, depinde doar de dto + service
+course_units
+├── id            BIGINT PK (auto-generated)
+├── title         VARCHAR (not null)
+├── description   TEXT (nullable)
+├── hsk_level     INTEGER (nullable)
+└── order_index   INTEGER (not null)
+
+lessons
+├── id            BIGINT PK (auto-generated)
+├── unit_id       BIGINT FK → course_units.id (not null)
+├── title         VARCHAR (not null)
+├── description   TEXT (nullable)
+├── xp_reward     INTEGER (not null)
+└── order_index   INTEGER (not null)
+
+exercises
+├── id            BIGINT PK (auto-generated)
+├── lesson_id     BIGINT FK → lessons.id (not null)
+├── type          VARCHAR (not null)
+├── prompt        TEXT (not null)
+├── difficulty    INTEGER (nullable)
+└── content_data  JSONB (nullable)
+
+lesson_materials
+├── id            BIGINT PK (auto-generated)
+├── lesson_id     BIGINT FK → lessons.id (not null)
+├── title         VARCHAR (not null)
+├── type          VARCHAR (not null)
+└── url           VARCHAR(1000) (not null)
+```
+
+**Relații:**
+- Un `CourseUnit` conține mai multe `Lesson` (CASCADE DELETE)
+- O `Lesson` conține mai multe `Exercise` și `LessonMaterial` (CASCADE DELETE)
+- Ștergerea unui `CourseUnit` șterge în cascadă toate `Lesson`, `Exercise` și `LessonMaterial` asociate
+
+---
+
+## Modele de date (DTO-uri)
+
+### `CourseUnitDto`
+```json
+{
+  "id": 1,
+  "title": "string",
+  "description": "string",
+  "hskLevel": 1,
+  "orderIndex": 1
+}
+```
+
+### `LessonDto`
+```json
+{
+  "id": 1,
+  "unitId": 1,
+  "title": "string",
+  "description": "string",
+  "xpReward": 100,
+  "orderIndex": 1,
+  "exercises": []
+}
+```
+> Câmpul `exercises` este populat **doar** la `GET /api/content/lessons/{id}`. La listarea lecțiilor dintr-o unitate, `exercises` este `null`.
+
+### `ExerciseDto`
+```json
+{
+  "id": 1,
+  "lessonId": 1,
+  "type": "string",
+  "prompt": "string",
+  "difficulty": 1,
+  "contentData": {}
+}
+```
+> `contentData` este un obiect JSON liber, structura variază în funcție de `type`.
+
+### `LessonMaterialDto`
+```json
+{
+  "id": 1,
+  "lessonId": 1,
+  "title": "string",
+  "type": "string",
+  "url": "string"
+}
+```
+
+---
+
+## Endpoint-uri
+
+### Course Units — `/api/content/units`
+
+#### `GET /api/content/units`
+- **Autorizare:** STUDENT, TEACHER, ADMIN
+- **Response `200`:** listă de `CourseUnitDto` ordonată după `orderIndex`
+
+---
+
+#### `GET /api/content/units/{id}`
+- **Autorizare:** STUDENT, TEACHER, ADMIN
+- **Response `200`:** `CourseUnitDto`
+- **Response `404`:** unitatea nu există
+
+---
+
+#### `POST /api/content/units`
+- **Autorizare:** ADMIN only
+- **Câmpuri obligatorii:** `title`, `orderIndex`
+- **Request body:**
+```json
+{
+  "title": "string",
+  "description": "string",
+  "hskLevel": 1,
+  "orderIndex": 1
+}
+```
+- **Response `201`:** `CourseUnitDto`
+- **Response `400`:** `title` sau `orderIndex` lipsă
+
+---
+
+#### `PUT /api/content/units/{id}`
+- **Autorizare:** ADMIN only
+- **Câmpuri obligatorii:** `title`
+- **Request body:** identic cu POST
+- **Response `200`:** `CourseUnitDto` actualizat
+- **Response `400`:** `title` lipsă
+- **Response `404`:** unitatea nu există
+
+---
+
+#### `DELETE /api/content/units/{id}`
+- **Autorizare:** ADMIN only
+- **Response `204`:** șters cu succes (cascade: lecții, exerciții, materiale)
+- **Response `404`:** unitatea nu există
+
+---
+
+### Lessons — `/api/content/lessons`
+
+#### `GET /api/content/units/{unitId}/lessons`
+- **Autorizare:** STUDENT, TEACHER, ADMIN
+- **Response `200`:** listă de `LessonDto` ordonată după `orderIndex` (fără `exercises`)
+
+---
+
+#### `GET /api/content/lessons/{id}`
+- **Autorizare:** STUDENT, TEACHER, ADMIN
+- **Response `200`:** `LessonDto` cu `exercises` populat
+- **Response `404`:** lecția nu există
+
+---
+
+#### `POST /api/content/lessons`
+- **Autorizare:** ADMIN only
+- **Câmpuri obligatorii:** `unitId`, `title`, `orderIndex`
+- **Request body:**
+```json
+{
+  "unitId": 1,
+  "title": "string",
+  "description": "string",
+  "xpReward": 100,
+  "orderIndex": 1
+}
+```
+- **Response `201`:** `LessonDto`
+- **Response `400`:** câmpuri obligatorii lipsă
+- **Response `404`:** `unitId` nu există
+
+---
+
+#### `PUT /api/content/lessons/{id}`
+- **Autorizare:** ADMIN only
+- **Câmpuri obligatorii:** `title`
+- **Request body:** identic cu POST
+- **Response `200`:** `LessonDto` actualizat
+- **Response `400`:** `title` lipsă
+- **Response `404`:** lecția sau unitatea nu există
+
+---
+
+#### `DELETE /api/content/lessons/{id}`
+- **Autorizare:** ADMIN only
+- **Response `204`:** șters cu succes (cascade: exerciții, materiale)
+- **Response `404`:** lecția nu există
+
+---
+
+### Exercises — `/api/content/exercises`
+
+#### `GET /api/content/lessons/{lessonId}/exercises`
+- **Autorizare:** STUDENT, TEACHER, ADMIN
+- **Response `200`:** listă de `ExerciseDto`
+
+---
+
+#### `GET /api/content/exercises/{id}`
+- **Autorizare:** STUDENT, TEACHER, ADMIN
+- **Response `200`:** `ExerciseDto`
+- **Response `404`:** exercițiul nu există
+
+---
+
+#### `POST /api/content/exercises`
+- **Autorizare:** ADMIN only
+- **Câmpuri obligatorii:** `lessonId`, `type`, `prompt`
+- **Request body:**
+```json
+{
+  "lessonId": 1,
+  "type": "string",
+  "prompt": "string",
+  "difficulty": 1,
+  "contentData": {}
+}
+```
+- **Response `201`:** `ExerciseDto`
+- **Response `400`:** câmpuri obligatorii lipsă
+- **Response `404`:** `lessonId` nu există
+
+---
+
+#### `PUT /api/content/exercises/{id}`
+- **Autorizare:** ADMIN only
+- **Câmpuri obligatorii:** `type`, `prompt`
+- **Request body:** identic cu POST (fără `lessonId` — nu se poate schimba lecția)
+- **Response `200`:** `ExerciseDto` actualizat
+- **Response `400`:** câmpuri obligatorii lipsă
+- **Response `404`:** exercițiul nu există
+
+---
+
+#### `DELETE /api/content/exercises/{id}`
+- **Autorizare:** ADMIN only
+- **Response `204`:** șters cu succes
+- **Response `404`:** exercițiul nu există
+
+---
+
+### Materials — `/api/content/materials`
+
+#### `GET /api/content/lessons/{lessonId}/materials`
+- **Autorizare:** STUDENT, TEACHER, ADMIN
+- **Response `200`:** listă de `LessonMaterialDto`
+
+---
+
+#### `POST /api/content/materials`
+- **Autorizare:** ADMIN only
+- **Câmpuri obligatorii:** `lessonId`, `title`, `url`
+- **Request body:**
+```json
+{
+  "lessonId": 1,
+  "title": "string",
+  "type": "string",
+  "url": "string"
+}
+```
+- **Response `201`:** `LessonMaterialDto`
+- **Response `400`:** câmpuri obligatorii lipsă
+- **Response `404`:** `lessonId` nu există
+
+---
+
+#### `DELETE /api/content/materials/{id}`
+- **Autorizare:** ADMIN only
+- **Response `204`:** șters cu succes
+- **Response `404`:** materialul nu există
+
+---
+
+## Autorizare per endpoint (pentru API Gateway)
+
+| Method | Path                                        | PUBLIC | STUDENT | TEACHER | ADMIN |
+|--------|---------------------------------------------|--------|---------|---------|-------|
+| GET    | /api/content/units                          |        | ✓       | ✓       | ✓     |
+| GET    | /api/content/units/{id}                     |        | ✓       | ✓       | ✓     |
+| POST   | /api/content/units                          |        |         |         | ✓     |
+| PUT    | /api/content/units/{id}                     |        |         |         | ✓     |
+| DELETE | /api/content/units/{id}                     |        |         |         | ✓     |
+| GET    | /api/content/units/{unitId}/lessons         |        | ✓       | ✓       | ✓     |
+| GET    | /api/content/lessons/{id}                   |        | ✓       | ✓       | ✓     |
+| POST   | /api/content/lessons                        |        |         |         | ✓     |
+| PUT    | /api/content/lessons/{id}                   |        |         |         | ✓     |
+| DELETE | /api/content/lessons/{id}                   |        |         |         | ✓     |
+| GET    | /api/content/lessons/{lessonId}/exercises   |        | ✓       | ✓       | ✓     |
+| GET    | /api/content/exercises/{id}                 |        | ✓       | ✓       | ✓     |
+| POST   | /api/content/exercises                      |        |         |         | ✓     |
+| PUT    | /api/content/exercises/{id}                 |        |         |         | ✓     |
+| DELETE | /api/content/exercises/{id}                 |        |         |         | ✓     |
+| GET    | /api/content/lessons/{lessonId}/materials   |        | ✓       | ✓       | ✓     |
+| POST   | /api/content/materials                      |        |         |         | ✓     |
+| DELETE | /api/content/materials/{id}                 |        |         |         | ✓     |
+
+> Niciun endpoint nu necesită verificarea `userId` din JWT claims — autorizarea este exclusiv pe bază de rol.
+
+---
+
+## Structura pachetelor
+
+```
+contentservice/
 ├── domain/
+│   ├── CourseUnit.java
+│   ├── Lesson.java
+│   ├── Exercise.java
+│   ├── LessonMaterial.java
 │   ├── dao/
-│   │   ├── ICourseUnitDao.java         # JpaRepository pentru CourseUnit
-│   │   ├── ILessonDao.java             # JpaRepository pentru Lesson
-│   │   ├── ILessonMaterialDao.java     # JpaRepository pentru LessonMaterial
-│   │   └── IExerciseDao.java           # JpaRepository pentru Exercise
-│   ├── dto/
-│   │   ├── CourseUnitDto.java
-│   │   ├── LessonDto.java              # include List<ExerciseDto> exercises
-│   │   ├── LessonMaterialDto.java
-│   │   └── ExerciseDto.java
-│   ├── CourseUnit.java                 # Entitate JPA
-│   ├── Lesson.java                     # Entitate JPA
-│   ├── LessonMaterial.java             # Entitate JPA
-│   └── Exercise.java                   # Entitate JPA, contentData stocat ca JSONB
-└── service/
-    └── ContentService.java             # Toată logica de business, @Transactional
+│   │   ├── ICourseUnitDao.java
+│   │   ├── ILessonDao.java
+│   │   ├── IExerciseDao.java
+│   │   └── ILessonMaterialDao.java
+│   └── dto/
+│       ├── CourseUnitDto.java
+│       ├── LessonDto.java
+│       ├── ExerciseDto.java
+│       └── LessonMaterialDto.java
+├── repository/
+│   ├── entities/
+│   │   ├── CourseUnitEntity.java
+│   │   ├── LessonEntity.java
+│   │   ├── ExerciseEntity.java
+│   │   └── LessonMaterialEntity.java
+│   ├── jpa/
+│   │   ├── CourseUnitJpaRepository.java
+│   │   ├── LessonJpaRepository.java
+│   │   ├── ExerciseJpaRepository.java
+│   │   └── LessonMaterialJpaRepository.java
+│   ├── CourseUnitDao.java
+│   ├── LessonDao.java
+│   ├── ExerciseDao.java
+│   └── LessonMaterialDao.java
+├── service/
+│   └── ContentService.java
+└── controller/
+    └── ContentController.java
 ```
-
-**Reguli arhitecturale stricte:**
-- Controller-ul NU accesează DAO sau entități direct — doar DTO și Service
-- Mapping-ul entitate ↔ DTO se face exclusiv în `ContentService` prin metode private helper
-- Nu se folosește MapStruct sau alte librării de mapping
-
----
-
-## 3. Modelul Domeniului
-
-### Ierarhia entităților
-
-```
-CourseUnit (1)
-    └── Lesson (*)
-            ├── Exercise (*)
-            └── LessonMaterial (*)
-```
-
-### CourseUnit
-| Câmp | Tip | Constrângeri |
-|---|---|---|
-| id | Long | PK, auto-generated |
-| title | String | NOT NULL |
-| description | String | TEXT |
-| hskLevel | Integer | nullable |
-| orderIndex | Integer | NOT NULL |
-
-### Lesson
-| Câmp | Tip | Constrângeri |
-|---|---|---|
-| id | Long | PK, auto-generated |
-| unit | CourseUnit | FK, NOT NULL |
-| title | String | NOT NULL |
-| description | String | TEXT |
-| xpReward | Integer | NOT NULL |
-| orderIndex | Integer | NOT NULL |
-
-### LessonMaterial
-| Câmp | Tip | Constrângeri |
-|---|---|---|
-| id | Long | PK, auto-generated |
-| lesson | Lesson | FK, NOT NULL |
-| title | String | NOT NULL |
-| type | String | NOT NULL |
-| url | String | NOT NULL, max 1000 chars |
-
-### Exercise
-| Câmp | Tip | Constrângeri |
-|---|---|---|
-| id | Long | PK, auto-generated |
-| lesson | Lesson | FK, NOT NULL |
-| type | String | NOT NULL |
-| prompt | String | TEXT, NOT NULL |
-| difficulty | Integer | nullable |
-| contentData | Map<String, Object> | JSONB în PostgreSQL |
-
-### Relații JPA
-- `CourseUnit → Lesson`: `@OneToMany(cascade = ALL, orphanRemoval = true)`
-- `Lesson → Exercise`: `@OneToMany(cascade = ALL, orphanRemoval = true)`
-- `Lesson → LessonMaterial`: `@OneToMany(cascade = ALL, orphanRemoval = true)`
-- Toate relațiile `@ManyToOne` folosesc `FetchType.LAZY`
-
----
-
-## 4. Endpoints REST
-
-Base path: `/api/content`
-
-### Course Units
-| Metodă | Path | Descriere |
-|---|---|---|
-| GET | `/units` | Returnează toate unitățile, ordonate după `orderIndex` ASC |
-| GET | `/units/{id}` | Returnează o unitate după ID |
-| POST | `/units` | Creează o unitate nouă |
-| PUT | `/units/{id}` | Actualizează o unitate existentă |
-| DELETE | `/units/{id}` | Șterge unitatea și toate lecțiile asociate (cascade) |
-
-### Lessons
-| Metodă | Path | Descriere |
-|---|---|---|
-| GET | `/units/{unitId}/lessons` | Returnează lecțiile unei unități, ordonate după `orderIndex` ASC |
-| GET | `/lessons/{id}` | Returnează lecția cu lista de exerciții inclusă în răspuns |
-| POST | `/lessons` | Creează o lecție nouă |
-| PUT | `/lessons/{id}` | Actualizează lecția; permite reasignarea la altă unitate |
-| DELETE | `/lessons/{id}` | Șterge lecția și exercițiile/materialele asociate |
-
-### Materials
-| Metodă | Path | Descriere |
-|---|---|---|
-| GET | `/lessons/{lessonId}/materials` | Returnează materialele unei lecții |
-| POST | `/materials` | Adaugă un material nou la o lecție |
-| DELETE | `/materials/{id}` | Șterge un material |
-
-### Exercises
-| Metodă | Path | Descriere |
-|---|---|---|
-| GET | `/lessons/{lessonId}/exercises` | Returnează exercițiile unei lecții |
-| GET | `/exercises/{id}` | Returnează un exercițiu după ID |
-| POST | `/exercises` | Adaugă un exercițiu nou la o lecție |
-| PUT | `/exercises/{id}` | Actualizează un exercițiu existent |
-| DELETE | `/exercises/{id}` | Șterge un exercițiu |
-
-Documentație Swagger disponibilă la: `http://localhost:8081/swagger-ui/index.html`
-
----
-
-## 5. Dependențe Externe
-
-- **Baza de date:** PostgreSQL — tabel `course_units`, `lessons`, `lesson_materials`, `exercises`
-- **JSONB:** Câmpul `contentData` din `Exercise` folosește `@JdbcTypeCode(SqlTypes.JSON)` și este stocat ca `jsonb` în PostgreSQL
-- **Alte microservicii:** Nu există comunicare sincronă cu alte microservicii în implementarea curentă
-
----
-
-## 6. Decizii de Design
-
-- **Un singur ContentService** gestionează toate cele 4 agregate. SRP este violat intenționat pentru simplitate, dat fiind stadiul proiectului.
-- **Mapping manual** entitate ↔ DTO prin metode private helper în service. Nu se folosește MapStruct.
-- **`getLesson(id)`** returnează exercițiile incluse în DTO. **`getLessonsByUnitId()`** returnează lecțiile fără exerciții. Comportament intenționat diferențiat.
-- **`updateExercise`** nu permite reasignarea lecției parinte. **`updateLesson`** permite reasignarea unității parinte. Inconsistență existentă, nerezolvată.
-- **`@Transactional`** aplicat la nivel de clasă — toate metodele, inclusiv cele de citire, rulează cu tranzacții read-write. `readOnly = true` nu este aplicat.
-
----
-
-
-
-## 8. Tehnologii
-
-- Java 21
-- Spring Boot
-- Spring Data JPA
-- PostgreSQL
-- Hibernate
-- SpringDoc OpenAPI (Swagger)

@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from domain.analysis_token import AnalysisToken
+
 
 @dataclass
 class TextAnalysis:
@@ -14,4 +16,4 @@ class TextAnalysis:
     created_at: datetime = field(default_factory=datetime.now)
 
     # lista de tokeni asociati acestei analize
-    tokens: list = field(default_factory=list)
+    tokens: list[AnalysisToken] = field(default_factory=list)

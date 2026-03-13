@@ -17,25 +17,20 @@ from service.translation_service import TranslationService
 
 load_dotenv()
 
-
-# HskService incarca fisierul JSON in memorie la instantiere
 _hsk_service = HskService()
 _nlp_service = NlpService(_hsk_service)
-
-# OcrService incarca modelul EasyOCR la instantiere (~300MB)
 _ocr_service = OcrService()
 
-# cheia API este citita din  fisierul .env
 _google_api_key = os.getenv("GOOGLE_TRANSLATE_API_KEY", "")
 _translation_service = TranslationService(api_key=_google_api_key)
 
 
 def get_analysis_service(db: Session = Depends(get_db)) -> AnalysisService:
-    # DAO-urile concrete primesc sesiunea db per request
     text_analysis_dao: ITextAnalysisDao = TextAnalysisDao(db)
     analysis_token_dao: IAnalysisTokenDao = AnalysisTokenDao(db)
 
     return AnalysisService(
+        db=db,
         nlp_service=_nlp_service,
         ocr_service=_ocr_service,
         text_analysis_dao=text_analysis_dao,

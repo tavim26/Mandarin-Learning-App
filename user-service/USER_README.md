@@ -1,89 +1,85 @@
 # user-service
 
-## Responsabilitate
-Microserviciu responsabil de gestionarea utilizatorilor platformei de invatare a limbii chineze.
-Acopera doua domenii: autentificare (register, login, JWT) si operatii CRUD pe utilizatori, studenti si profesori.
+Microserviciu responsabil pentru gestionarea utilizatorilor, autentificare și autorizare prin JWT.
+
+- **Port:** `8082`
+- **Bază de date:** PostgreSQL — `user_database`
+- **Emite JWT:** Da (doar la `/api/auth/login`)
 
 ---
 
-## Port
-`8082`
+## Tech Stack
+
+- Java 21, Spring Boot, Spring Security, Spring Data JPA
+- PostgreSQL, jjwt, BCrypt
 
 ---
 
-## Tehnologii
-- Java Spring Boot
-- Spring Security (stateless, fara sesiuni)
-- JWT (jjwt)
-- Spring Data JPA / Hibernate
-- BCrypt pentru hash parole
-- Swagger / OpenAPI (`http://localhost:8082/swagger-ui/index.html`)
+## Schema bazei de date
+
+```
+credentials
+├── id            BIGINT PK (auto-generated)
+├── email         VARCHAR (unique, not null)
+├── password_hash VARCHAR (not null)
+├── role          VARCHAR (not null) — STUDENT | TEACHER | ADMIN
+└── created_at    TIMESTAMP (not null)
+
+users
+├── id            BIGINT PK (FK → credentials.id, @MapsId)
+└── full_name     VARCHAR (not null)
+
+students
+├── user_id       BIGINT PK (FK → users.id, @MapsId)
+└── nickname      VARCHAR(50) (nullable)
+
+teachers
+├── user_id       BIGINT PK (FK → users.id, @MapsId)
+└── title         VARCHAR (nullable)
+```
+
+**Relații:** `Credential` este agregatul root. `User` preia ID-ul din `Credential`. `Student` și `Teacher` preiau ID-ul din `User`. Un utilizator are fie `Student`, fie `Teacher`, fie niciunul (ADMIN).
 
 ---
 
-## Baza de date
+## Roluri și reguli de business
 
-**Schema:** `user_service_db` (sau echivalent configurat in `application.yml`)
+| Rol     | Descriere                                                  |
+|---------|------------------------------------------------------------|
+| STUDENT | Are înregistrare în tabela `students` cu câmp `nickname`   |
+| TEACHER | Are înregistrare în tabela `teachers` cu câmp `title`      |
+| ADMIN   | Fără înregistrare în `students`/`teachers`                 |
 
-| Tabel | Cheie primara | Descriere |
-|---|---|---|
-| `credentials` | `id` (BIGINT, auto-increment) | Date de autentificare |
-| `users` | `id` (BIGINT, FK -> credentials.id) | Profil utilizator |
-| `students` | `user_id` (BIGINT, FK -> users.id) | Date specifice studentului |
-| `teachers` | `user_id` (BIGINT, FK -> users.id) | Date specifice profesorului |
-
-**Relatii:**
-- `Credential` este agregatul radacina — genereaza ID-ul
-- `User` preia ID-ul din `Credential` via `@MapsId`
-- `Student` si `Teacher` preiau ID-ul din `User` via `@MapsId`
-- Un utilizator cu rolul `ADMIN` nu are entitate `Student` sau `Teacher`
-
----
-
-## Roluri
-| Rol | Entitate asociata |
-|---|---|
-| `STUDENT` | `Student` (camp: `nickname`) |
-| `TEACHER` | `Teacher` (camp: `title`) |
-| `ADMIN` | fara entitate separata |
-
----
-
-## Securitate
-- Autorizarea pe baza de rol **NU** se face in acest serviciu
-- Autorizarea este delegata centralizat catre **API Gateway**
-- Toate endpoint-urile sunt `permitAll()` la nivel de `SecurityFilterChain`
-- Serviciul nu este expus direct, ci doar prin API Gateway
+- `POST /api/auth/register` acceptă: `STUDENT`, `TEACHER`, `ADMIN`
+- `POST /api/users` (admin only) acceptă: `STUDENT`, `TEACHER`
 
 ---
 
 ## JWT
 
-Token-ul este generat **doar la Login**, nu la Register.
+- **Algoritm:** HS256
+- **Secret:** cheie Base64 de 256 biți (din `application.properties`)
+- **Expirare:** configurabilă prin `application.security.jwt.expiration` (ms)
 
-**Claims din payload:**
-```json
-{
-  "sub": "email@example.com",
-  "userId": 1,
-  "role": "STUDENT",
-  "iat": ...,
-  "exp": ...
-}
-```
+**Claims payload:**
 
-**Algoritm:** HS256
-**Configurare:** `application.security.jwt.secret-key` si `application.security.jwt.expiration` din `application.yml`
+| Claim   | Tip    | Descriere                    |
+|---------|--------|------------------------------|
+| sub     | String | email-ul utilizatorului      |
+| userId  | Long   | ID-ul din tabela credentials |
+| role    | String | STUDENT / TEACHER / ADMIN    |
+| iat     | Date   | emis la                      |
+| exp     | Date   | expiră la                    |
 
 ---
 
-## Endpoints
+## Endpoint-uri
 
-### AUTH — `/api/auth`
+### Auth — `/api/auth`
 
-#### POST `/api/auth/register`
-- **Acces:** public
-- **Request:**
+#### `POST /api/auth/register`
+- **Autorizare:** public
+- **Request body:**
 ```json
 {
   "email": "string",
@@ -100,13 +96,13 @@ Token-ul este generat **doar la Login**, nu la Register.
   "fullName": "string"
 }
 ```
-- **Response `400`:** email deja inregistrat sau rol invalid
+- **Response `400`:** email deja înregistrat sau rol invalid
 
 ---
 
-#### POST `/api/auth/login`
-- **Acces:** public
-- **Request:**
+#### `POST /api/auth/login`
+- **Autorizare:** public
+- **Request body:**
 ```json
 {
   "email": "string",
@@ -122,18 +118,15 @@ Token-ul este generat **doar la Login**, nu la Register.
   "fullName": "string"
 }
 ```
-- **Response `401`:** credentiale invalide
+- **Response `401`:** credențiale invalide
 
 ---
 
-### USERS — `/api/users`
+### Users — `/api/users`
 
-> Toate endpoint-urile de mai jos sunt accesibile doar prin API Gateway cu autorizare corespunzatoare.
-
-#### POST `/api/users`
-- **Acces:** doar ADMIN (aplicat in Gateway)
-- **Roluri acceptate la creare:** doar `STUDENT` sau `TEACHER` (un admin nu poate crea alt admin)
-- **Request:** identic cu `RegisterRequestDto`
+#### `POST /api/users`
+- **Autorizare:** ADMIN only
+- **Request body:** identic cu `/api/auth/register` (rol: `STUDENT` sau `TEACHER`)
 - **Response `201`:**
 ```json
 {
@@ -143,44 +136,59 @@ Token-ul este generat **doar la Login**, nu la Register.
 }
 ```
 
-#### GET `/api/users`
-- **Response `200`:** lista de `UserDto`
+---
 
-#### GET `/api/users/{id}`
-- **Response `200`:** `UserDto`
-- **Response `404`:** utilizator inexistent
-
-#### GET `/api/users/search?name={fragment}`
-- **Response `200`:** lista de `UserDto` filtrata dupa `fullName`
-
-#### PUT `/api/users/{id}/name?newName={value}`
-- **Response `200`:** `UserDto` actualizat
-
-#### DELETE `/api/users/{id}`
-- **Response `204`:** stergere cascade (User, Student/Teacher)
-- **Response `404`:** utilizator inexistent
+#### `GET /api/users`
+- **Autorizare:** ADMIN only
+- **Response `200`:** listă de `UserDto`
 
 ---
 
-### STUDENTS — `/api/users/students`
+#### `GET /api/users/{id}`
+- **Autorizare:** ADMIN only
+- **Response `200`:** `UserDto` / `404` dacă nu există
 
-#### GET `/api/users/students/{userId}`
+---
+
+#### `GET /api/users/search?name={fragment}`
+- **Autorizare:** ADMIN only
+- **Response `200`:** listă de `UserDto` filtrate după `fullName`
+
+---
+
+#### `PUT /api/users/{id}/name?newName={value}`
+- **Autorizare:** ADMIN only
+- **Response `200`:** `UserDto` actualizat / `404`
+
+---
+
+#### `DELETE /api/users/{id}`
+- **Autorizare:** ADMIN only
+- **Response `204`** / `404`
+- Cascade delete: șterge și înregistrările din `students`/`teachers`
+
+---
+
+#### `GET /api/users/students/{userId}`
+- **Autorizare:** ADMIN, STUDENT (own)
 - **Response `200`:**
 ```json
 {
   "userId": 1,
-  "nickname": "string | null"
+  "nickname": "string"
 }
 ```
 
-#### PUT `/api/users/students/{userId}/nickname?newNickname={value}`
-- **Response `200`:** `StudentDto` actualizat
+---
+
+#### `PUT /api/users/students/{userId}/nickname?newNickname={value}`
+- **Autorizare:** ADMIN, STUDENT (own)
+- **Response `200`:** `StudentDto` actualizat / `404`
 
 ---
 
-### TEACHERS — `/api/users/teachers`
-
-#### GET `/api/users/teachers/{userId}`
+#### `GET /api/users/teachers/{userId}`
+- **Autorizare:** ADMIN, TEACHER (own)
 - **Response `200`:**
 ```json
 {
@@ -189,61 +197,58 @@ Token-ul este generat **doar la Login**, nu la Register.
 }
 ```
 
-#### PUT `/api/users/teachers/{userId}/title?newTitle={value}`
-- **Response `200`:** `TeacherDto` actualizat
+---
+
+#### `PUT /api/users/teachers/{userId}/title?newTitle={value}`
+- **Autorizare:** ADMIN, TEACHER (own)
+- **Response `200`:** `TeacherDto` actualizat / `404`
 
 ---
 
-## DTO-uri
+## Autorizare per endpoint (pentru API Gateway)
 
-| DTO | Campuri |
-|---|---|
-| `RegisterRequestDto` | `email`, `password`, `fullName`, `role` |
-| `RegisterResponseDto` | `userId`, `role`, `fullName` |
-| `AuthRequestDto` | `email`, `password` |
-| `AuthResponseDto` | `token`, `userId`, `role`, `fullName` |
-| `UserDto` | `id`, `fullName`, `role` |
-| `StudentDto` | `userId`, `nickname` |
-| `TeacherDto` | `userId`, `title` |
+| Method | Path                                    | PUBLIC | STUDENT | TEACHER | ADMIN |
+|--------|-----------------------------------------|--------|---------|---------|-------|
+| POST   | /api/auth/register                      | ✓      |         |         |       |
+| POST   | /api/auth/login                         | ✓      |         |         |       |
+| POST   | /api/users                              |        |         |         | ✓     |
+| GET    | /api/users                              |        |         |         | ✓     |
+| GET    | /api/users/{id}                         |        |         |         | ✓     |
+| GET    | /api/users/search                       |        |         |         | ✓     |
+| PUT    | /api/users/{id}/name                    |        |         |         | ✓     |
+| DELETE | /api/users/{id}                         |        |         |         | ✓     |
+| GET    | /api/users/students/{userId}            |        | own     |         | ✓     |
+| PUT    | /api/users/students/{userId}/nickname   |        | own     |         | ✓     |
+| GET    | /api/users/teachers/{userId}            |        |         | own     | ✓     |
+| PUT    | /api/users/teachers/{userId}/title      |        |         | own     | ✓     |
+
+> **own** = API Gateway verifică dacă `userId` din path coincide cu `userId` din JWT claims.
 
 ---
 
-## Structura pachete
+## Structura pachetelor
 
 ```
-com.chineselearning.userservice
-├── config
-│   └── SecurityConfig
-├── controller
-│   ├── AuthController
-│   └── UserController
-├── domain
-│   ├── dao
-│   │   ├── ICredentialDao
-│   │   ├── IUserDao
-│   │   ├── IStudentDao
-│   │   └── ITeacherDao
-│   ├── dto
-│   │   ├── AuthRequestDto
-│   │   ├── AuthResponseDto
-│   │   ├── RegisterRequestDto
-│   │   ├── RegisterResponseDto
-│   │   ├── UserDto
-│   │   ├── StudentDto
-│   │   └── TeacherDto
-│   ├── Credential
-│   ├── User
-│   ├── Student
-│   └── Teacher
-└── service
-    ├── AuthService
-    ├── UserService
-    ├── JwtService
-    └── CustomUserDetailsService
+userservice/
+├── domain/
+│   ├── Credential.java         (agregat root)
+│   ├── User.java
+│   ├── Student.java
+│   ├── Teacher.java
+│   ├── dao/                    (interfețe DAO — fără dependențe Spring)
+│   └── dto/                    (Auth, Register, User, Student, Teacher DTOs)
+├── repository/
+│   ├── entities/               (CredentialEntity, UserEntity, StudentEntity, TeacherEntity)
+│   ├── jpa/                    (interfețe JpaRepository)
+│   └── *Dao.java               (implementări DAO cu toEntity() / toDomain())
+├── service/
+│   ├── AuthService.java
+│   ├── UserService.java
+│   ├── JwtService.java
+│   └── CustomUserDetailsService.java
+├── controller/
+│   ├── AuthController.java
+│   └── UserController.java
+└── config/
+    └── SecurityConfig.java     (anyRequest().permitAll() — autorizarea e în API Gateway)
 ```
-
----
-
-## Dependente externe
-- Niciun alt microserviciu nu este apelat din user-service
-- user-service este apelat de API Gateway pentru validarea token-urilor (viitor)

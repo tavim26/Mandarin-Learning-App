@@ -1,271 +1,291 @@
 # progress-service
 
-## 1. Responsabilitate
+Microserviciu responsabil pentru gestionarea tentativelor la exercitii, progresul lectiilor si XP-ul studentilor.
 
-Microserviciu responsabil cu **urmarirea progresului studentilor** pe platforma de invatare a limbii chineze.
-Gestioneaza trei domenii principale:
-- Inregistrarea si evaluarea incercarilor la exercitii
-- Calculul si actualizarea progresului per lectie
-- Gestionarea XP-ului si nivelului studentilor (replica locala)
-
-Ruleaza pe portul `8083`.
+- **Port:** `8083`
+- **Baza de date:** PostgreSQL — `progress_database`
+- **Emite JWT:** Nu — validarea JWT este responsabilitatea API Gateway
+- **Swagger UI:** `http://localhost:8083/swagger-ui/index.html`
 
 ---
 
-## 2. Arhitectura si Structura Pachetelor
+## Tech Stack
 
-Arhitectura respecta principiile **Domain-Driven Design (DDD)**.
+- Java 21, Spring Boot, Spring Data JPA
+- PostgreSQL, Hibernate (JSONB support via `@JdbcTypeCode`)
+- RestTemplate (comunicare sincrona cu `content-service`)
+
+---
+
+## Dependente inter-servicii
+
+| Serviciu | Endpoint apelat | Scop |
+|---|---|---|
+| `content-service` (8081) | `GET /api/content/exercises/{id}` | Obtine tipul si datele exercitiului pentru evaluare |
+| `content-service` (8081) | `GET /api/content/lessons/{id}` | Obtine lista exercitiilor si XP reward-ul lectiei |
+
+`user-service` nu este apelat direct. `studentId` este preluat exclusiv din header-ul `X-User-Id` injectat de API Gateway.
+
+---
+
+## Schema bazei de date
 
 ```
-com.chineselearning.progressservice
-├── clients/
-│   └── ContentServiceClient.java       # Client HTTP REST catre content-service
-├── config/
-│   └── AppConfig.java                  # Configurare RestTemplate
-├── controller/
-│   ├── ProgressController.java         # Endpointuri pentru incercari si progres lectii
-│   └── StudentReplicaController.java   # Endpointuri pentru XP, nivel si clasament
+students_replica
+├── student_id    BIGINT PK (provine din user-service, nu auto-generat)
+├── xp_total      INTEGER (not null, default 0)
+└── level         INTEGER (not null, default 1)
+
+student_lesson_progress
+├── id                BIGINT PK (auto-generated)
+├── student_id        BIGINT (not null)
+├── lesson_id         BIGINT (not null)
+├── status            VARCHAR(20) (not null) — NOT_STARTED | IN_PROGRESS | COMPLETED
+├── completion_pct    DECIMAL(5,2) (not null, default 0)
+├── xp_awarded        INTEGER (nullable — null pana la completare)
+├── started_at        TIMESTAMP (nullable)
+├── last_accessed_at  TIMESTAMP (nullable)
+└── completed_at      TIMESTAMP (nullable — null pana la completare)
+UNIQUE CONSTRAINT: (student_id, lesson_id)
+
+exercise_attempts
+├── id                BIGINT PK (auto-generated)
+├── student_id        BIGINT (not null)
+├── exercise_id       BIGINT (not null)
+├── attempt_number    INTEGER (not null)
+├── submitted_at      TIMESTAMP (not null)
+├── submitted_answer  JSONB (not null)
+├── is_correct        BOOLEAN (not null)
+├── score             DECIMAL(5,2) (not null)
+└── feedback_text     TEXT (nullable)
+```
+
+**Logica de nivel:** `level = (xpTotal / 100) + 1`
+**Logica de corectitudine:** o tentativa este corecta daca `score >= 70`
+
+---
+
+## Modele de date (DTO-uri)
+
+### `StudentReplicaDto`
+```json
+{
+  "studentId": 1,
+  "xpTotal": 250,
+  "level": 3
+}
+```
+
+### `StudentLessonProgressDto`
+```json
+{
+  "id": 1,
+  "studentId": 1,
+  "lessonId": 1,
+  "status": "IN_PROGRESS",
+  "completionPct": 66.67,
+  "xpAwarded": null,
+  "startedAt": "2024-01-01T10:00:00",
+  "lastAccessedAt": "2024-01-01T10:05:00",
+  "completedAt": null
+}
+```
+> `xpAwarded` si `completedAt` sunt `null` pana cand `status` devine `COMPLETED`.
+
+### `ExerciseAttemptDto`
+```json
+{
+  "id": 1,
+  "studentId": 1,
+  "exerciseId": 1,
+  "attemptNumber": 1,
+  "submittedAt": "2024-01-01T10:00:00",
+  "submittedAnswer": {},
+  "isCorrect": true,
+  "score": 100.00,
+  "feedbackText": "Corect!"
+}
+```
+
+### `SubmitAttemptRequest` (request body)
+```json
+{
+  "exerciseId": 1,
+  "submittedAnswer": {}
+}
+```
+> `studentId` este absent din request body — este extras din header-ul `X-User-Id`.
+
+---
+
+## Structura `submittedAnswer` per tip de exercitiu
+
+| Tip exercitiu | Structura `submittedAnswer` |
+|---|---|
+| `MULTIPLE_CHOICE` | `{ "selectedIndex": 2 }` |
+| `TRANSLATION` | `{ "translation": "string" }` |
+| `FILL_BLANK` | `{ "answers": ["raspuns1", "raspuns2"] }` |
+| `MATCHING` | `{ "matches": { "stanga1": "dreapta1", "stanga2": "dreapta2" } }` |
+
+---
+
+## Endpoint-uri
+
+### Progress & Tentative — `/api/progress`
+
+#### `POST /api/progress/attempts`
+- **Autorizare:** STUDENT (own), ADMIN
+- **Headers obligatorii:** `X-User-Id`, `X-User-Role`
+- **Request body:** `SubmitAttemptRequest`
+- **Comportament:** evalueaza raspunsul, salveaza tentativa, actualizeaza progresul lectiei, acorda XP la completare. Creeaza automat replica studentului la prima tentativa.
+- **Response `201`:** `ExerciseAttemptDto`
+- **Response `400`:** exercitiu inexistent sau date invalide
+- **Response `503`:** `content-service` indisponibil
+
+---
+
+#### `GET /api/progress/attempts/student/{studentId}/exercise/{exerciseId}`
+- **Autorizare:** STUDENT (own), ADMIN
+- **Headers obligatorii:** `X-User-Id`, `X-User-Role`
+- **Response `200`:** lista de `ExerciseAttemptDto` ordonata dupa `attemptNumber` ascending
+- **Response `403`:** STUDENT incearca sa acceseze datele altui student
+- **Response `404`:** nu exista tentative
+
+---
+
+#### `GET /api/progress/lessons/student/{studentId}/lesson/{lessonId}`
+- **Autorizare:** STUDENT (own), ADMIN
+- **Headers obligatorii:** `X-User-Id`, `X-User-Role`
+- **Response `200`:** `StudentLessonProgressDto`
+- **Response `403`:** STUDENT incearca sa acceseze datele altui student
+- **Response `404`:** nu exista progres inregistrat
+
+---
+
+#### `GET /api/progress/lessons/student/{studentId}`
+- **Autorizare:** STUDENT (own), ADMIN
+- **Headers obligatorii:** `X-User-Id`, `X-User-Role`
+- **Response `200`:** lista de `StudentLessonProgressDto` pentru toate lectiile incepute
+
+---
+
+#### `GET /api/progress/lessons/student/{studentId}/in-progress`
+- **Autorizare:** STUDENT (own), ADMIN
+- **Headers obligatorii:** `X-User-Id`, `X-User-Role`
+- **Response `200`:** lista de `StudentLessonProgressDto` cu `status = IN_PROGRESS`
+
+---
+
+#### `GET /api/progress/lessons/{lessonId}/leaderboard`
+- **Autorizare:** STUDENT, TEACHER, ADMIN
+- **Response `200`:** lista de maxim 10 `StudentLessonProgressDto` ordonata dupa `completionPct` descrescator
+
+---
+
+### Student XP & Nivel — `/api/progress/students`
+
+#### `GET /api/progress/students/leaderboard`
+- **Autorizare:** STUDENT, TEACHER, ADMIN
+- **Response `200`:** lista de maxim 10 `StudentReplicaDto` ordonata dupa `xpTotal` descrescator
+
+---
+
+#### `GET /api/progress/students/{studentId}`
+- **Autorizare:** STUDENT (own), ADMIN
+- **Headers obligatorii:** `X-User-Id`, `X-User-Role`
+- **Response `200`:** `StudentReplicaDto`
+- **Response `403`:** STUDENT incearca sa acceseze datele altui student
+- **Response `404`:** studentul nu a trimis nicio tentativa inca
+
+---
+
+#### `GET /api/progress/students/{studentId}/exists`
+- **Autorizare:** STUDENT (own), ADMIN
+- **Headers obligatorii:** `X-User-Id`, `X-User-Role`
+- **Response `200`:** `true` / `false`
+
+---
+
+#### `GET /api/progress/students/admin/all`
+- **Autorizare:** ADMIN only
+- **Headers obligatorii:** `X-User-Role`
+- **Response `200`:** lista completa de `StudentReplicaDto` ordonata dupa `xpTotal` descrescator
+- **Response `403`:** rol non-ADMIN
+
+---
+
+## Autorizare per endpoint (pentru API Gateway)
+
+| Method | Path | PUBLIC | STUDENT | TEACHER | ADMIN |
+|---|---|---|---|---|---|
+| POST | /api/progress/attempts | | own | | ✓ |
+| GET | /api/progress/attempts/student/{studentId}/exercise/{exerciseId} | | own | | ✓ |
+| GET | /api/progress/lessons/student/{studentId}/lesson/{lessonId} | | own | | ✓ |
+| GET | /api/progress/lessons/student/{studentId} | | own | | ✓ |
+| GET | /api/progress/lessons/student/{studentId}/in-progress | | own | | ✓ |
+| GET | /api/progress/lessons/{lessonId}/leaderboard | | ✓ | ✓ | ✓ |
+| GET | /api/progress/students/leaderboard | | ✓ | ✓ | ✓ |
+| GET | /api/progress/students/{studentId} | | own | | ✓ |
+| GET | /api/progress/students/{studentId}/exists | | own | | ✓ |
+| GET | /api/progress/students/admin/all | | | | ✓ |
+
+> **own** = API Gateway verifica daca `userId` din path coincide cu `userId` din JWT claims.
+> Toate endpoint-urile marcate cu `own` sau `✓` necesita headerele `X-User-Id` si `X-User-Role` injectate de API Gateway.
+
+---
+
+## Headers injectate de API Gateway
+
+| Header | Tip | Descriere |
+|---|---|---|
+| `X-User-Id` | `Long` | `userId` din JWT claims |
+| `X-User-Role` | `String` | `STUDENT` / `TEACHER` / `ADMIN` |
+
+---
+
+## Structura pachetelor
+
+```
+progressservice/
 ├── domain/
+│   ├── ExerciseAttempt.java
+│   ├── StudentLessonProgress.java
+│   ├── StudentReplica.java
+│   ├── ports/
+│   │   └── IContentServicePort.java
 │   ├── dao/
 │   │   ├── IExerciseAttemptDao.java
 │   │   ├── IStudentLessonProgressDao.java
 │   │   └── IStudentReplicaDao.java
-│   ├── dto/
-│   │   ├── ExerciseAttemptDto.java
-│   │   ├── StudentLessonProgressDto.java
-│   │   ├── StudentReplicaDto.java
-│   │   ├── SubmitAttemptRequest.java
-│   │   ├── EvaluationResultDto.java        # Rezultatul evaluarii unui raspuns
-│   │   ├── ExerciseResponseDto.java        # DTO deserializare raspuns content-service
-│   │   └── LessonResponseDto.java          # DTO deserializare raspuns content-service
-│   ├── ExerciseAttempt.java
-│   ├── StudentLessonProgress.java
-│   └── StudentReplica.java
-└── service/
-    ├── EvaluationService.java          # Logica de evaluare per tip de exercitiu
-    ├── ProgressService.java            # Logica principala de business
-    └── StudentReplicaService.java      # Gestionare XP, nivel, clasament
+│   └── dto/
+│       ├── EvaluationResultDto.java
+│       ├── ExerciseAttemptDto.java
+│       ├── ExerciseResponseDto.java
+│       ├── LessonResponseDto.java
+│       ├── StudentLessonProgressDto.java
+│       ├── StudentReplicaDto.java
+│       └── SubmitAttemptRequest.java
+├── repository/
+│   ├── entities/
+│   │   ├── ExerciseAttemptEntity.java
+│   │   ├── StudentLessonProgressEntity.java
+│   │   └── StudentReplicaEntity.java
+│   ├── jpa/
+│   │   ├── ExerciseAttemptJpaRepository.java
+│   │   ├── StudentLessonProgressJpaRepository.java
+│   │   └── StudentReplicaJpaRepository.java
+│   ├── ExerciseAttemptDao.java
+│   ├── StudentLessonProgressDao.java
+│   └── StudentReplicaDao.java
+├── service/
+│   ├── EvaluationService.java
+│   ├── ProgressService.java
+│   └── StudentReplicaService.java
+├── controller/
+│   ├── ProgressController.java
+│   └── StudentReplicaController.java
+├── clients/
+│   └── ContentServiceClient.java
+└── config/
+    └── AppConfig.java
 ```
-
-**Reguli arhitecturale:**
-- Controller-ul depinde doar de `dto` si `service`
-- Mapping entitate <-> DTO se face exclusiv in `service` prin metode private helper
-- Nu se foloseste MapStruct
-
----
-
-## 3. Modelul Domeniului
-
-### ExerciseAttempt
-| Camp | Tip | Constrangeri |
-|---|---|---|
-| id | Long | PK, auto-generated |
-| studentId | Long | NOT NULL |
-| exerciseId | Long | NOT NULL |
-| attemptNumber | Integer | NOT NULL |
-| submittedAt | LocalDateTime | NOT NULL |
-| submittedAnswer | Map<String, Object> | JSONB, NOT NULL |
-| isCorrect | Boolean | NOT NULL |
-| score | BigDecimal | NOT NULL, precision 5 scale 2 |
-| feedbackText | String | TEXT, nullable |
-
-**Indecsi:** `(student_id, exercise_id, submitted_at)`, `(exercise_id, is_correct)`
-
----
-
-### StudentLessonProgress
-| Camp | Tip | Constrangeri |
-|---|---|---|
-| id | Long | PK, auto-generated |
-| studentId | Long | NOT NULL |
-| lessonId | Long | NOT NULL |
-| status | String | NOT NULL, max 20 chars |
-| completionPct | BigDecimal | NOT NULL, precision 5 scale 2 |
-| xpAwarded | Integer | nullable |
-| startedAt | LocalDateTime | nullable |
-| lastAccessedAt | LocalDateTime | nullable |
-| completedAt | LocalDateTime | nullable |
-
-**Constrangere unica:** `(student_id, lesson_id)` — un student are o singura inregistrare de progres per lectie.
-
-**Statusuri posibile:** `NOT_STARTED` → `IN_PROGRESS` → `COMPLETED`
-
-**Indecsi:** `(student_id, status)`
-
----
-
-### StudentReplica
-| Camp | Tip | Constrangeri |
-|---|---|---|
-| studentId | Long | PK (nu auto-generated) |
-| xpTotal | Integer | NOT NULL, default 0 |
-| level | Integer | NOT NULL, default 1 |
-
-**Formula nivel:** `level = (xpTotal / 100) + 1`
-
-**Rol:** Replica locala a datelor din `user-service` — evita apeluri sincrone inter-servicii pentru operatii frecvente (clasament, XP).
-
-**Indecsi:** `(xp_total DESC)` pentru clasament
-
----
-
-## 4. Endpoints REST
-
-Base path: `/api/progress`
-
-### Incercari la exercitii
-| Metoda | Path | Descriere | Request | Response |
-|---|---|---|---|---|
-| POST | `/attempts` | Trimite un raspuns pentru evaluare | `SubmitAttemptRequest` | `201 ExerciseAttemptDto` / `400` / `503` |
-| GET | `/attempts/student/{studentId}/exercise/{exerciseId}` | Toate incercarile unui student la un exercitiu | - | `200 List<ExerciseAttemptDto>` |
-
-### Progres lectii
-| Metoda | Path | Descriere | Response |
-|---|---|---|---|
-| GET | `/lessons/student/{studentId}/lesson/{lessonId}` | Progresul unui student la o lectie specifica | `200 StudentLessonProgressDto` / `404` |
-| GET | `/lessons/student/{studentId}` | Tot progresul unui student | `200 List<StudentLessonProgressDto>` |
-| GET | `/lessons/student/{studentId}/in-progress` | Doar lectiile cu status IN_PROGRESS | `200 List<StudentLessonProgressDto>` |
-| GET | `/lessons/{lessonId}/leaderboard` | Top 10 studenti dupa completionPct | `200 List<StudentLessonProgressDto>` |
-
-Base path: `/api/progress/students`
-
-### Studenti (XP si nivel)
-| Metoda | Path | Descriere | Response |
-|---|---|---|---|
-| GET | `/leaderboard` | Top 10 studenti dupa XP total | `200 List<StudentReplicaDto>` |
-| GET | `/{studentId}` | XP si nivel ale unui student | `200 StudentReplicaDto` / `404` |
-| GET | `/{studentId}/exists` | Verifica daca replica studentului exista | `200 Boolean` |
-| GET | `/admin/all` | Toate replicile (admin, restrictionat prin Gateway) | `200 List<StudentReplicaDto>` |
-
-Documentatie Swagger: `http://localhost:8083/swagger-ui/index.html`
-
----
-
-## 5. DTO-uri
-
-### SubmitAttemptRequest (request)
-| Camp | Tip | Validare |
-|---|---|---|
-| studentId | Long | @NotNull |
-| exerciseId | Long | @NotNull |
-| submittedAnswer | Map<String, Object> | @NotNull |
-
-### ExerciseAttemptDto (response)
-Contine toate campurile din entitatea `ExerciseAttempt`.
-
-### StudentLessonProgressDto (response)
-Contine toate campurile din entitatea `StudentLessonProgress`.
-
-### StudentReplicaDto (response)
-| Camp | Tip |
-|---|---|
-| studentId | Long |
-| xpTotal | Integer |
-| level | Integer |
-
-### ExerciseResponseDto (intern — deserializare content-service)
-| Camp | Tip |
-|---|---|
-| id | Long |
-| lessonId | Long |
-| type | String |
-| contentData | Map<String, Object> |
-
-### LessonResponseDto (intern — deserializare content-service)
-| Camp | Tip |
-|---|---|
-| id | Long |
-| xpReward | Integer |
-| exercises | List<ExerciseResponseDto> |
-
-### EvaluationResultDto (intern — intre EvaluationService si ProgressService)
-| Camp | Tip |
-|---|---|
-| score | BigDecimal |
-| feedback | String |
-| correct | boolean (score >= 70) |
-
----
-
-## 6. Flux principal — submitAttempt
-
-```
-POST /attempts
-    │
-    ├── [HTTP] ContentServiceClient.getExercise(exerciseId)
-    │       → ExerciseResponseDto (type, lessonId, contentData)
-    │
-    ├── [HTTP] ContentServiceClient.getLesson(lessonId)
-    │       → LessonResponseDto (xpReward, exercises[])
-    │
-    ├── EvaluationService.evaluate(type, contentData, submittedAnswer)
-    │       → EvaluationResultDto (score, feedback, isCorrect)
-    │
-    └── @Transactional: saveAttemptAndUpdateProgress()
-            ├── ensureStudentReplicaExists()     // lazy creation replica
-            ├── exerciseAttemptDao.save()
-            ├── calculateCompletionPct()
-            ├── fetchOrCreateProgress()
-            ├── handleStatusTransition()
-            │       └── [daca COMPLETED si XP neacordat] awardXpToStudent()
-            └── lessonProgressDao.save()
-```
-
-**Decizie critica:** Apelurile HTTP catre `content-service` se executa **in afara tranzactiei JPA**. Tranzactia este deschisa abia dupa ce toate datele externe sunt disponibile.
-
----
-
-## 7. Logica de Evaluare — EvaluationService
-
-### MULTIPLE_CHOICE
-Comparatie directa intre `correctIndex` (din `contentData`) si `selectedIndex` (din `submittedAnswer`). Rezultat binar: 100 sau 0 puncte.
-
-### FILL_BLANK
-Comparatie `equalsIgnoreCase` cu `trim` pentru fiecare spatiu in parte. Scorul este proportional cu numarul de spatii corecte.
-
-### MATCHING
-Comparatie pereche cu pereche intre `pairs` (din `contentData`) si `matches` (din `submittedAnswer`). Scorul este proportional cu numarul de perechi asociate corect.
-
-### TRANSLATION
-Evaluare in 3 niveluri:
-1. **Potrivire exacta** (dupa normalizare lowercase + trim) cu oricare din `acceptedAnswers` → 100 puncte
-2. **Credit partial** — overlap de cuvinte >= 40% fata de primul raspuns acceptat → 50 puncte
-3. **Incorect** — overlap sub 40% → 0 puncte
-
-**Prag de corectitudine global:** `isCorrect = true` daca `score >= 70`, indiferent de tipul exercitiului. Logica centralizata in constructorul `EvaluationResultDto`.
-
----
-
-## 8. Dependente Externe
-
-| Serviciu | Comunicare | Endpointuri apelate |
-|---|---|---|
-| `content-service` (port 8081) | HTTP REST sincron via `RestTemplate` | `GET /api/content/exercises/{id}`, `GET /api/content/lessons/{id}` |
-| `user-service` (port 8082) | **Niciuna** — decuplat complet | - |
-| `API Gateway` | Primeste request-uri rutate prin Gateway | - |
-
-`progress-service` nu apeleaza `user-service`. `studentId` este extras din JWT-ul validat de API Gateway — daca request-ul ajunge la `progress-service`, studentul este deja autentificat.
-
----
-
-## 9. Decizii de Design
-
-- **Lazy creation StudentReplica:** Replica unui student este creata la primul `submitAttempt`, nu la inregistrare. Elimina necesitatea sincronizarii cu `user-service` la register.
-- **XP acordat o singura data:** Verificare `xpAwarded == null || xpAwarded == 0` previne acordarea duplicata a XP-ului la re-completarea unei lectii deja finalizate.
-- **Apeluri HTTP in afara tranzactiei:** `submitAttempt` nu este `@Transactional`. Tranzactia JPA este deschisa abia in `saveAttemptAndUpdateProgress()`, dupa finalizarea apelurilor HTTP.
-- **`ExerciseResponseDto` / `LessonResponseDto`:** DTO-uri interne folosite exclusiv pentru deserializarea raspunsurilor de la `content-service`. Nu sunt expuse prin niciun endpoint.
-- **`EvaluationResultDto`:** Transporta rezultatul evaluarii intre `EvaluationService` si `ProgressService`. Include campul calculat `isCorrect` (score >= 70) direct in constructor.
-- **Metode de citire cu `@Transactional(readOnly = true)`:** Aplicate explicit pe toate metodele de tip GET din `ProgressService` si `StudentReplicaService`.
-
----
-
-## 10. Tehnologii
-
-- Java 21
-- Spring Boot
-- Spring Data JPA
-- PostgreSQL
-- Hibernate (JSONB via `@JdbcTypeCode(SqlTypes.JSON)`)
-- RestTemplate pentru comunicare HTTP
-- SpringDoc OpenAPI (Swagger)
-- Jakarta Validation (`@NotNull`, `@Valid`)

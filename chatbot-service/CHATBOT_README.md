@@ -1,244 +1,251 @@
 # chatbot-service
 
-## 1. Responsabilitate
+Microserviciu responsabil pentru gestionarea sesiunilor de conversatie cu un tutor AI de limba chineza mandarina, bazat pe Google Gemini API.
 
-Microserviciu responsabil cu **asistenta conversationala AI** pe platforma de invatare a limbii chineze.
-Ofera studentilor un tutor virtual alimentat de **Google Gemini** cu care pot exersa conversatia in limba chineza mandarina si pot cere explicatii de gramatica si vocabular.
-
-Ruleaza pe portul `8084`.
-
----
-
-## 2. Arhitectura si Structura Pachetelor
-
-Arhitectura respecta principiile **Domain-Driven Design (DDD)**.
-
-```
-com.chineselearning.chatbotservice
-├── controller/
-│   └── ChatController.java             # REST endpoints, depinde doar de dto + service
-├── domain/
-│   ├── dao/
-│   │   ├── IChatSessionDao.java        # JpaRepository pentru ChatSession
-│   │   └── IChatMessageDao.java        # JpaRepository pentru ChatMessage
-│   ├── dto/
-│   │   ├── ChatSessionDto.java
-│   │   ├── ChatMessageDto.java
-│   │   ├── CreateSessionRequest.java   # Request body pentru crearea unei sesiuni
-│   │   ├── SendMessageRequest.java     # Request body pentru trimiterea unui mesaj
-│   │   └── SendMessageResponse.java    # Contine mesajul studentului + raspunsul AI
-│   ├── ChatSession.java                # Entitate JPA
-│   └── ChatMessage.java               # Entitate JPA
-└── service/
-    ├── AiService.java                  # Comunicare directa cu Google Gemini API via RestTemplate
-    └── ChatService.java                # Logica de business: sesiuni, mesaje, mapping entitate <-> DTO
-```
-
-**Reguli arhitecturale:**
-- Controller-ul NU acceseaza DAO sau entitati direct — doar DTO si Service
-- Mapping-ul entitate <-> DTO se face exclusiv in `ChatService` prin metode private helper
-- Nu se foloseste MapStruct sau alte librarii de mapping
+- **Port:** `8084`
+- **Baza de date:** PostgreSQL — `chatbot_database`
+- **Emite JWT:** Nu — validarea JWT este responsabilitatea API Gateway
+- **Swagger UI:** `http://localhost:8084/swagger-ui/index.html`
 
 ---
 
-## 3. Modelul Domeniului
+## Tech Stack
 
-### Ierarhia entitatilor
-
-```
-ChatSession (1)
-    └── ChatMessage (*)
-```
-
-### ChatSession
-| Camp | Tip | Constrangeri |
-|---|---|---|
-| id | Long | PK, auto-generated |
-| studentId | Long | NOT NULL |
-| title | String | nullable |
-| startedAt | LocalDateTime | NOT NULL |
-| endedAt | LocalDateTime | nullable |
-
-### ChatMessage
-| Camp | Tip | Constrangeri |
-|---|---|---|
-| id | Long | PK, auto-generated |
-| session | ChatSession | FK, NOT NULL |
-| sender | String | NOT NULL, max 20 chars |
-| content | String | TEXT, NOT NULL |
-| createdAt | LocalDateTime | NOT NULL |
-
-**Valori posibile pentru `sender`:** `STUDENT`, `AI`
-
-### Relatii JPA
-- `ChatSession → ChatMessage`: `@OneToMany(cascade = ALL, orphanRemoval = true)`
-- `ChatMessage → ChatSession`: `@ManyToOne(fetch = FetchType.LAZY)`
-
-### Indecsi
-- `chat_sessions`: index pe `(student_id)`
-- `chat_messages`: index pe `(session_id)`
+- Java 21, Spring Boot, Spring Data JPA
+- PostgreSQL
+- RestTemplate (comunicare sincrona cu Google Gemini API)
+- SpringDoc 2.3.0
 
 ---
 
-## 4. Endpoints REST
+## Dependente inter-servicii
 
-Base path: `/api/chatbot`
+Serviciul nu are dependente inter-servicii. Opereaza independent.
 
-### Sesiuni
-| Metoda | Path | Descriere | Request | Response |
-|---|---|---|---|---|
-| POST | `/sessions` | Creeaza o sesiune noua | `CreateSessionRequest` | `201 ChatSessionDto` |
-| GET | `/sessions/student/{studentId}` | Toate sesiunile unui student, ordonate DESC dupa `startedAt` | - | `200 List<ChatSessionDto>` |
-| PATCH | `/sessions/{sessionId}/end` | Marcheaza sesiunea ca incheiata (seteaza `endedAt`) | - | `200 ChatSessionDto` |
-
-### Mesaje
-| Metoda | Path | Descriere | Request | Response |
-|---|---|---|---|---|
-| POST | `/sessions/{sessionId}/messages` | Trimite un mesaj si primeste raspunsul AI | `SendMessageRequest` | `201 SendMessageResponse` |
-| GET | `/sessions/{sessionId}/messages` | Istoricul complet al mesajelor dintr-o sesiune, ordonat ASC | - | `200 List<ChatMessageDto>` |
-
-Documentatie Swagger disponibila la: `http://localhost:8084/swagger-ui/index.html`
+`studentId` este preluat exclusiv din header-ul `X-User-Id` injectat de API Gateway.
 
 ---
 
-## 5. DTO-uri
-
-### CreateSessionRequest (request)
-| Camp | Tip | Validare |
-|---|---|---|
-| studentId | Long | @NotNull |
-| title | String | nullable |
-
-### ChatSessionDto (response)
-Contine toate campurile din entitatea `ChatSession`.
-
-### SendMessageRequest (request)
-| Camp | Tip | Validare |
-|---|---|---|
-| content | String | @NotBlank |
-
-### SendMessageResponse (response)
-| Camp | Tip |
-|---|---|
-| userMessage | ChatMessageDto |
-| aiMessage | ChatMessageDto |
-
-### ChatMessageDto (response)
-Contine toate campurile din entitatea `ChatMessage`, plus `sessionId` extras din relatia `@ManyToOne`.
-
----
-
-## 6. Flux principal — sendMessage
+## Schema bazei de date
 
 ```
-POST /sessions/{sessionId}/messages
-    │
-    ├── Validare sesiune existenta si neseincheiata (endedAt == null)
-    │
-    ├── Salvare mesaj STUDENT in baza de date
-    │
-    ├── buildContextWindow(sessionId)
-    │       → ultimele N mesaje din sesiune (exclusiv mesajul curent)
-    │       → inversate in ordine cronologica
-    │
-    ├── AiService.chat(userMessage, contextWindow)
-    │       → construire lista de "contents": system prompt + context + mesaj curent
-    │       → HTTP POST catre Google Gemini API
-    │       → extragere text din raspuns JSON
-    │
-    └── Salvare mesaj AI in baza de date
-            → return SendMessageResponse (userMessage + aiMessage)
+chat_sessions
+├── id            BIGINT PK (auto-generated)
+├── student_id    BIGINT (not null)
+├── title         VARCHAR (nullable)
+├── started_at    TIMESTAMP (not null)
+└── ended_at      TIMESTAMP (nullable — null pana la inchiderea sesiunii)
+
+chat_messages
+├── id            BIGINT PK (auto-generated)
+├── session_id    BIGINT FK → chat_sessions.id (not null)
+├── sender        VARCHAR(20) (not null) — STUDENT | AI
+├── content       TEXT (not null)
+└── created_at    TIMESTAMP (not null)
+
+INDEX: idx_chat_messages_session_id ON chat_messages(session_id)
 ```
+
+**Relatii:** Un `ChatSession` contine mai multe `ChatMessage` (CASCADE DELETE, orphanRemoval).
+O sesiune este considerata activa daca `ended_at` este `null`.
 
 ---
 
-## 7. Integrarea cu Google Gemini
+## Modele de date (DTO-uri)
 
-`AiService` apeleaza direct **Google Gemini REST API** via `RestTemplate`, fara librarii de abstractizare (Spring AI nu este folosit din cauza incompatibilitatii cu Spring Boot 4.x).
-
-### Structura request-ului Gemini
-
+### `ChatSessionDto`
 ```json
 {
-  "contents": [
-    { "role": "user",  "parts": [{ "text": "<system_prompt>" }] },
-    { "role": "model", "parts": [{ "text": "Understood. I will act as your Mandarin Chinese tutor." }] },
-    { "role": "user",  "parts": [{ "text": "<mesaj_anterior_student>" }] },
-    { "role": "model", "parts": [{ "text": "<raspuns_anterior_ai>" }] },
-    { "role": "user",  "parts": [{ "text": "<mesaj_curent_student>" }] }
-  ]
+  "id": 1,
+  "studentId": 1,
+  "title": "Lectia 1 - Salutari",
+  "startedAt": "2024-01-01T10:00:00",
+  "endedAt": null
+}
+```
+> `endedAt` este `null` pana la apelul `PATCH /sessions/{sessionId}/end`.
+
+### `ChatMessageDto`
+```json
+{
+  "id": 1,
+  "sessionId": 1,
+  "sender": "STUDENT",
+  "content": "Buna ziua! Cum se spune multumesc in chineza?",
+  "createdAt": "2024-01-01T10:00:00"
 }
 ```
 
-**Observatie:** Gemini API nu suporta un camp dedicat `system` — system prompt-ul este injectat ca primul mesaj de tip `user`, urmat de un `ack` de tip `model`.
+### `SendMessageResponse`
+```json
+{
+  "userMessage": {
+    "id": 1,
+    "sessionId": 1,
+    "sender": "STUDENT",
+    "content": "Buna ziua!",
+    "createdAt": "2024-01-01T10:00:00"
+  },
+  "aiMessage": {
+    "id": 2,
+    "sessionId": 1,
+    "sender": "AI",
+    "content": "你好！(Nǐ hǎo!) Buna ziua!",
+    "createdAt": "2024-01-01T10:00:01"
+  }
+}
+```
 
-### System Prompt
+### `CreateSessionRequest` (request body)
+```json
+{
+  "title": "Lectia 1 - Salutari"
+}
+```
+> `studentId` este absent din request body — este extras din header-ul `X-User-Id`.
 
-Chatbot-ul este configurat sa:
-- Raspunda intai in chineza mandarina (caractere simplificate)
-- Adauge transliteratia Pinyin intre paranteze
-- Traduca raspunsul in limba detectata din mesajul studentului (romana sau engleza)
-- Ofere explicatii de gramatica si vocabular la cerere
-- Adapteze complexitatea propozitiilor la nivelul perceput al studentului
-
-### Fereastra de context
-
-Ultimele `N` mesaje din sesiune sunt trimise catre Gemini la fiecare request, unde `N` este configurat prin `chatbot.context.window-size` din `application.properties` (valoare implicita: 20).
-
----
-
-## 8. Dependente Externe
-
-| Serviciu | Comunicare | Observatii |
-|---|---|---|
-| Google Gemini API | HTTP REST sincron via `RestTemplate` | Endpoint: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent` |
-| `user-service` | **Niciuna** | `studentId` este extras din JWT validat de API Gateway |
-| `content-service` | **Niciuna** | Chatbot-ul este complet independent de continutul educational |
-| `progress-service` | **Niciuna** | Chatbot-ul nu interactioneaza cu progresul studentului |
-
----
-
-## 9. Configurare (`application.properties`)
-
-```properties
-spring.application.name=chatbot-service
-server.port=8084
-
-spring.datasource.url=jdbc:postgresql://localhost:5432/chatbot_database
-spring.datasource.username=postgres
-spring.datasource.password=<parola>
-
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
-
-gemini.api.key=<google_ai_studio_api_key>
-gemini.api.url=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent
-
-chatbot.context.window-size=20
+### `SendMessageRequest` (request body)
+```json
+{
+  "content": "Cum se spune multumesc in chineza?"
+}
 ```
 
 ---
 
-## 10. Decizii de Design
+## Comportamentul AI
 
-- **Fara Spring AI** — Spring AI `2.0.0-M2` este incompatibil cu Spring Boot `4.0.3`. Gemini este apelat direct via `RestTemplate`, ceea ce ofera control total asupra structurii request-ului si elimina dependentele instabile.
-- **Chatbot independent** — Nu exista comunicare cu `content-service` sau `progress-service`. Chatbot-ul functioneaza ca un tutor general, fara personalizare bazata pe progresul studentului. Decizie luata pentru simplitate arhitecturala.
-- **Fereastra glisanta de context** — In loc sa trimita intreaga conversatie la fiecare request, serviciul trimite doar ultimele N mesaje, configurabil din `application.properties`. Previne depasirea limitei de tokeni Gemini pe sesiuni lungi.
-- **System prompt injectat ca mesaj user** — Limitare a Gemini API care nu suporta camp dedicat `system`. Solutia standard este injectarea ca primul mesaj `user` + ack `model`.
-- **`@Transactional(readOnly = true)`** — Aplicat pe metodele `getSessionsByStudent` si `getMessages` din `ChatService`.
-- **Sesiune creata explicit** — Studentul initiaza manual o sesiune noua (`POST /sessions`) inainte de a trimite mesaje. Elimina ambiguitatea sesiunilor implicite si permite titluri descriptive pentru istoricul conversatiilor.
+Tutorul AI este configurat prin system prompt intern cu urmatoarele reguli:
+- Raspunde intotdeauna cu textul in chineza (caractere simplificate) primul.
+- Dupa textul chinezesc ofera transliteratia Pinyin in paranteze.
+- Traduce in limba folosita de student (romana sau engleza).
+- Ofera explicatii de gramatica si vocabular la cerere.
+- Adapteaza complexitatea propozitiilor la nivelul perceput al studentului.
+
+**Fereastra de context:** ultimele `N` mesaje din sesiune sunt trimise la Gemini la fiecare request, unde `N` este configurabil prin `application.properties`.
 
 ---
 
-## 11. Tehnologii
+## Endpoint-uri
 
-- Java 21
-- Spring Boot 4.0.3
-- Spring Data JPA
-- PostgreSQL
-- Hibernate
-- RestTemplate (HTTP client pentru Gemini API)
-- Google Gemini API (gemini-2.0-flash)
-- SpringDoc OpenAPI 2.3.0 (Swagger)
-- Jakarta Validation (`@NotNull`, `@NotBlank`, `@Valid`)
+### Sesiuni — `/api/chatbot/sessions`
+
+#### `POST /api/chatbot/sessions`
+- **Autorizare:** STUDENT (own), ADMIN
+- **Headers obligatorii:** `X-User-Id`
+- **Request body:** `CreateSessionRequest`
+- **Comportament:** creeaza o sesiune noua activa pentru studentul identificat prin `X-User-Id`.
+- **Response `201`:** `ChatSessionDto`
+
+---
+
+#### `GET /api/chatbot/sessions`
+- **Autorizare:** STUDENT (own), ADMIN
+- **Headers obligatorii:** `X-User-Id`
+- **Comportament:** returneaza toate sesiunile studentului identificat prin `X-User-Id`, ordonate dupa `startedAt` descrescator.
+- **Response `200`:** lista de `ChatSessionDto`
+
+---
+
+#### `PATCH /api/chatbot/sessions/{sessionId}/end`
+- **Autorizare:** STUDENT (own), ADMIN
+- **Headers obligatorii:** `X-User-Id`
+- **Comportament:** seteaza `endedAt` la momentul curent. Dupa inchidere, sesiunea nu mai accepta mesaje.
+- **Response `200`:** `ChatSessionDto` actualizat
+- **Response `403`:** studentul incearca sa inchida sesiunea altui student
+- **Response `404`:** sesiunea nu exista
+
+---
+
+### Mesaje — `/api/chatbot/sessions/{sessionId}/messages`
+
+#### `POST /api/chatbot/sessions/{sessionId}/messages`
+- **Autorizare:** STUDENT (own), ADMIN
+- **Headers obligatorii:** `X-User-Id`
+- **Request body:** `SendMessageRequest`
+- **Comportament:** salveaza mesajul studentului, construieste fereastra de context, apeleaza Gemini API, salveaza raspunsul AI. Daca sesiunea este inchisa, returneaza `409`.
+- **Response `201`:** `SendMessageResponse`
+- **Response `403`:** studentul incearca sa trimita mesaje intr-o sesiune care nu ii apartine
+- **Response `404`:** sesiunea nu exista
+- **Response `409`:** sesiunea este inchisa
+- **Response `503`:** Gemini API indisponibil
+
+---
+
+#### `GET /api/chatbot/sessions/{sessionId}/messages`
+- **Autorizare:** STUDENT (own), ADMIN
+- **Headers obligatorii:** `X-User-Id`
+- **Comportament:** returneaza toate mesajele din sesiune in ordine cronologica ascendenta.
+- **Response `200`:** lista de `ChatMessageDto`
+- **Response `403`:** studentul incearca sa acceseze mesajele din sesiunea altui student
+- **Response `404`:** sesiunea nu exista
+
+---
+
+## Autorizare per endpoint (pentru API Gateway)
+
+| Method | Path                                      | PUBLIC | STUDENT | TEACHER | ADMIN |
+|--------|-------------------------------------------|--------|---------|---------|-------|
+| POST   | /api/chatbot/sessions                     |        | own     |         | ✓     |
+| GET    | /api/chatbot/sessions                     |        | own     |         | ✓     |
+| PATCH  | /api/chatbot/sessions/{sessionId}/end     |        | own     |         | ✓     |
+| POST   | /api/chatbot/sessions/{sessionId}/messages|        | own     |         | ✓     |
+| GET    | /api/chatbot/sessions/{sessionId}/messages|        | own     |         | ✓     |
+
+> **own** = verificarea ownership-ului este realizata intern in service prin compararea `studentId` din sesiune cu `X-User-Id` din header.
+> Toate endpoint-urile necesita header-ul `X-User-Id` injectat de API Gateway.
+
+---
+
+## Headers injectate de API Gateway
+
+| Header       | Tip    | Descriere                        |
+|--------------|--------|----------------------------------|
+| `X-User-Id`  | `Long` | `userId` din JWT claims          |
+| `X-User-Role`| `String` | `STUDENT` / `TEACHER` / `ADMIN` |
+
+---
+
+## Configurare `application.properties`
+
+| Proprietate                        | Descriere                                          |
+|------------------------------------|----------------------------------------------------|
+| `gemini.api.key`                   | Cheia API pentru Google Gemini                     |
+| `gemini.api.url`                   | URL-ul endpoint-ului Gemini                        |
+| `chatbot.context.window-size`      | Numarul de mesaje anterioare trimise ca context    |
+
+---
+
+## Structura pachetelor
+
+```
+chatbotservice/
+├── domain/
+│   ├── ChatMessage.java
+│   ├── ChatSession.java
+│   ├── dao/
+│   │   ├── IChatMessageDao.java
+│   │   └── IChatSessionDao.java
+│   └── dto/
+│       ├── ChatMessageDto.java
+│       ├── ChatSessionDto.java
+│       ├── CreateSessionRequest.java
+│       ├── SendMessageRequest.java
+│       └── SendMessageResponse.java
+├── repository/
+│   ├── entities/
+│   │   ├── ChatMessageEntity.java
+│   │   └── ChatSessionEntity.java
+│   ├── jpa/
+│   │   ├── ChatMessageJpaRepository.java
+│   │   └── ChatSessionJpaRepository.java
+│   ├── ChatMessageDao.java
+│   └── ChatSessionDao.java
+├── service/
+│   ├── AiService.java
+│   └── ChatService.java
+├── controller/
+│   └── ChatController.java
+└── config/
+    └── AppConfig.java
+```

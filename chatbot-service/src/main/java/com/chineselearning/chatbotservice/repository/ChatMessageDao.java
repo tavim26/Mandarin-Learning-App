@@ -9,6 +9,9 @@ import com.chineselearning.chatbotservice.repository.entities.ChatSessionEntity;
 import com.chineselearning.chatbotservice.repository.jpa.ChatMessageJpaRepository;
 import com.chineselearning.chatbotservice.repository.jpa.ChatSessionJpaRepository;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Repository;
 
@@ -44,9 +47,10 @@ public class ChatMessageDao implements IChatMessageDao
     }
 
     @Override
-    public List<ChatMessage> findTop20BySessionIdOrderByCreatedAtDesc(Long sessionId)
+    public List<ChatMessage> findRecentBySessionId(Long sessionId, int limit)
     {
-        return jpaRepository.findTop20BySessionIdOrderByCreatedAtDesc(sessionId)
+        Pageable pageable = PageRequest.of(0, limit);
+        return jpaRepository.findBySessionIdOrderByCreatedAtDesc(sessionId, pageable)
                 .stream()
                 .map(this::toDomain)
                 .toList();
@@ -79,8 +83,13 @@ public class ChatMessageDao implements IChatMessageDao
         message.setContent(entity.getContent());
         message.setCreatedAt(entity.getCreatedAt());
 
+        ChatSessionEntity sessionEntity = entity.getSession();
         ChatSession session = new ChatSession();
-        session.setId(entity.getSession().getId());
+        session.setId(sessionEntity.getId());
+        session.setStudentId(sessionEntity.getStudentId());
+        session.setTitle(sessionEntity.getTitle());
+        session.setStartedAt(sessionEntity.getStartedAt());
+        session.setEndedAt(sessionEntity.getEndedAt());
         message.setSession(session);
 
         return message;

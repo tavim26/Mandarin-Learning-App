@@ -1,6 +1,6 @@
 package com.chineselearning.progressservice.service;
 
-import com.chineselearning.progressservice.clients.ContentServiceClient;
+import com.chineselearning.progressservice.domain.ports.IContentServicePort;
 
 import com.chineselearning.progressservice.domain.ExerciseAttempt;
 import com.chineselearning.progressservice.domain.StudentLessonProgress;
@@ -37,57 +37,58 @@ public class ProgressService
     private final IExerciseAttemptDao exerciseAttemptDao;
     private final IStudentLessonProgressDao lessonProgressDao;
 
-    private final ContentServiceClient contentServiceClient;
+    private final IContentServicePort contentServicePort;
     private final EvaluationService evaluationService;
 
-    public ProgressService(IStudentReplicaDao studentReplicaDao, IExerciseAttemptDao exerciseAttemptDao, IStudentLessonProgressDao lessonProgressDao, ContentServiceClient contentServiceClient, EvaluationService evaluationService) {
+    public ProgressService(IStudentReplicaDao studentReplicaDao,
+                           IExerciseAttemptDao exerciseAttemptDao,
+                           IStudentLessonProgressDao lessonProgressDao,
+                           IContentServicePort contentServicePort,
+                           EvaluationService evaluationService)
+    {
         this.studentReplicaDao = studentReplicaDao;
         this.exerciseAttemptDao = exerciseAttemptDao;
         this.lessonProgressDao = lessonProgressDao;
-        this.contentServiceClient = contentServiceClient;
+        this.contentServicePort = contentServicePort;
         this.evaluationService = evaluationService;
     }
 
 
-    public ExerciseAttemptDto submitAttempt(SubmitAttemptRequest request)
+    public ExerciseAttemptDto submitAttempt(Long studentId, SubmitAttemptRequest request)
     {
-        Long studentId = request.getStudentId();
         Long exerciseId = request.getExerciseId();
 
-        ExerciseResponseDto exercise = contentServiceClient.getExercise(exerciseId);
+        ExerciseResponseDto exercise = contentServicePort.getExercise(exerciseId);
+        LessonResponseDto lesson = contentServicePort.getLesson(exercise.getLessonId());
 
-        LessonResponseDto lesson = contentServiceClient.getLesson(exercise.getLessonId());
-
-        //Evaluare raspuns
         EvaluationResultDto result = evaluationService.evaluate(
                 exercise.getType(),
                 exercise.getContentData(),
                 request.getSubmittedAnswer()
         );
 
-        //Toate operatiile de scriere in DB intr-o singura tranzactie
         return saveAttemptAndUpdateProgress(studentId, exerciseId, lesson, request, result);
     }
 
 
-
-
+    // Metoda separata pentru a permite @Transactional pe un bean proxy-izat de Spring.
+    // Apelata exclusiv din submitAttempt() — nu este parte din API-ul public al serviciului.
     @Transactional
-    protected ExerciseAttemptDto saveAttemptAndUpdateProgress(Long studentId, Long exerciseId, LessonResponseDto lesson, SubmitAttemptRequest request, EvaluationResultDto result)
+    public ExerciseAttemptDto saveAttemptAndUpdateProgress(Long studentId, Long exerciseId,
+                                                           LessonResponseDto lesson,
+                                                           SubmitAttemptRequest request,
+                                                           EvaluationResultDto result)
     {
-        // Lazy creation - creaza replica studentului la prima incercare
         ensureStudentReplicaExists(studentId);
 
-        // Calcul numar incercare curenta
         int attemptNumber = exerciseAttemptDao.countByStudentIdAndExerciseId(studentId, exerciseId) + 1;
 
-        // Constructie si salvare entitate ExerciseAttempt
         ExerciseAttempt attempt = buildAttempt(studentId, exerciseId, attemptNumber, request, result);
         ExerciseAttempt saved = exerciseAttemptDao.save(attempt);
 
-        log.info("Attempt salvat: studentId={}, exerciseId={}, attemptNumber={}, isCorrect={}", studentId, exerciseId, attemptNumber, result.isCorrect());
+        log.info("Attempt salvat: studentId={}, exerciseId={}, attemptNumber={}, isCorrect={}",
+                studentId, exerciseId, attemptNumber, result.isCorrect());
 
-        // Actualizare progres lectie folosind datele deja obtinute din content-service
         updateLessonProgress(studentId, lesson);
 
         return mapToExerciseAttemptDto(saved);
@@ -99,7 +100,8 @@ public class ProgressService
     {
         StudentLessonProgress progress = lessonProgressDao
                 .findByStudentIdAndLessonId(studentId, lessonId)
-                .orElseThrow(() -> new IllegalArgumentException("Nu exista progres pentru studentId=" + studentId + ", lessonId=" + lessonId));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Nu exista progres pentru studentId=" + studentId + ", lessonId=" + lessonId));
 
         return mapToStudentLessonProgressDto(progress);
     }
@@ -139,11 +141,6 @@ public class ProgressService
     }
 
 
-
-
-
-
-
     // ========== METODE PRIVATE ==========
 
     private void ensureStudentReplicaExists(Long studentId)
@@ -151,14 +148,13 @@ public class ProgressService
         if (!studentReplicaDao.existsByStudentId(studentId))
         {
             log.info("Prima incercare pentru studentId={}, creare replica", studentId);
-            studentReplicaDao.save(new StudentReplica(studentId));
-            log.info("Replica creata pentru studentId={}", studentId);
+            studentReplicaDao.saveIfNotExists(new StudentReplica(studentId));
+            log.info("Replica creata sau deja existenta pentru studentId={}", studentId);
         }
     }
 
-
-    // Constructie entitate ExerciseAttempt din date deja procesate
-    private ExerciseAttempt buildAttempt(Long studentId, Long exerciseId, int attemptNumber, SubmitAttemptRequest request, EvaluationResultDto result)
+    private ExerciseAttempt buildAttempt(Long studentId, Long exerciseId, int attemptNumber,
+                                         SubmitAttemptRequest request, EvaluationResultDto result)
     {
         ExerciseAttempt attempt = new ExerciseAttempt();
         attempt.setStudentId(studentId);
@@ -171,8 +167,6 @@ public class ProgressService
         attempt.setFeedbackText(result.getFeedback());
         return attempt;
     }
-
-
 
     private void updateLessonProgress(Long studentId, LessonResponseDto lesson)
     {
@@ -189,16 +183,14 @@ public class ProgressService
         handleStatusTransition(progress, completionPct, studentId, lesson);
 
         lessonProgressDao.save(progress);
-        log.info("Progres actualizat: studentId={}, lessonId={}, completionPct={}, status={}", studentId, lesson.getId(), completionPct, progress.getStatus());
+        log.info("Progres actualizat: studentId={}, lessonId={}, completionPct={}, status={}",
+                studentId, lesson.getId(), completionPct, progress.getStatus());
     }
 
-
-
-    // Calculeaza procentul de exercitii rezolvate corect din totalul lectiei
     private BigDecimal calculateCompletionPct(Long studentId, LessonResponseDto lesson)
     {
         List<Long> exerciseIds = lesson.getExercises().stream()
-                .map(ex -> ex.getId())
+                .map(ExerciseResponseDto::getId)
                 .collect(Collectors.toList());
 
         long correctCount = exerciseAttemptDao.countDistinctCorrectExercises(studentId, exerciseIds);
@@ -207,8 +199,6 @@ public class ProgressService
                 .setScale(2, java.math.RoundingMode.HALF_UP);
     }
 
-
-
     private StudentLessonProgress fetchOrCreateProgress(Long studentId, Long lessonId)
     {
         return lessonProgressDao
@@ -216,7 +206,6 @@ public class ProgressService
                 .orElse(new StudentLessonProgress(studentId, lessonId));
     }
 
-    // Actualizeaza campurile de timp la fiecare incercare
     private void updateProgressFields(StudentLessonProgress progress, BigDecimal completionPct)
     {
         if (progress.getStartedAt() == null)
@@ -227,14 +216,12 @@ public class ProgressService
         progress.setLastAccessedAt(LocalDateTime.now());
     }
 
-    // Gestioneaza tranzitiile de status si acordarea XP
-    // Statusuri posibile: NOT_STARTED -> IN_PROGRESS -> COMPLETED
-    private void handleStatusTransition(StudentLessonProgress progress, BigDecimal completionPct, Long studentId, LessonResponseDto lesson)
+    private void handleStatusTransition(StudentLessonProgress progress, BigDecimal completionPct,
+                                        Long studentId, LessonResponseDto lesson)
     {
         if (completionPct.compareTo(new BigDecimal("100")) == 0)
         {
             handleLessonCompleted(progress, studentId, lesson);
-
         }
         else if (completionPct.compareTo(BigDecimal.ZERO) > 0)
         {
@@ -254,14 +241,12 @@ public class ProgressService
             progress.setStatus("COMPLETED");
             progress.setCompletedAt(LocalDateTime.now());
 
-            // XP se acorda o singura data per lectie
             if (progress.getXpAwarded() == null || progress.getXpAwarded() == 0)
             {
                 int xpReward = lesson.getXpReward();
                 progress.setXpAwarded(xpReward);
                 awardXpToStudent(studentId, xpReward);
                 log.info("XP acordat: studentId={}, lessonId={}, xp={}", studentId, lesson.getId(), xpReward);
-
             }
             else
             {
@@ -282,18 +267,18 @@ public class ProgressService
     private void awardXpToStudent(Long studentId, int xpToAdd)
     {
         StudentReplica student = studentReplicaDao.findById(studentId)
-                .orElseThrow(() -> new IllegalArgumentException("Student replica negasita pentru studentId=" + studentId));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Student replica negasita pentru studentId=" + studentId));
         student.addXp(xpToAdd);
         studentReplicaDao.save(student);
         log.info("Student {} are acum {} XP (nivel {})", studentId, student.getXpTotal(), student.getLevel());
     }
 
 
-
-
     // ========== DTO MAPPING ==========
 
-    private ExerciseAttemptDto mapToExerciseAttemptDto(ExerciseAttempt attempt) {
+    private ExerciseAttemptDto mapToExerciseAttemptDto(ExerciseAttempt attempt)
+    {
         return new ExerciseAttemptDto(
                 attempt.getId(),
                 attempt.getStudentId(),
@@ -307,7 +292,8 @@ public class ProgressService
         );
     }
 
-    private StudentLessonProgressDto mapToStudentLessonProgressDto(StudentLessonProgress progress) {
+    private StudentLessonProgressDto mapToStudentLessonProgressDto(StudentLessonProgress progress)
+    {
         return new StudentLessonProgressDto(
                 progress.getId(),
                 progress.getStudentId(),

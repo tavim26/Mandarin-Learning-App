@@ -8,7 +8,6 @@ import com.chineselearning.progressservice.service.ProgressService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -35,10 +34,13 @@ public class ProgressController
             summary = "Trimite o incercare la un exercitiu",
             description = "Evalueaza raspunsul studentului si actualizeaza progresul lectiei. Creeaza automat replica studentului la prima incercare."
     )
-    public ResponseEntity<?> submitAttempt(@Valid @RequestBody SubmitAttemptRequest request)
+    public ResponseEntity<?> submitAttempt(
+            @RequestBody SubmitAttemptRequest request,
+            @RequestHeader("X-User-Id") Long authenticatedUserId,
+            @RequestHeader("X-User-Role") String role)
     {
         try {
-            ExerciseAttemptDto result = progressService.submitAttempt(request);
+            ExerciseAttemptDto result = progressService.submitAttempt(authenticatedUserId, request);
             return ResponseEntity.status(HttpStatus.CREATED).body(result);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -52,8 +54,16 @@ public class ProgressController
             summary = "Obtine toate incercarile unui student la un exercitiu",
             description = "Returneaza lista incercarilor unui student pentru un exercitiu specific, ordonate dupa numarul incercarii."
     )
-    public ResponseEntity<?> getStudentAttemptsForExercise(@PathVariable Long studentId, @PathVariable Long exerciseId)
+    public ResponseEntity<?> getStudentAttemptsForExercise(
+            @PathVariable Long studentId,
+            @PathVariable Long exerciseId,
+            @RequestHeader("X-User-Id") Long authenticatedUserId,
+            @RequestHeader("X-User-Role") String role)
     {
+        if (isForbidden(studentId, authenticatedUserId, role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Acces interzis");
+        }
+
         try {
             List<ExerciseAttemptDto> attempts = progressService.getStudentAttemptsForExercise(studentId, exerciseId);
             return ResponseEntity.ok(attempts);
@@ -67,8 +77,16 @@ public class ProgressController
             summary = "Obtine progresul unui student la o lectie",
             description = "Returneaza procentul de completare, statusul si XP-ul acordat pentru o lectie specifica."
     )
-    public ResponseEntity<?> getLessonProgress(@PathVariable Long studentId, @PathVariable Long lessonId)
+    public ResponseEntity<?> getLessonProgress(
+            @PathVariable Long studentId,
+            @PathVariable Long lessonId,
+            @RequestHeader("X-User-Id") Long authenticatedUserId,
+            @RequestHeader("X-User-Role") String role)
     {
+        if (isForbidden(studentId, authenticatedUserId, role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Acces interzis");
+        }
+
         try {
             StudentLessonProgressDto progress = progressService.getLessonProgress(studentId, lessonId);
             return ResponseEntity.ok(progress);
@@ -82,8 +100,15 @@ public class ProgressController
             summary = "Obtine tot progresul unui student",
             description = "Returneaza toate inregistrarile de progres ale unui student, pentru toate lectiile incepute."
     )
-    public ResponseEntity<List<StudentLessonProgressDto>> getAllProgressForStudent(@PathVariable Long studentId)
+    public ResponseEntity<?> getAllProgressForStudent(
+            @PathVariable Long studentId,
+            @RequestHeader("X-User-Id") Long authenticatedUserId,
+            @RequestHeader("X-User-Role") String role)
     {
+        if (isForbidden(studentId, authenticatedUserId, role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Acces interzis");
+        }
+
         List<StudentLessonProgressDto> progressList = progressService.getAllProgressForStudent(studentId);
         return ResponseEntity.ok(progressList);
     }
@@ -93,8 +118,15 @@ public class ProgressController
             summary = "Obtine lectiile in curs de desfasurare",
             description = "Returneaza doar lectiile cu statusul IN_PROGRESS pentru un student."
     )
-    public ResponseEntity<List<StudentLessonProgressDto>> getInProgressLessons(@PathVariable Long studentId)
+    public ResponseEntity<?> getInProgressLessons(
+            @PathVariable Long studentId,
+            @RequestHeader("X-User-Id") Long authenticatedUserId,
+            @RequestHeader("X-User-Role") String role)
     {
+        if (isForbidden(studentId, authenticatedUserId, role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Acces interzis");
+        }
+
         List<StudentLessonProgressDto> inProgress = progressService.getInProgressLessons(studentId);
         return ResponseEntity.ok(inProgress);
     }
@@ -108,5 +140,11 @@ public class ProgressController
     {
         List<StudentLessonProgressDto> leaderboard = progressService.getLessonLeaderboard(lessonId);
         return ResponseEntity.ok(leaderboard);
+    }
+
+    // STUDENT poate accesa doar propriile date; ADMIN poate accesa orice
+    private boolean isForbidden(Long requestedStudentId, Long authenticatedUserId, String role)
+    {
+        return "STUDENT".equals(role) && !authenticatedUserId.equals(requestedStudentId);
     }
 }

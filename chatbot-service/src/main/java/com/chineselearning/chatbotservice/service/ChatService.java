@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,31 +40,40 @@ public class ChatService
 
     // SESIUNI
 
+    // studentId pasat explicit din controller, nu din request body
     @Transactional
-    public ChatSessionDto createSession(CreateSessionRequest request)
+    public ChatSessionDto createSession(Long studentId, CreateSessionRequest request)
     {
         ChatSession session = new ChatSession();
-        session.setStudentId(request.getStudentId());
+        session.setStudentId(studentId);
         session.setTitle(request.getTitle());
         session.setStartedAt(LocalDateTime.now());
 
         return mapSessionToDto(chatSessionDao.save(session));
     }
 
+    // verificare ownership: studentul poate vedea doar propriile sesiuni
     @Transactional(readOnly = true)
-    public List<ChatSessionDto> getSessionsByStudent(Long studentId)
+    public List<ChatSessionDto> getSessionsByStudent(Long requestingStudentId)
     {
-        return chatSessionDao.findByStudentIdOrderByStartedAtDesc(studentId)
+        return chatSessionDao.findByStudentIdOrderByStartedAtDesc(requestingStudentId)
                 .stream()
                 .map(this::mapSessionToDto)
                 .toList();
     }
 
+    // studentId pasat din controller pentru verificarea ownership-ului
     @Transactional
-    public ChatSessionDto endSession(Long sessionId)
+    public ChatSessionDto endSession(Long sessionId, Long requestingStudentId) throws AccessDeniedException
     {
         ChatSession session = chatSessionDao.findById(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException("Sesiunea cu id " + sessionId + " nu exista."));
+
+        // doar studentul proprietar poate inchide sesiunea
+        if (!session.getStudentId().equals(requestingStudentId))
+        {
+            throw new AccessDeniedException("Nu aveti permisiunea de a inchide aceasta sesiune.");
+        }
 
         session.setEndedAt(LocalDateTime.now());
         return mapSessionToDto(chatSessionDao.save(session));
@@ -73,32 +83,35 @@ public class ChatService
 
     // MESAJE
 
+    // studentId pasat din controller pentru verificarea ownership-ului
     @Transactional
-    public SendMessageResponse sendMessage(Long sessionId, SendMessageRequest request)
-    {
+    public SendMessageResponse sendMessage(Long sessionId, Long requestingStudentId, SendMessageRequest request) throws AccessDeniedException {
         ChatSession session = chatSessionDao.findById(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException("Sesiunea cu id " + sessionId + " nu exista."));
+
+        if (!session.getStudentId().equals(requestingStudentId))
+        {
+            throw new AccessDeniedException("Nu aveti permisiunea de a accesa aceasta sesiune.");
+        }
 
         if (session.getEndedAt() != null)
         {
             throw new IllegalStateException("Sesiunea cu id " + sessionId + " este inchisa.");
         }
 
-        // Salvam mesajul studentului
         ChatMessage userMessage = new ChatMessage();
         userMessage.setSession(session);
         userMessage.setSender("STUDENT");
         userMessage.setContent(request.getContent());
         userMessage.setCreatedAt(LocalDateTime.now());
-        chatMessageDao.save(userMessage);
 
-        // Construim fereastra de context din ultimele N mesaje
+        // capturam entitatea returnata pentru a obtine ID-ul generat
+        userMessage = chatMessageDao.save(userMessage);
+
         List<AiService.ContextMessage> context = buildContextWindow(sessionId, userMessage.getId());
 
-        // Apelam Gemini
         String aiResponse = aiService.chat(request.getContent(), context);
 
-        // Salvam raspunsul AI
         ChatMessage aiMessage = new ChatMessage();
         aiMessage.setSession(session);
         aiMessage.setSender("AI");
@@ -113,13 +126,18 @@ public class ChatService
         return response;
     }
 
+    // verificare ownership: studentul poate vedea doar mesajele din propriile sesiuni
     @Transactional(readOnly = true)
-    public List<ChatMessageDto> getMessages(Long sessionId)
+    public List<ChatMessageDto> getMessages(Long sessionId, Long requestingStudentId) throws AccessDeniedException
     {
-        if (!chatSessionDao.existsById(sessionId))
+        ChatSession session = chatSessionDao.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException("Sesiunea cu id " + sessionId + " nu exista."));
+
+        if (!session.getStudentId().equals(requestingStudentId))
         {
-            throw new EntityNotFoundException("Sesiunea cu id " + sessionId + " nu exista.");
+            throw new AccessDeniedException("Nu aveti permisiunea de a accesa aceasta sesiune.");
         }
+
         return chatMessageDao.findBySessionIdOrderByCreatedAtAsc(sessionId)
                 .stream()
                 .map(this::mapMessageToDto)
@@ -129,21 +147,19 @@ public class ChatService
 
     // HELPER
 
-    // Preia ultimele N mesaje anterioare mesajului curent si le inverseaza in ordine cronologica
     private List<AiService.ContextMessage> buildContextWindow(Long sessionId, Long excludeMessageId)
     {
-        List<ChatMessage> recent = chatMessageDao.findTop20BySessionIdOrderByCreatedAtDesc(sessionId)
+        // preia ultimele contextWindowSize + 1 mesaje pentru a absorbi excluderea mesajului curent
+        List<ChatMessage> recent = chatMessageDao.findRecentBySessionId(sessionId, contextWindowSize + 1)
                 .stream()
                 .filter(m -> !m.getId().equals(excludeMessageId))
                 .limit(contextWindowSize)
                 .toList();
 
-        List<AiService.ContextMessage> context = recent.stream()
+        List<AiService.ContextMessage> ordered = recent.stream()
                 .map(m -> new AiService.ContextMessage(m.getSender(), m.getContent()))
-                .toList();
+                .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
 
-        // Inversam pentru a trimite mesajele in ordine cronologica corecta catre Gemini
-        List<AiService.ContextMessage> ordered = new ArrayList<>(context);
         Collections.reverse(ordered);
         return ordered;
     }
