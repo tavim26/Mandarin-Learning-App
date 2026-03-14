@@ -7,9 +7,6 @@ import jakarta.validation.constraints.NotNull;
 public class SubmitReviewRequest {
 
     @NotNull
-    private Long studentId;
-
-    @NotNull
     private Long flashcardId;
 
     // SM-2: scala 0-5
@@ -19,9 +16,6 @@ public class SubmitReviewRequest {
     private Integer quality;
 
     public SubmitReviewRequest() {}
-
-    public Long getStudentId() { return studentId; }
-    public void setStudentId(Long studentId) { this.studentId = studentId; }
 
     public Long getFlashcardId() { return flashcardId; }
     public void setFlashcardId(Long flashcardId) { this.flashcardId = flashcardId; }

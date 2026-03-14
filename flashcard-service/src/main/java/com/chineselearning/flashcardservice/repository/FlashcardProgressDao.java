@@ -50,6 +50,16 @@ public class FlashcardProgressDao implements IFlashcardProgressDao
                 .toList();
     }
 
+    @Override
+    public List<FlashcardProgress> findByStudentIdAndFlashcardIdIn(Long studentId, List<Long> flashcardIds)
+    {
+        return flashcardProgressJpaRepository
+                .findByStudentIdAndFlashcardFlashcardIdIn(studentId, flashcardIds)
+                .stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
 
 
     // Conversie domain -> entity

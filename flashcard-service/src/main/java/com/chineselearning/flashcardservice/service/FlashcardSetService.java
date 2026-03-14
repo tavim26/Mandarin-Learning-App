@@ -13,8 +13,10 @@ import com.chineselearning.flashcardservice.domain.dto.FlashcardSetDto;
 import com.chineselearning.flashcardservice.domain.dto.UpdateFlashcardRequest;
 import com.chineselearning.flashcardservice.domain.dto.UpdateFlashcardSetRequest;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -34,10 +36,10 @@ public class FlashcardSetService
     // OPERATII PE SETURI
 
     @Transactional
-    public FlashcardSetDto createSet(CreateFlashcardSetRequest request)
+    public FlashcardSetDto createSet(Long studentId, CreateFlashcardSetRequest request)
     {
         FlashcardSet set = new FlashcardSet();
-        set.setStudentId(request.getStudentId());
+        set.setStudentId(studentId);
         set.setTitle(request.getTitle());
         set.setDescription(request.getDescription());
 
@@ -62,9 +64,11 @@ public class FlashcardSetService
     }
 
     @Transactional
-    public FlashcardSetDto updateSet(Long setId, UpdateFlashcardSetRequest request)
+    public FlashcardSetDto updateSet(Long studentId, Long setId, UpdateFlashcardSetRequest request)
     {
         FlashcardSet set = findSetOrThrow(setId);
+        verifySetOwnership(set, studentId);
+
         set.setTitle(request.getTitle());
         set.setDescription(request.getDescription());
 
@@ -73,9 +77,10 @@ public class FlashcardSetService
     }
 
     @Transactional
-    public void deleteSet(Long setId)
+    public void deleteSet(Long studentId, Long setId)
     {
         FlashcardSet set = findSetOrThrow(setId);
+        verifySetOwnership(set, studentId);
         flashcardSetDao.delete(set);
     }
 
@@ -85,9 +90,10 @@ public class FlashcardSetService
     // OPERATII PE FLASHCARD-URI
 
     @Transactional
-    public FlashcardDto createFlashcard(CreateFlashcardRequest request)
+    public FlashcardDto createFlashcard(Long studentId, CreateFlashcardRequest request)
     {
-        findSetOrThrow(request.getSetId());
+        FlashcardSet set = findSetOrThrow(request.getSetId());
+        verifySetOwnership(set, studentId);
 
         Flashcard flashcard = new Flashcard();
         flashcard.setSetId(request.getSetId());
@@ -116,9 +122,12 @@ public class FlashcardSetService
     }
 
     @Transactional
-    public FlashcardDto updateFlashcard(Long flashcardId, UpdateFlashcardRequest request)
+    public FlashcardDto updateFlashcard(Long studentId, Long flashcardId, UpdateFlashcardRequest request)
     {
         Flashcard flashcard = findFlashcardOrThrow(flashcardId);
+        FlashcardSet set = findSetOrThrow(flashcard.getSetId());
+        verifySetOwnership(set, studentId);
+
         flashcard.setFrontText(request.getFrontText());
         flashcard.setBackText(request.getBackText());
 
@@ -127,9 +136,11 @@ public class FlashcardSetService
     }
 
     @Transactional
-    public void deleteFlashcard(Long flashcardId)
+    public void deleteFlashcard(Long studentId, Long flashcardId)
     {
         Flashcard flashcard = findFlashcardOrThrow(flashcardId);
+        FlashcardSet set = findSetOrThrow(flashcard.getSetId());
+        verifySetOwnership(set, studentId);
         flashcardDao.delete(flashcard);
     }
 
@@ -140,12 +151,24 @@ public class FlashcardSetService
     private FlashcardSet findSetOrThrow(Long setId)
     {
         return flashcardSetDao.findById(setId)
-                .orElseThrow(() -> new RuntimeException("Setul cu id " + setId + " nu exista"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Setul cu id " + setId + " nu exista"));
     }
 
-    private Flashcard findFlashcardOrThrow(Long flashcardId) {
+    private Flashcard findFlashcardOrThrow(Long flashcardId)
+    {
         return flashcardDao.findById(flashcardId)
-                .orElseThrow(() -> new RuntimeException("Flashcard-ul cu id " + flashcardId + " nu exista"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Flashcard-ul cu id " + flashcardId + " nu exista"));
+    }
+
+    private void verifySetOwnership(FlashcardSet set, Long studentId)
+    {
+        if (!set.getStudentId().equals(studentId))
+        {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "Studentul " + studentId + " nu are acces la setul " + set.getId());
+        }
     }
 
     private FlashcardSetDto toSetDto(FlashcardSet set)

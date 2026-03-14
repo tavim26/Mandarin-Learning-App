@@ -7,6 +7,7 @@ import com.chineselearning.flashcardservice.repository.entities.FlashcardEntity;
 import com.chineselearning.flashcardservice.repository.entities.FlashcardSetEntity;
 import com.chineselearning.flashcardservice.repository.jpa.FlashcardSetJpaRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +32,7 @@ public class FlashcardSetDao implements IFlashcardSetDao
     }
 
     @Override
+    @Transactional
     public Optional<FlashcardSet> findById(Long id)
     {
         return flashcardSetJpaRepository.findById(id)
@@ -38,6 +40,7 @@ public class FlashcardSetDao implements IFlashcardSetDao
     }
 
     @Override
+    @Transactional
     public List<FlashcardSet> findByStudentIdOrderByIdDesc(Long studentId)
     {
         return flashcardSetJpaRepository.findByStudentIdOrderByIdDesc(studentId)

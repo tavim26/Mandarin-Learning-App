@@ -45,12 +45,14 @@ public class FlashcardController
 
     @Operation(
             summary = "Creare set nou",
-            description = "Creeaza un set nou de flashcard-uri pentru un student. Setul este initial gol."
+            description = "Creeaza un set nou de flashcard-uri pentru studentul autentificat."
     )
     @PostMapping("/sets")
-    public ResponseEntity<FlashcardSetDto> createSet(@Valid @RequestBody CreateFlashcardSetRequest request)
+    public ResponseEntity<FlashcardSetDto> createSet(
+            @RequestHeader("X-User-Id") Long userId,
+            @Valid @RequestBody CreateFlashcardSetRequest request)
     {
-        FlashcardSetDto created = flashcardSetService.createSet(request);
+        FlashcardSetDto created = flashcardSetService.createSet(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
@@ -78,23 +80,28 @@ public class FlashcardController
 
     @Operation(
             summary = "Actualizare set",
-            description = "Modifica titlul si descrierea unui set existent. Nu afecteaza cardurile din set."
+            description = "Modifica titlul si descrierea unui set existent. Operatia este permisa doar proprietarului setului."
     )
     @PutMapping("/sets/{setId}")
-    public ResponseEntity<FlashcardSetDto> updateSet(@PathVariable Long setId, @Valid @RequestBody UpdateFlashcardSetRequest request)
+    public ResponseEntity<FlashcardSetDto> updateSet(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable Long setId,
+            @Valid @RequestBody UpdateFlashcardSetRequest request)
     {
-        FlashcardSetDto updated = flashcardSetService.updateSet(setId, request);
+        FlashcardSetDto updated = flashcardSetService.updateSet(userId, setId, request);
         return ResponseEntity.ok(updated);
     }
 
     @Operation(
             summary = "Stergere set",
-            description = "Sterge un set si toate flashcard-urile din el. Operatia este ireversibila."
+            description = "Sterge un set si toate flashcard-urile din el. Operatia este permisa doar proprietarului setului."
     )
     @DeleteMapping("/sets/{setId}")
-    public ResponseEntity<Void> deleteSet(@PathVariable Long setId)
+    public ResponseEntity<Void> deleteSet(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable Long setId)
     {
-        flashcardSetService.deleteSet(setId);
+        flashcardSetService.deleteSet(userId, setId);
         return ResponseEntity.noContent().build();
     }
 
@@ -105,12 +112,14 @@ public class FlashcardController
 
     @Operation(
             summary = "Adaugare flashcard",
-            description = "Adauga un flashcard nou intr-un set existent. Sunt necesare textul fetei si al versoului."
+            description = "Adauga un flashcard nou intr-un set existent. Operatia este permisa doar proprietarului setului."
     )
     @PostMapping("/cards")
-    public ResponseEntity<FlashcardDto> createFlashcard(@Valid @RequestBody CreateFlashcardRequest request)
+    public ResponseEntity<FlashcardDto> createFlashcard(
+            @RequestHeader("X-User-Id") Long userId,
+            @Valid @RequestBody CreateFlashcardRequest request)
     {
-        FlashcardDto created = flashcardSetService.createFlashcard(request);
+        FlashcardDto created = flashcardSetService.createFlashcard(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
@@ -138,23 +147,28 @@ public class FlashcardController
 
     @Operation(
             summary = "Actualizare flashcard",
-            description = "Modifica textul fetei si al versoului unui flashcard existent."
+            description = "Modifica textul fetei si al versoului unui flashcard existent. Operatia este permisa doar proprietarului setului."
     )
     @PutMapping("/cards/{flashcardId}")
-    public ResponseEntity<FlashcardDto> updateFlashcard(@PathVariable Long flashcardId, @Valid @RequestBody UpdateFlashcardRequest request)
+    public ResponseEntity<FlashcardDto> updateFlashcard(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable Long flashcardId,
+            @Valid @RequestBody UpdateFlashcardRequest request)
     {
-        FlashcardDto updated = flashcardSetService.updateFlashcard(flashcardId, request);
+        FlashcardDto updated = flashcardSetService.updateFlashcard(userId, flashcardId, request);
         return ResponseEntity.ok(updated);
     }
 
     @Operation(
             summary = "Stergere flashcard",
-            description = "Sterge un flashcard dupa id. Operatia este ireversibila."
+            description = "Sterge un flashcard dupa id. Operatia este permisa doar proprietarului setului."
     )
     @DeleteMapping("/cards/{flashcardId}")
-    public ResponseEntity<Void> deleteFlashcard(@PathVariable Long flashcardId)
+    public ResponseEntity<Void> deleteFlashcard(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable Long flashcardId)
     {
-        flashcardSetService.deleteFlashcard(flashcardId);
+        flashcardSetService.deleteFlashcard(userId, flashcardId);
         return ResponseEntity.noContent().build();
     }
 
@@ -165,32 +179,41 @@ public class FlashcardController
 
     @Operation(
             summary = "Trimitere recenzie",
-            description = "Inregistreaza scorul de calitate (0-5) al studentului pentru un flashcard. " + "Ruleaza algoritmul SM-2 si returneaza recenzia salvata impreuna cu starea SM-2 actualizata."
+            description = "Inregistreaza scorul de calitate (0-5) al studentului pentru un flashcard. " +
+                    "Ruleaza algoritmul SM-2 si returneaza recenzia salvata impreuna cu starea SM-2 actualizata."
     )
     @PostMapping("/reviews")
-    public ResponseEntity<ReviewResultDto> submitReview(@Valid @RequestBody SubmitReviewRequest request)
+    public ResponseEntity<ReviewResultDto> submitReview(
+            @RequestHeader("X-User-Id") Long userId,
+            @Valid @RequestBody SubmitReviewRequest request)
     {
-        ReviewResultDto result = reviewService.submitReview(request);
+        ReviewResultDto result = reviewService.submitReview(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 
     @Operation(
             summary = "Carduri scadente pentru recenzie",
-            description = "Returneaza toate flashcard-urile unui student pentru care next_review_at este in trecut. " + "Acestea sunt cardurile care trebuie recenzate in sesiunea curenta."
+            description = "Returneaza toate flashcard-urile unui student pentru care next_review_at este in trecut, " +
+                    "precum si cardurile care nu au fost niciodata recenzate."
     )
     @GetMapping("/reviews/due/{studentId}")
-    public ResponseEntity<List<FlashcardProgressDto>> getDueFlashcards(@PathVariable Long studentId)
+    public ResponseEntity<List<FlashcardProgressDto>> getDueFlashcards(
+            @PathVariable Long studentId,
+            @RequestParam Long setId)
     {
-        List<FlashcardProgressDto> due = reviewService.getDueFlashcards(studentId);
+        List<FlashcardProgressDto> due = reviewService.getDueFlashcards(studentId, setId);
         return ResponseEntity.ok(due);
     }
 
     @Operation(
             summary = "Istoric recenzii",
-            description = "Returneaza istoricul complet al recenziilor unui student pentru un flashcard specific, " + "ordonat cronologic ascendent."
+            description = "Returneaza istoricul complet al recenziilor unui student pentru un flashcard specific, " +
+                    "ordonat cronologic ascendent."
     )
     @GetMapping("/reviews/history/{studentId}/{flashcardId}")
-    public ResponseEntity<List<FlashcardReviewDto>> getReviewHistory(@PathVariable Long studentId, @PathVariable Long flashcardId)
+    public ResponseEntity<List<FlashcardReviewDto>> getReviewHistory(
+            @PathVariable Long studentId,
+            @PathVariable Long flashcardId)
     {
         List<FlashcardReviewDto> history = reviewService.getReviewHistory(studentId, flashcardId);
         return ResponseEntity.ok(history);
@@ -198,10 +221,13 @@ public class FlashcardController
 
     @Operation(
             summary = "Stare SM-2 curenta",
-            description = "Returneaza starea curenta a algoritmului SM-2 pentru un student si un flashcard specific. " + "Contine easiness factor, interval curent si data urmatoarei recenzii."
+            description = "Returneaza starea curenta a algoritmului SM-2 pentru un student si un flashcard specific. " +
+                    "Contine easiness factor, interval curent si data urmatoarei recenzii."
     )
     @GetMapping("/reviews/progress/{studentId}/{flashcardId}")
-    public ResponseEntity<FlashcardProgressDto> getProgress(@PathVariable Long studentId, @PathVariable Long flashcardId)
+    public ResponseEntity<FlashcardProgressDto> getProgress(
+            @PathVariable Long studentId,
+            @PathVariable Long flashcardId)
     {
         FlashcardProgressDto progress = reviewService.getProgress(studentId, flashcardId);
         return ResponseEntity.ok(progress);

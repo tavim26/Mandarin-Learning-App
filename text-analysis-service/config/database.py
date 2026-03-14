@@ -1,8 +1,13 @@
 import os
 from typing import Generator
 
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
+
+
+# .env trebuie incarcat inainte de citirea DATABASE_URL
+load_dotenv()
 
 DATABASE_URL: str = os.getenv(
     "DATABASE_URL",

@@ -13,12 +13,17 @@ import com.chineselearning.flashcardservice.domain.dto.FlashcardReviewDto;
 import com.chineselearning.flashcardservice.domain.dto.ReviewResultDto;
 import com.chineselearning.flashcardservice.domain.dto.SubmitReviewRequest;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class ReviewService
@@ -37,17 +42,17 @@ public class ReviewService
 
     // Fluxul principal: primeste scorul studentului, ruleaza SM-2, salveaza recenzia si actualizeaza progresul
     @Transactional
-    public ReviewResultDto submitReview(SubmitReviewRequest request)
+    public ReviewResultDto submitReview(Long studentId, SubmitReviewRequest request)
     {
         // Verificam ca flashcard-ul exista inainte de orice operatie
         Flashcard flashcard = flashcardDao.findById(request.getFlashcardId())
-                .orElseThrow(() -> new RuntimeException("Flashcard-ul cu id " + request.getFlashcardId() + " nu exista"));
-
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Flashcard-ul cu id " + request.getFlashcardId() + " nu exista"));
 
         // Incarcam starea SM-2 existenta sau cream una noua daca studentul vede cardul prima data
         FlashcardProgress progress = flashcardProgressDao
-                .findByStudentIdAndFlashcardId(request.getStudentId(), request.getFlashcardId())
-                .orElseGet(() -> createInitialProgress(request.getStudentId(), flashcard.getId()));
+                .findByStudentIdAndFlashcardId(studentId, request.getFlashcardId())
+                .orElseGet(() -> createInitialProgress(studentId, flashcard.getId()));
 
         // Rulam calculul SM-2 cu starea curenta si scorul primit de la student
         Sm2Algorithm.Sm2Result result = Sm2Algorithm.calculate(
@@ -67,28 +72,53 @@ public class ReviewService
 
         // Salvam recenzia in istoricul de audit
         FlashcardReview review = new FlashcardReview();
-        review.setStudentId(request.getStudentId());
+        review.setStudentId(studentId);
         review.setFlashcardId(request.getFlashcardId());
         review.setReviewedAt(LocalDateTime.now());
         review.setQuality(request.getQuality());
         FlashcardReview savedReview = flashcardReviewDao.save(review);
 
-        // Returnam atat recenzia salvata cat si starea SM-2 actualizata
         ReviewResultDto resultDto = new ReviewResultDto();
         resultDto.setReview(toReviewDto(savedReview));
         resultDto.setProgress(toProgressDto(savedProgress));
         return resultDto;
     }
 
-    // Returneaza toate cardurile scadente pentru recenzie ale unui student la momentul curent
+    // Returneaza cardurile scadente + cardurile nevazute niciodata din setul specificat
     @Transactional(readOnly = true)
-    public List<FlashcardProgressDto> getDueFlashcards(Long studentId)
+    public List<FlashcardProgressDto> getDueFlashcards(Long studentId, Long setId)
     {
-        return flashcardProgressDao
-                .findByStudentIdAndNextReviewAtLessThanEqual(studentId, LocalDateTime.now())
-                .stream()
-                .map(this::toProgressDto)
+        // Toti cardii din set
+        List<Flashcard> allCards = flashcardDao.findBySetId(setId);
+        List<Long> allCardIds = allCards.stream()
+                .map(Flashcard::getId)
                 .toList();
+
+        // Progresul existent pentru cardurile din set
+        List<FlashcardProgress> existingProgress = flashcardProgressDao
+                .findByStudentIdAndFlashcardIdIn(studentId, allCardIds);
+
+        // ID-urile cardurilor care au deja un progress record
+        Set<Long> seenCardIds = existingProgress.stream()
+                .map(FlashcardProgress::getFlashcardId)
+                .collect(Collectors.toSet());
+
+        List<FlashcardProgressDto> result = new ArrayList<>();
+
+        // Cardurile cu progress record si scadente (next_review_at <= acum)
+        LocalDateTime now = LocalDateTime.now();
+        existingProgress.stream()
+                .filter(p -> p.getNextReviewAt() != null && !p.getNextReviewAt().isAfter(now))
+                .map(this::toProgressDto)
+                .forEach(result::add);
+
+        // Cardurile nevazute niciodata — progress record absent — reprezentate cu valori default SM-2
+        allCards.stream()
+                .filter(card -> !seenCardIds.contains(card.getId()))
+                .map(card -> toDefaultProgressDto(studentId, card.getId()))
+                .forEach(result::add);
+
+        return result;
     }
 
     // Returneaza istoricul complet al recenziilor unui student pentru un card specific
@@ -108,7 +138,8 @@ public class ReviewService
     {
         FlashcardProgress progress = flashcardProgressDao
                 .findByStudentIdAndFlashcardId(studentId, flashcardId)
-                .orElseThrow(() -> new RuntimeException("Nu exista progres pentru studentul " + studentId + " si flashcard-ul " + flashcardId));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Nu exista progres pentru studentul " + studentId + " si flashcard-ul " + flashcardId));
         return toProgressDto(progress);
     }
 
@@ -129,6 +160,20 @@ public class ReviewService
         return progress;
     }
 
+    // ProgressDto cu valori default pentru un card nevazut niciodata — id null semnaleaza frontend-ului absenta unui progress record
+    private FlashcardProgressDto toDefaultProgressDto(Long studentId, Long flashcardId)
+    {
+        FlashcardProgressDto dto = new FlashcardProgressDto();
+        dto.setId(null);
+        dto.setStudentId(studentId);
+        dto.setFlashcardId(flashcardId);
+        dto.setEasinessFactor(new BigDecimal("2.5"));
+        dto.setIntervalDays(0);
+        dto.setRepetitionCount(0);
+        dto.setNextReviewAt(null);
+        dto.setLastReviewedAt(null);
+        return dto;
+    }
 
     private FlashcardProgressDto toProgressDto(FlashcardProgress progress)
     {
