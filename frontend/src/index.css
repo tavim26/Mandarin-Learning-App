@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Fonturi globale */
+body {
+  font-family: 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Outfit', sans-serif;
+}
+
+/* Input — stilizare globala peste shadcn */
+input {
+  font-family: 'DM Sans', sans-serif !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+input:focus {
+  border-color: #e85d04 !important;
+  box-shadow: 0 0 0 3px rgba(232, 93, 4, 0.12) !important;
+  outline: none !important;
+}
+
+/* Buton — tranzitie hover */
+button {
+  transition: all 0.2s ease !important;
+}
