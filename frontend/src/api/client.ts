@@ -12,7 +12,9 @@ const apiClient = axios.create({
 // Interceptor — ruleaza automat inainte de FIECARE request HTTP
 // Preia token-ul din store si il ataseaza in header-ul Authorization
 apiClient.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token;
+  // Citeste token-ul direct din localStorage ca fallback
+  const token = useAuthStore.getState().token
+    ?? JSON.parse(localStorage.getItem('auth-storage') ?? '{}')?.state?.token;
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

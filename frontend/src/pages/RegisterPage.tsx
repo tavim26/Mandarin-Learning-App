@@ -56,9 +56,13 @@ const RegisterPage = () => {
         role: data.role,
       });
       navigate('/login');
-    } catch {
-      setServerError('This email is already registered.');
-    }
+    } catch (error: unknown) {
+  if (error instanceof Error) {
+    setServerError(error.message);
+  } else {
+    setServerError('An unexpected error occurred.');
+  }
+}
   };
 
   return (

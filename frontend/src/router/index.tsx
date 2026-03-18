@@ -9,6 +9,7 @@ import DashboardPage from '@/pages/DashboardPage';
 import StudentDashboard from '@/pages/student/StudentDashboard';
 import TeacherDashboard from '@/pages/teacher/TeacherDashboard';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
+import AdminUsers from '@/pages/admin/AdminUsers';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -80,6 +81,17 @@ const AppRouter = () => {
         />
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
+
+
+        {/* Pagina management utilizatori */}
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminUsers />
+          </ProtectedRoute>
+  }
+/>
 
       </Routes>
     </BrowserRouter>
