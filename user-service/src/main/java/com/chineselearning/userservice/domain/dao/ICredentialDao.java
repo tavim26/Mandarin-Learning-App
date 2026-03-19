@@ -8,4 +8,8 @@ public interface ICredentialDao
     Credential save(Credential credential);
     Optional<Credential> findByEmail(String email);
     boolean existsByEmail(String email);
+
+    Optional<Credential> findById(Long id);
+
+    void deleteById(Long id);
 }

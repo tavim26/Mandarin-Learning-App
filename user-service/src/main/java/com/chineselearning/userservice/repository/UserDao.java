@@ -30,6 +30,15 @@ public class UserDao implements IUserDao
     @Override
     public User save(User user)
     {
+        if (user.getId() != null && jpaRepository.existsById(user.getId()))
+        {
+            // Preluam entitatea deja manageriata de Hibernate si actualizam doar campurile necesare
+            UserEntity managed = jpaRepository.findById(user.getId()).get();
+            managed.setFullName(user.getFullName());
+            UserEntity saved = jpaRepository.save(managed);
+            return toDomain(saved);
+        }
+
         UserEntity entity = toEntity(user);
         UserEntity saved = jpaRepository.save(entity);
         return toDomain(saved);
@@ -68,6 +77,18 @@ public class UserDao implements IUserDao
     {
         jpaRepository.deleteById(id);
     }
+
+
+    @Override
+    public List<User> findByRole(String role)
+    {
+        return jpaRepository.findByCredential_Role(role).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+
+
 
     private UserEntity toEntity(User user)
     {

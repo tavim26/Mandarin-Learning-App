@@ -9,4 +9,6 @@ import java.util.List;
 public interface IUserJpaRepository extends JpaRepository<UserEntity, Long>
 {
     List<UserEntity> findByFullNameContaining(String fragment);
+
+    List<UserEntity> findByCredential_Role(String role);
 }

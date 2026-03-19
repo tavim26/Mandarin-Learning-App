@@ -28,6 +28,16 @@ public class CredentialDao implements ICredentialDao
     @Override
     public Credential save(Credential credential)
     {
+        if (credential.getId() != null && jpaRepository.existsById(credential.getId()))
+        {
+            CredentialEntity managed = jpaRepository.findById(credential.getId()).get();
+            managed.setEmail(credential.getEmail());
+            managed.setPasswordHash(credential.getPasswordHash());
+            managed.setRole(credential.getRole());
+            CredentialEntity saved = jpaRepository.save(managed);
+            return toDomain(saved);
+        }
+
         CredentialEntity entity = toEntity(credential);
         CredentialEntity saved = jpaRepository.save(entity);
         return toDomain(saved);
@@ -44,6 +54,23 @@ public class CredentialDao implements ICredentialDao
     {
         return jpaRepository.existsByEmail(email);
     }
+
+
+
+    @Override
+    public Optional<Credential> findById(Long id)
+    {
+        return jpaRepository.findById(id).map(this::toDomain);
+    }
+
+    @Override
+    public void deleteById(Long id)
+    {
+        jpaRepository.deleteById(id);
+    }
+
+
+
 
     // Conversie domain -> entity (pentru scriere in DB)
     private CredentialEntity toEntity(Credential credential)

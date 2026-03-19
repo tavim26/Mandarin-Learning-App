@@ -10,10 +10,7 @@ import com.chineselearning.userservice.domain.dao.IStudentDao;
 import com.chineselearning.userservice.domain.dao.ITeacherDao;
 import com.chineselearning.userservice.domain.dao.IUserDao;
 
-import com.chineselearning.userservice.domain.dto.RegisterRequestDto;
-import com.chineselearning.userservice.domain.dto.StudentDto;
-import com.chineselearning.userservice.domain.dto.TeacherDto;
-import com.chineselearning.userservice.domain.dto.UserDto;
+import com.chineselearning.userservice.domain.dto.*;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -135,8 +132,9 @@ public class UserService
             throw new IllegalArgumentException("User not found with id: " + id);
         }
 
-        // Cascade delete handles all related entities (Student/Teacher)
-        userDao.deleteById(id);
+        // Stergem din agregatul root (Credential)
+        // CascadeType.ALL pe Credential -> User -> Student/Teacher se sterge automat
+        credentialDao.deleteById(id);
     }
 
 
@@ -183,6 +181,89 @@ public class UserService
         Teacher updated = teacherDao.save(teacher);
 
         return mapToTeacherDto(updated);
+    }
+
+
+
+    @Transactional
+    public UserDto updateEmail(Long id, String newEmail)
+    {
+        if (credentialDao.existsByEmail(newEmail))
+        {
+            throw new IllegalArgumentException("Email already in use");
+        }
+
+        Credential credential = credentialDao.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
+
+        credential.setEmail(newEmail);
+        credentialDao.save(credential);
+
+        User user = userDao.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
+
+        return mapToUserDto(user);
+    }
+
+    @Transactional
+    public void updatePassword(Long id, String oldPassword, String newPassword)
+    {
+        Credential credential = credentialDao.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
+
+        if (!passwordEncoder.matches(oldPassword, credential.getPasswordHash()))
+        {
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+
+        credential.setPasswordHash(passwordEncoder.encode(newPassword));
+        credentialDao.save(credential);
+    }
+
+    @Transactional
+    public void adminUpdatePassword(Long id, String newPassword)
+    {
+        Credential credential = credentialDao.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
+
+        credential.setPasswordHash(passwordEncoder.encode(newPassword));
+        credentialDao.save(credential);
+    }
+
+    public List<StudentProfileDto> getAllStudents()
+    {
+        return userDao.findByRole("STUDENT").stream()
+                .map(this::mapToStudentProfileDto)
+                .collect(Collectors.toList());
+    }
+
+    public List<TeacherProfileDto> getAllTeachers()
+    {
+        return userDao.findByRole("TEACHER").stream()
+                .map(this::mapToTeacherProfileDto)
+                .collect(Collectors.toList());
+    }
+
+    private StudentProfileDto mapToStudentProfileDto(User user)
+    {
+        return new StudentProfileDto(
+                user.getId(),
+                user.getFullName(),
+                user.getCredential().getRole(),
+                user.getStudent() != null ? user.getStudent().getNickname() : null,
+                user.getCredential().getEmail()
+        );
+    }
+
+    private TeacherProfileDto mapToTeacherProfileDto(User user)
+    {
+        return new TeacherProfileDto(
+                user.getId(),
+                user.getFullName(),
+                user.getCredential().getRole(),
+                user.getTeacher() != null ? user.getTeacher().getTitle() : null,
+                user.getCredential().getEmail()
+        );
     }
 
 

@@ -4,6 +4,9 @@ import com.chineselearning.userservice.domain.dto.RegisterRequestDto;
 import com.chineselearning.userservice.domain.dto.StudentDto;
 import com.chineselearning.userservice.domain.dto.TeacherDto;
 import com.chineselearning.userservice.domain.dto.UserDto;
+import com.chineselearning.userservice.domain.dto.StudentProfileDto;
+import com.chineselearning.userservice.domain.dto.TeacherProfileDto;
+import java.util.Map;
 
 import com.chineselearning.userservice.service.UserService;
 
@@ -12,6 +15,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+
 
 import java.util.List;
 
@@ -152,5 +157,56 @@ public class UserController
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
+    }
+
+
+    @PutMapping("/{id}/email")
+    @Operation(summary = "Update user email", description = "Updates the email of a user")
+    public ResponseEntity<?> updateEmail(@PathVariable Long id, @RequestParam String newEmail)
+    {
+        try {
+            UserDto updated = userService.updateEmail(id, newEmail);
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/{id}/password")
+    @Operation(summary = "Update own password", description = "User updates their own password (requires current password)")
+    public ResponseEntity<?> updatePassword(@PathVariable Long id, @RequestParam String oldPassword, @RequestParam String newPassword)
+    {
+        try {
+            userService.updatePassword(id, oldPassword, newPassword);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/{id}/password/reset")
+    @Operation(summary = "Admin reset password", description = "Admin resets a user's password without requiring the current password")
+    public ResponseEntity<?> adminResetPassword(@PathVariable Long id, @RequestParam String newPassword)
+    {
+        try {
+            userService.adminUpdatePassword(id, newPassword);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/students")
+    @Operation(summary = "Get all students with profile data", description = "Returns full profile for all students")
+    public ResponseEntity<List<StudentProfileDto>> getAllStudents()
+    {
+        return ResponseEntity.ok(userService.getAllStudents());
+    }
+
+    @GetMapping("/teachers")
+    @Operation(summary = "Get all teachers with profile data", description = "Returns full profile for all teachers")
+    public ResponseEntity<List<TeacherProfileDto>> getAllTeachers()
+    {
+        return ResponseEntity.ok(userService.getAllTeachers());
     }
 }

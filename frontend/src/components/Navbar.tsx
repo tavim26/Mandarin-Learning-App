@@ -1,13 +1,11 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 
-// Definitia unui link de navigare
 interface NavLink {
   label: string;
   path: string;
 }
 
-// Linkurile afisate per rol
 const NAV_LINKS: Record<string, NavLink[]> = {
   STUDENT: [
     { label: 'Dashboard', path: '/student/dashboard' },
@@ -23,7 +21,6 @@ const NAV_LINKS: Record<string, NavLink[]> = {
   ADMIN: [
     { label: 'Dashboard', path: '/admin/dashboard' },
     { label: 'Users', path: '/admin/users' },
-    { label: 'Content', path: '/admin/content' },
   ],
 };
 
@@ -32,7 +29,6 @@ const Navbar = () => {
   const location = useLocation();
   const { fullName, role, clearAuth } = useAuthStore();
 
-  // Preia linkurile corespunzatoare rolului curent
   const links = role ? NAV_LINKS[role] ?? [] : [];
 
   const handleLogout = () => {
@@ -49,7 +45,6 @@ const Navbar = () => {
         borderBottom: '1px solid rgba(0,0,0,0.06)',
       }}
     >
-
       {/* Logo */}
       <Link
         to="/dashboard"
@@ -59,12 +54,10 @@ const Navbar = () => {
         MandarinApp
       </Link>
 
-      {/* Linkuri de navigare — centru */}
+      {/* Linkuri navigare */}
       <div className="flex items-center gap-1">
         {links.map((link) => {
-          // Verifica daca link-ul curent este activ
           const isActive = location.pathname === link.path;
-
           return (
             <Link
               key={link.path}
@@ -81,24 +74,26 @@ const Navbar = () => {
         })}
       </div>
 
-      {/* Dreapta — nume utilizator si logout */}
+      {/* Dreapta — profil si logout */}
       <div className="flex items-center gap-4 flex-shrink-0">
 
-        {/* Numele si rolul utilizatorului */}
-        <div className="text-right hidden sm:block">
-          <p className="text-sm font-semibold text-gray-800">{fullName}</p>
-          <p className="text-xs text-gray-400 uppercase tracking-wider">{role}</p>
-        </div>
-
-        {/* Avatar — initiala numelui */}
-        <div
-          className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
-          style={{ background: '#e85d04' }}
+        {/* Click pe nume/avatar duce la pagina de profil */}
+        <Link
+          to="/profile"
+          className="flex items-center gap-3 hover:opacity-80 transition-opacity"
         >
-          {fullName?.charAt(0).toUpperCase()}
-        </div>
+          <div className="text-right hidden sm:block">
+            <p className="text-sm font-semibold text-gray-800">{fullName}</p>
+            <p className="text-xs text-gray-400 uppercase tracking-wider">{role}</p>
+          </div>
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+            style={{ background: '#e85d04' }}
+          >
+            {fullName?.charAt(0).toUpperCase()}
+          </div>
+        </Link>
 
-        {/* Buton logout */}
         <button
           onClick={handleLogout}
           className="text-sm font-medium px-4 py-2 rounded-lg transition-all hover:bg-gray-100"
@@ -108,7 +103,6 @@ const Navbar = () => {
         </button>
 
       </div>
-
     </nav>
   );
 };

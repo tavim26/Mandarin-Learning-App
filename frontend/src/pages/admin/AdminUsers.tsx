@@ -1,59 +1,231 @@
 import { useEffect, useState, useCallback } from 'react';
-import { getAllUsers, deleteUser, createUser, updateUserName, type UserDto } from '@/api/usersApi';
+import {
+  getAllStudents, getAllTeachers, deleteUser, createUser,
+  updateUserName, updateUserEmail, resetUserPassword, updateTeacherTitle,
+  type StudentProfileDto, type TeacherProfileDto,
+} from '@/api/usersApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-// Tipul pentru formularul de creare utilizator
-interface CreateUserForm {
+interface EditStudentForm {
+  userId: number;
+  fullName: string;
+  email: string;
+  type: 'STUDENT';
+}
+
+interface EditTeacherForm {
+  userId: number;
+  fullName: string;
+  email: string;
+  title: string;
+  type: 'TEACHER';
+}
+
+type EditForm = EditStudentForm | EditTeacherForm;
+
+interface CreateForm {
   fullName: string;
   email: string;
   password: string;
   role: 'STUDENT' | 'TEACHER';
 }
 
-// Tipul pentru formularul de redenumire
-interface RenameForm {
+interface ResetPasswordForm {
   userId: number;
-  newName: string;
+  fullName: string;
+  newPassword: string;
 }
 
-// Optiunile de filtrare dupa rol
-const ROLE_FILTERS = ['ALL', 'STUDENT', 'TEACHER', 'ADMIN'] as const;
-type RoleFilter = typeof ROLE_FILTERS[number];
+// Props pentru UserTable — definit ca interfata separata
+interface UserTableProps {
+  title: string;
+  count: number;
+  searchValue: string;
+  onSearch: (v: string) => void;
+  role: 'STUDENT' | 'TEACHER';
+  rows: (StudentProfileDto | TeacherProfileDto)[];
+  onEdit: (form: EditForm) => void;
+  onDelete: (target: { id: number; fullName: string }) => void;
+  onResetPassword: (form: ResetPasswordForm) => void;
+}
 
+// ----------------------------------------------------------------
+// UserTable definit IN AFARA AdminUsers — nu se re-creeaza la render
+// ----------------------------------------------------------------
+const UserTable = ({
+  title, count, searchValue, onSearch, role, rows,
+  onEdit, onDelete, onResetPassword,
+}: UserTableProps) => {
+  const avatarColor = role === 'TEACHER' ? '#0369a1' : '#e85d04';
+
+  return (
+    <div
+      className="bg-white rounded-2xl overflow-hidden"
+      style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}
+    >
+      <div
+        className="flex items-center justify-between px-6 py-5"
+        style={{ borderBottom: '1px solid #f3f4f6' }}
+      >
+        <div>
+          <h2
+            className="text-xl font-bold text-gray-900"
+            style={{ fontFamily: 'Outfit, sans-serif' }}
+          >
+            {title}
+          </h2>
+          <p className="text-xs text-gray-400 mt-0.5">{count} total</p>
+        </div>
+        <Input
+          placeholder={`Search ${title.toLowerCase()}...`}
+          value={searchValue}
+          onChange={(e) => onSearch(e.target.value)}
+          className="h-9 rounded-xl border-gray-200 bg-gray-50 w-48 text-sm"
+        />
+      </div>
+
+      {rows.length === 0 ? (
+        <div className="flex items-center justify-center h-32">
+          <p className="text-gray-400 text-sm">No {title.toLowerCase()} found.</p>
+        </div>
+      ) : (
+        <table className="w-full">
+          <thead>
+            <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
+              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">User</th>
+              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Email</th>
+              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                {role === 'STUDENT' ? 'Nickname' : 'Title'}
+              </th>
+              <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">ID</th>
+              <th className="text-right px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((user) => (
+              <tr
+                key={user.userId}
+                className="transition-colors hover:bg-gray-50"
+                style={{ borderBottom: '1px solid #f9fafb' }}
+              >
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+                      style={{ background: avatarColor }}
+                    >
+                      {user.fullName.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-sm font-medium text-gray-800">{user.fullName}</span>
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <span className="text-sm text-gray-500">{user.email}</span>
+                </td>
+                <td className="px-6 py-4">
+                  <span className="text-sm text-gray-400">
+                    {role === 'STUDENT'
+                      ? ((user as StudentProfileDto).nickname ?? '—')
+                      : ((user as TeacherProfileDto).title ?? '—')}
+                  </span>
+                </td>
+                <td className="px-6 py-4">
+                  <span className="text-sm text-gray-400">#{user.userId}</span>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center justify-end gap-1">
+                    <button
+                      onClick={() => {
+                        if (role === 'STUDENT') {
+                          onEdit({
+                            userId: user.userId,
+                            fullName: user.fullName,
+                            email: user.email,
+                            type: 'STUDENT',
+                          });
+                        } else {
+                          onEdit({
+                            userId: user.userId,
+                            fullName: user.fullName,
+                            email: user.email,
+                            title: (user as TeacherProfileDto).title ?? '',
+                            type: 'TEACHER',
+                          });
+                        }
+                      }}
+                      className="text-xs font-medium px-3 py-1.5 rounded-lg transition-all hover:bg-gray-100"
+                      style={{ color: '#6b7280' }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => onResetPassword({
+                        userId: user.userId,
+                        fullName: user.fullName,
+                        newPassword: '',
+                      })}
+                      className="text-xs font-medium px-3 py-1.5 rounded-lg transition-all hover:bg-blue-50"
+                      style={{ color: '#0369a1' }}
+                    >
+                      Reset PW
+                    </button>
+                    <button
+                      onClick={() => onDelete({ id: user.userId, fullName: user.fullName })}
+                      className="text-xs font-medium px-3 py-1.5 rounded-lg transition-all hover:bg-red-50"
+                      style={{ color: '#c1121f' }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+};
+
+// ----------------------------------------------------------------
+// Componenta principala
+// ----------------------------------------------------------------
 const AdminUsers = () => {
-  const [users, setUsers] = useState<UserDto[]>([]);
+  const [students, setStudents] = useState<StudentProfileDto[]>([]);
+  const [teachers, setTeachers] = useState<TeacherProfileDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filtrare
-  const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [studentSearch, setStudentSearch] = useState('');
+  const [teacherSearch, setTeacherSearch] = useState('');
 
-  // Modal creare utilizator
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createForm, setCreateForm] = useState<CreateUserForm>({
-    fullName: '', email: '', password: '', role: 'STUDENT',
-  });
+  const [editForm, setEditForm] = useState<EditForm | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editLoading, setEditLoading] = useState(false);
+
+  const [createForm, setCreateForm] = useState<CreateForm | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createLoading, setCreateLoading] = useState(false);
 
-  // Modal redenumire
-  const [renameForm, setRenameForm] = useState<RenameForm | null>(null);
-  const [renameError, setRenameError] = useState<string | null>(null);
-  const [renameLoading, setRenameLoading] = useState(false);
-
-  // Modal confirmare stergere
-  const [deleteTarget, setDeleteTarget] = useState<UserDto | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; fullName: string } | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  // Incarca toti utilizatorii
-  const fetchUsers = useCallback(async () => {
+  const [resetForm, setResetForm] = useState<ResetPasswordForm | null>(null);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [resetLoading, setResetLoading] = useState(false);
+
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await getAllUsers();
-      setUsers(data);
+      const [studentsData, teachersData] = await Promise.all([
+        getAllStudents(),
+        getAllTeachers(),
+      ]);
+      setStudents(studentsData);
+      setTeachers(teachersData);
     } catch {
       setError('Failed to load users.');
     } finally {
@@ -62,40 +234,58 @@ const AdminUsers = () => {
   }, []);
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    fetchData();
+  }, [fetchData]);
 
-  // Filtreaza utilizatorii dupa rol si searchQuery
-  const filteredUsers = users.filter((u) => {
-    const matchesRole = roleFilter === 'ALL' || u.role === roleFilter;
-    const matchesSearch = u.fullName.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesRole && matchesSearch;
-  });
+  const filteredStudents = students.filter((s) =>
+    s.fullName.toLowerCase().includes(studentSearch.toLowerCase()) ||
+    s.email.toLowerCase().includes(studentSearch.toLowerCase())
+  );
 
-  // Sterge un utilizator
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
+  const filteredTeachers = teachers.filter((t) =>
+    t.fullName.toLowerCase().includes(teacherSearch.toLowerCase()) ||
+    t.email.toLowerCase().includes(teacherSearch.toLowerCase())
+  );
+
+  const handleEdit = async () => {
+    if (!editForm) return;
     try {
-      setDeleteLoading(true);
-      await deleteUser(deleteTarget.id);
-      setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id));
-      setDeleteTarget(null);
-    } catch {
-      setError('Failed to delete user.');
+      setEditLoading(true);
+      setEditError(null);
+      const original = editForm.type === 'STUDENT'
+        ? students.find((s) => s.userId === editForm.userId)
+        : teachers.find((t) => t.userId === editForm.userId);
+      if (original && editForm.fullName !== original.fullName) {
+        await updateUserName(editForm.userId, editForm.fullName);
+      }
+      if (original && editForm.email !== original.email) {
+        await updateUserEmail(editForm.userId, editForm.email);
+      }
+      if (editForm.type === 'TEACHER' && original &&
+        editForm.title !== (original as TeacherProfileDto).title) {
+        await updateTeacherTitle(editForm.userId, editForm.title);
+      }
+      await fetchData();
+      setEditForm(null);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setEditError(err.message);
+      } else {
+        setEditError('Failed to update user.');
+      }
     } finally {
-      setDeleteLoading(false);
+      setEditLoading(false);
     }
   };
 
-  // Creeaza un utilizator nou
   const handleCreate = async () => {
+    if (!createForm) return;
     try {
       setCreateLoading(true);
       setCreateError(null);
-      const newUser = await createUser(createForm);
-      setUsers((prev) => [...prev, newUser]);
-      setShowCreateModal(false);
-      setCreateForm({ fullName: '', email: '', password: '', role: 'STUDENT' });
+      await createUser(createForm);
+      await fetchData();
+      setCreateForm(null);
     } catch {
       setCreateError('This email is already registered.');
     } finally {
@@ -103,33 +293,59 @@ const AdminUsers = () => {
     }
   };
 
-  // Redenumeste un utilizator
-  const handleRename = async () => {
-    if (!renameForm) return;
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      setRenameLoading(true);
-      setRenameError(null);
-      const updated = await updateUserName(renameForm.userId, renameForm.newName);
-      setUsers((prev) => prev.map((u) => u.id === updated.id ? updated : u));
-      setRenameForm(null);
-    } catch {
-      setRenameError('Failed to update name.');
+      setDeleteLoading(true);
+      setDeleteError(null);
+      await deleteUser(deleteTarget.id);
+      await fetchData();
+      setDeleteTarget(null);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setDeleteError(err.message);
+      } else {
+        setDeleteError('Failed to delete user.');
+      }
     } finally {
-      setRenameLoading(false);
+      setDeleteLoading(false);
     }
   };
 
-  // Culori badge per rol
-  const roleBadgeStyle = (role: string) => {
-    if (role === 'ADMIN') return { background: '#fff7f0', color: '#e85d04' };
-    if (role === 'TEACHER') return { background: '#f0f9ff', color: '#0369a1' };
-    return { background: '#f0fdf4', color: '#15803d' };
+  const handleResetPassword = async () => {
+    if (!resetForm) return;
+    try {
+      setResetLoading(true);
+      setResetError(null);
+      await resetUserPassword(resetForm.userId, resetForm.newPassword);
+      setResetForm(null);
+    } catch {
+      setResetError('Failed to reset password.');
+    } finally {
+      setResetLoading(false);
+    }
   };
 
-  return (
-    <div className="space-y-6">
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-gray-400 text-sm">Loading...</p>
+      </div>
+    );
+  }
 
-      {/* Header */}
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-red-500 text-sm">{error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+
+      {/* Header pagina */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <h1
@@ -139,11 +355,11 @@ const AdminUsers = () => {
             User Management
           </h1>
           <p className="text-gray-400 text-sm">
-            {users.length} total users
+            {students.length + teachers.length} total users
           </p>
         </div>
         <Button
-          onClick={() => setShowCreateModal(true)}
+          onClick={() => setCreateForm({ fullName: '', email: '', password: '', role: 'STUDENT' })}
           className="h-10 px-5 rounded-xl text-white font-semibold text-sm hover:opacity-90"
           style={{ background: '#e85d04' }}
         >
@@ -151,207 +367,122 @@ const AdminUsers = () => {
         </Button>
       </div>
 
-      {/* Filtre */}
-      <div
-        className="bg-white rounded-2xl p-4 flex flex-col sm:flex-row gap-3"
-        style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}
-      >
-        {/* Search */}
-        <Input
-          placeholder="Search by name..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="h-10 rounded-xl border-gray-200 bg-gray-50 flex-1"
-        />
+      {/* Tabel studenti */}
+      <UserTable
+        title="Students"
+        count={students.length}
+        searchValue={studentSearch}
+        onSearch={setStudentSearch}
+        role="STUDENT"
+        rows={filteredStudents}
+        onEdit={setEditForm}
+        onDelete={setDeleteTarget}
+        onResetPassword={setResetForm}
+      />
 
-        {/* Filtre rol */}
-        <div className="flex gap-2">
-          {ROLE_FILTERS.map((filter) => (
-            <button
-              key={filter}
-              onClick={() => setRoleFilter(filter)}
-              className="px-4 h-10 rounded-xl text-sm font-medium transition-all"
-              style={{
-                background: roleFilter === filter ? '#e85d04' : '#f9fafb',
-                color: roleFilter === filter ? 'white' : '#6b7280',
-                border: '1px solid',
-                borderColor: roleFilter === filter ? '#e85d04' : '#e5e7eb',
-              }}
-            >
-              {filter}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Tabel profesori */}
+      <UserTable
+        title="Teachers"
+        count={teachers.length}
+        searchValue={teacherSearch}
+        onSearch={setTeacherSearch}
+        role="TEACHER"
+        rows={filteredTeachers}
+        onEdit={setEditForm}
+        onDelete={setDeleteTarget}
+        onResetPassword={setResetForm}
+      />
 
-      {/* Tabel utilizatori */}
-      <div
-        className="bg-white rounded-2xl overflow-hidden"
-        style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}
-      >
-        {loading ? (
-          <div className="flex items-center justify-center h-40">
-            <p className="text-gray-400 text-sm">Loading...</p>
-          </div>
-        ) : error ? (
-          <div className="flex items-center justify-center h-40">
-            <p className="text-red-500 text-sm">{error}</p>
-          </div>
-        ) : filteredUsers.length === 0 ? (
-          <div className="flex items-center justify-center h-40">
-            <p className="text-gray-400 text-sm">No users found.</p>
-          </div>
-        ) : (
-          <table className="w-full">
-            <thead>
-              <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  User
-                </th>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  Role
-                </th>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  ID
-                </th>
-                <th className="text-right px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.map((user) => (
-                <tr
-                  key={user.id}
-                  className="transition-colors hover:bg-gray-50"
-                  style={{ borderBottom: '1px solid #f9fafb' }}
-                >
-                  {/* Avatar si nume */}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
-                        style={{ background: '#e85d04' }}
-                      >
-                        {user.fullName.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="text-sm font-medium text-gray-800">
-                        {user.fullName}
-                      </span>
-                    </div>
-                  </td>
-
-                  {/* Badge rol */}
-                  <td className="px-6 py-4">
-                    <span
-                      className="text-xs font-semibold px-2.5 py-1 rounded-md"
-                      style={roleBadgeStyle(user.role)}
-                    >
-                      {user.role}
-                    </span>
-                  </td>
-
-                  {/* ID */}
-                  <td className="px-6 py-4">
-                    <span className="text-sm text-gray-400">#{user.id}</span>
-                  </td>
-
-                  {/* Actiuni */}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => setRenameForm({ userId: user.id, newName: user.fullName })}
-                        className="text-xs font-medium px-3 py-1.5 rounded-lg transition-all hover:bg-gray-100"
-                        style={{ color: '#6b7280' }}
-                      >
-                        Rename
-                      </button>
-                      <button
-                        onClick={() => setDeleteTarget(user)}
-                        className="text-xs font-medium px-3 py-1.5 rounded-lg transition-all hover:bg-red-50"
-                        style={{ color: '#c1121f' }}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* ---- MODAL CREARE UTILIZATOR ---- */}
-      {showCreateModal && (
+      {/* ---- MODAL EDITARE ---- */}
+      {editForm && (
         <div
           className="fixed inset-0 flex items-center justify-center z-50"
           style={{ background: 'rgba(0,0,0,0.4)' }}
-          onClick={() => setShowCreateModal(false)}
+          onClick={() => setEditForm(null)}
         >
           <div
-            className="bg-white rounded-2xl p-8 w-full max-w-md space-y-5"
+            className="bg-white rounded-2xl p-8 w-full max-w-sm space-y-5"
             style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2
-              className="text-2xl font-bold text-gray-900"
-              style={{ fontFamily: 'Outfit, sans-serif' }}
-            >
-              Create New User
+            <h2 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
+              Edit User
             </h2>
-
             <div className="space-y-4">
-
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Full Name
-                </label>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Full Name</label>
                 <Input
-                  placeholder="Full name"
                   className="h-11 rounded-xl border-gray-200 bg-gray-50"
-                  value={createForm.fullName}
-                  onChange={(e) => setCreateForm((p) => ({ ...p, fullName: e.target.value }))}
+                  value={editForm.fullName}
+                  onChange={(e) => setEditForm((p) => p ? { ...p, fullName: e.target.value } : null)}
                 />
               </div>
-
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Email
-                </label>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</label>
                 <Input
-                  placeholder="Email address"
                   type="email"
                   className="h-11 rounded-xl border-gray-200 bg-gray-50"
-                  value={createForm.email}
-                  onChange={(e) => setCreateForm((p) => ({ ...p, email: e.target.value }))}
+                  value={editForm.email}
+                  onChange={(e) => setEditForm((p) => p ? { ...p, email: e.target.value } : null)}
                 />
               </div>
+              {editForm.type === 'TEACHER' && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Title</label>
+                  <Input
+                    placeholder="e.g. Professor, Dr."
+                    className="h-11 rounded-xl border-gray-200 bg-gray-50"
+                    value={editForm.title}
+                    onChange={(e) => setEditForm((p) => p && p.type === 'TEACHER' ? { ...p, title: e.target.value } : p)}
+                  />
+                </div>
+              )}
+              {editError && <p className="text-xs text-red-500">{editError}</p>}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setEditForm(null)}
+                className="flex-1 h-11 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all"
+              >
+                Cancel
+              </button>
+              <Button
+                onClick={handleEdit}
+                disabled={editLoading}
+                className="flex-1 h-11 rounded-xl text-white font-semibold text-sm hover:opacity-90"
+                style={{ background: '#e85d04' }}
+              >
+                {editLoading ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
+      {/* ---- MODAL CREARE ---- */}
+      {createForm && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{ background: 'rgba(0,0,0,0.4)' }}
+          onClick={() => setCreateForm(null)}
+        >
+          <div
+            className="bg-white rounded-2xl p-8 w-full max-w-sm space-y-5"
+            style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
+              New User
+            </h2>
+            <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Password
-                </label>
-                <Input
-                  placeholder="Password"
-                  type="password"
-                  className="h-11 rounded-xl border-gray-200 bg-gray-50"
-                  value={createForm.password}
-                  onChange={(e) => setCreateForm((p) => ({ ...p, password: e.target.value }))}
-                />
-              </div>
-
-              {/* Selectare rol */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Role
-                </label>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</label>
                 <div className="grid grid-cols-2 gap-3">
                   {(['STUDENT', 'TEACHER'] as const).map((r) => (
                     <button
                       key={r}
                       type="button"
-                      onClick={() => setCreateForm((p) => ({ ...p, role: r }))}
+                      onClick={() => setCreateForm((p) => p ? { ...p, role: r } : null)}
                       className="h-11 rounded-xl border text-sm font-medium transition-all"
                       style={{
                         borderColor: createForm.role === r ? '#e85d04' : '#e5e7eb',
@@ -364,16 +495,40 @@ const AdminUsers = () => {
                   ))}
                 </div>
               </div>
-
-              {createError && (
-                <p className="text-xs text-red-500">{createError}</p>
-              )}
-
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Full Name</label>
+                <Input
+                  placeholder="Full name"
+                  className="h-11 rounded-xl border-gray-200 bg-gray-50"
+                  value={createForm.fullName}
+                  onChange={(e) => setCreateForm((p) => p ? { ...p, fullName: e.target.value } : null)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</label>
+                <Input
+                  type="email"
+                  placeholder="Email address"
+                  className="h-11 rounded-xl border-gray-200 bg-gray-50"
+                  value={createForm.email}
+                  onChange={(e) => setCreateForm((p) => p ? { ...p, email: e.target.value } : null)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Password</label>
+                <Input
+                  type="password"
+                  placeholder="Password"
+                  className="h-11 rounded-xl border-gray-200 bg-gray-50"
+                  value={createForm.password}
+                  onChange={(e) => setCreateForm((p) => p ? { ...p, password: e.target.value } : null)}
+                />
+              </div>
+              {createError && <p className="text-xs text-red-500">{createError}</p>}
             </div>
-
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-3">
               <button
-                onClick={() => setShowCreateModal(false)}
+                onClick={() => setCreateForm(null)}
                 className="flex-1 h-11 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all"
               >
                 Cancel
@@ -387,67 +542,61 @@ const AdminUsers = () => {
                 {createLoading ? 'Creating...' : 'Create User'}
               </Button>
             </div>
-
           </div>
         </div>
       )}
 
-      {/* ---- MODAL REDENUMIRE ---- */}
-      {renameForm && (
+      {/* ---- MODAL RESET PAROLA ---- */}
+      {resetForm && (
         <div
           className="fixed inset-0 flex items-center justify-center z-50"
           style={{ background: 'rgba(0,0,0,0.4)' }}
-          onClick={() => setRenameForm(null)}
+          onClick={() => setResetForm(null)}
         >
           <div
             className="bg-white rounded-2xl p-8 w-full max-w-sm space-y-5"
             style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2
-              className="text-2xl font-bold text-gray-900"
-              style={{ fontFamily: 'Outfit, sans-serif' }}
-            >
-              Rename User
+            <h2 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
+              Reset Password
             </h2>
-
+            <p className="text-sm text-gray-500">
+              Set a new password for{' '}
+              <span className="font-semibold text-gray-800">{resetForm.fullName}</span>.
+            </p>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                New Name
-              </label>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">New Password</label>
               <Input
+                type="password"
+                placeholder="New password"
                 className="h-11 rounded-xl border-gray-200 bg-gray-50"
-                value={renameForm.newName}
-                onChange={(e) => setRenameForm((p) => p ? { ...p, newName: e.target.value } : null)}
+                value={resetForm.newPassword}
+                onChange={(e) => setResetForm((p) => p ? { ...p, newPassword: e.target.value } : null)}
               />
             </div>
-
-            {renameError && (
-              <p className="text-xs text-red-500">{renameError}</p>
-            )}
-
+            {resetError && <p className="text-xs text-red-500">{resetError}</p>}
             <div className="flex gap-3">
               <button
-                onClick={() => setRenameForm(null)}
+                onClick={() => setResetForm(null)}
                 className="flex-1 h-11 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all"
               >
                 Cancel
               </button>
               <Button
-                onClick={handleRename}
-                disabled={renameLoading}
+                onClick={handleResetPassword}
+                disabled={resetLoading}
                 className="flex-1 h-11 rounded-xl text-white font-semibold text-sm hover:opacity-90"
-                style={{ background: '#e85d04' }}
+                style={{ background: '#0369a1' }}
               >
-                {renameLoading ? 'Saving...' : 'Save'}
+                {resetLoading ? 'Resetting...' : 'Reset Password'}
               </Button>
             </div>
-
           </div>
         </div>
       )}
 
-      {/* ---- MODAL CONFIRMARE STERGERE ---- */}
+      {/* ---- MODAL STERGERE ---- */}
       {deleteTarget && (
         <div
           className="fixed inset-0 flex items-center justify-center z-50"
@@ -459,10 +608,7 @@ const AdminUsers = () => {
             style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2
-              className="text-2xl font-bold text-gray-900"
-              style={{ fontFamily: 'Outfit, sans-serif' }}
-            >
+            <h2 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
               Delete User
             </h2>
             <p className="text-sm text-gray-500">
@@ -470,10 +616,10 @@ const AdminUsers = () => {
               <span className="font-semibold text-gray-800">{deleteTarget.fullName}</span>?
               This action cannot be undone.
             </p>
-
+            {deleteError && <p className="text-xs text-red-500">{deleteError}</p>}
             <div className="flex gap-3">
               <button
-                onClick={() => setDeleteTarget(null)}
+                onClick={() => { setDeleteTarget(null); setDeleteError(null); }}
                 className="flex-1 h-11 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all"
               >
                 Cancel
@@ -487,7 +633,6 @@ const AdminUsers = () => {
                 {deleteLoading ? 'Deleting...' : 'Delete'}
               </Button>
             </div>
-
           </div>
         </div>
       )}

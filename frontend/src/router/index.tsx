@@ -10,6 +10,10 @@ import StudentDashboard from '@/pages/student/StudentDashboard';
 import TeacherDashboard from '@/pages/teacher/TeacherDashboard';
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import AdminUsers from '@/pages/admin/AdminUsers';
+import ProfilePage from '@/pages/ProfilePage';
+import StudentProfile from '@/pages/profile/StudentProfile';
+import TeacherProfile from '@/pages/profile/TeacherProfile';
+import AdminProfile from '@/pages/profile/AdminProfile';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -90,6 +94,46 @@ const AppRouter = () => {
             <ProtectedRoute allowedRoles={['ADMIN']}>
               <AdminUsers />
           </ProtectedRoute>
+          }
+        />
+
+        {/* Router intermediar profil */}
+<Route
+  path="/profile"
+  element={
+    <ProtectedRoute>
+      <ProfilePage />
+    </ProtectedRoute>
+  }
+/>
+
+{/* Profil student */}
+<Route
+  path="/profile/student"
+  element={
+    <ProtectedRoute allowedRoles={['STUDENT']}>
+      <StudentProfile />
+    </ProtectedRoute>
+  }
+/>
+
+{/* Profil teacher */}
+<Route
+  path="/profile/teacher"
+  element={
+    <ProtectedRoute allowedRoles={['TEACHER']}>
+      <TeacherProfile />
+    </ProtectedRoute>
+  }
+/>
+
+{/* Profil admin */}
+<Route
+  path="/profile/admin"
+  element={
+    <ProtectedRoute allowedRoles={['ADMIN']}>
+      <AdminProfile />
+    </ProtectedRoute>
   }
 />
 
