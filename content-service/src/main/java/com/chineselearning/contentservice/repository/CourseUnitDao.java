@@ -55,6 +55,13 @@ public class CourseUnitDao implements ICourseUnitDao
         return jpaRepository.existsById(id);
     }
 
+    @Override
+    public List<CourseUnit> findByHskLevel(Integer hskLevel) {
+        return jpaRepository.findByHskLevelOrderByOrderIndexAsc(hskLevel).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
 
 
 

@@ -70,6 +70,29 @@ lesson_materials
 }
 ```
 
+### `CourseUnitFullDto`
+```json
+{
+  "id": 1,
+  "title": "string",
+  "description": "string",
+  "hskLevel": 1,
+  "orderIndex": 1,
+  "lessons": [
+    {
+      "id": 1,
+      "unitId": 1,
+      "title": "string",
+      "description": "string",
+      "xpReward": 100,
+      "orderIndex": 1,
+      "exercises": null
+    }
+  ]
+}
+```
+> `exercises` din interiorul fiecărui `LessonDto` este `null` în acest response. Pentru exercițiile unei lecții, folosește `GET /api/content/lessons/{id}`.
+
 ### `LessonDto`
 ```json
 {
@@ -82,7 +105,7 @@ lesson_materials
   "exercises": []
 }
 ```
-> Câmpul `exercises` este populat **doar** la `GET /api/content/lessons/{id}`. La listarea lecțiilor dintr-o unitate, `exercises` este `null`.
+> Câmpul `exercises` este populat **doar** la `GET /api/content/lessons/{id}`. În toate celelalte contexte, `exercises` este `null`.
 
 ### `ExerciseDto`
 ```json
@@ -116,6 +139,10 @@ lesson_materials
 
 #### `GET /api/content/units`
 - **Autorizare:** STUDENT, TEACHER, ADMIN
+- **Query params:** `hskLevel` (optional, Integer) — filtrează după nivel HSK
+- **Exemple:**
+    - `GET /api/content/units` — returnează toate unitățile
+    - `GET /api/content/units?hskLevel=2` — returnează doar unitățile de nivel HSK 2
 - **Response `200`:** listă de `CourseUnitDto` ordonată după `orderIndex`
 
 ---
@@ -124,6 +151,14 @@ lesson_materials
 - **Autorizare:** STUDENT, TEACHER, ADMIN
 - **Response `200`:** `CourseUnitDto`
 - **Response `404`:** unitatea nu există
+
+---
+
+#### `GET /api/content/units/{id}/full`
+- **Autorizare:** STUDENT, TEACHER, ADMIN
+- **Response `200`:** `CourseUnitFullDto` — unitatea cu lista de lecții inclusă
+- **Response `404`:** unitatea nu există
+> Util pentru ecranele de tip "detaliu unitate" care au nevoie de unitate + lecții într-un singur call.
 
 ---
 
@@ -302,6 +337,7 @@ lesson_materials
 |--------|---------------------------------------------|--------|---------|---------|-------|
 | GET    | /api/content/units                          |        | ✓       | ✓       | ✓     |
 | GET    | /api/content/units/{id}                     |        | ✓       | ✓       | ✓     |
+| GET    | /api/content/units/{id}/full                |        | ✓       | ✓       | ✓     |
 | POST   | /api/content/units                          |        |         |         | ✓     |
 | PUT    | /api/content/units/{id}                     |        |         |         | ✓     |
 | DELETE | /api/content/units/{id}                     |        |         |         | ✓     |
@@ -339,6 +375,7 @@ contentservice/
 │   │   └── ILessonMaterialDao.java
 │   └── dto/
 │       ├── CourseUnitDto.java
+│       ├── CourseUnitFullDto.java
 │       ├── LessonDto.java
 │       ├── ExerciseDto.java
 │       └── LessonMaterialDto.java

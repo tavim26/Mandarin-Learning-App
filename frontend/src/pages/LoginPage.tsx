@@ -34,11 +34,12 @@ const LoginPage = () => {
       setServerError(null);
       const response = await loginApi(data);
       setAuth({
-        token: response.token,
-        userId: response.userId,
-        role: response.role,
-        fullName: response.fullName,
-      });
+  token: response.token,
+  userId: response.userId,
+  role: response.role,
+  fullName: response.fullName,
+  email: data.email,
+});
       navigate('/dashboard');
     } catch {
       setServerError('Invalid email or password.');

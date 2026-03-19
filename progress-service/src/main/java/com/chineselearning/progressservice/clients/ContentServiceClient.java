@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.List;
+
 @Service
 public class ContentServiceClient implements IContentServicePort
 {
@@ -98,6 +100,44 @@ public class ContentServiceClient implements IContentServicePort
 
         } catch (Exception e) {
             log.error("Unexpected error fetching lesson: lessonId={}, error={}", lessonId, e.getMessage());
+            throw new IllegalStateException("Content-service indisponibil: " + e.getMessage());
+        }
+    }
+
+
+
+    @Override
+    public List<LessonResponseDto> getLessonsForUnit(Long unitId)
+    {
+        String url = contentServiceUrl + "/api/content/units/" + unitId + "/lessons";
+
+        try {
+            log.debug("Fetching lessons for unit from Content Service: unitId={}", unitId);
+
+            LessonResponseDto[] lessons = restTemplate.getForObject(url, LessonResponseDto[].class);
+
+            if (lessons == null)
+            {
+                return List.of();
+            }
+
+            log.debug("Lessons fetched for unitId={}, count={}", unitId, lessons.length);
+            return List.of(lessons);
+
+        } catch (HttpClientErrorException e) {
+
+            if (e.getStatusCode() == HttpStatus.NOT_FOUND)
+            {
+                throw new IllegalArgumentException("Unitatea nu exista in content-service: " + unitId);
+            }
+            log.error("HTTP error fetching lessons for unit: unitId={}, status={}", unitId, e.getStatusCode());
+            throw new IllegalStateException("Eroare la comunicarea cu content-service: " + e.getMessage());
+
+        } catch (IllegalArgumentException e) {
+            throw e;
+
+        } catch (Exception e) {
+            log.error("Unexpected error fetching lessons for unit: unitId={}, error={}", unitId, e.getMessage());
             throw new IllegalStateException("Content-service indisponibil: " + e.getMessage());
         }
     }

@@ -36,4 +36,14 @@ export interface AuthUser {
   userId: number;
   role: Role;
   fullName: string;
+  email: string;
+}
+
+export interface AuthState {
+  token: string | null;
+  userId: number | null;
+  role: Role | null;
+  fullName: string | null;
+  email: string | null;
+  isAuthenticated: boolean;
 }

@@ -20,4 +20,10 @@ public interface IStudentLessonProgressDao
 
     // Top 10 studenti dupa procentul de completare pentru o lectie specifica
     List<StudentLessonProgress> findTop10ByLessonIdOrderByCompletionPctDesc(Long lessonId);
+
+    // Numara inregistrarile cu un anumit status pentru un student
+    long countByStudentIdAndStatus(Long studentId, String status);
+
+    // Returneaza progresele unui student pentru o lista specifica de lectii
+    List<StudentLessonProgress> findByStudentIdAndLessonIdIn(Long studentId, List<Long> lessonIds);
 }

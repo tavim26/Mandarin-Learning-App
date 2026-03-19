@@ -10,10 +10,7 @@ import com.chineselearning.contentservice.domain.dao.IExerciseDao;
 import com.chineselearning.contentservice.domain.dao.ILessonDao;
 import com.chineselearning.contentservice.domain.dao.ILessonMaterialDao;
 
-import com.chineselearning.contentservice.domain.dto.CourseUnitDto;
-import com.chineselearning.contentservice.domain.dto.ExerciseDto;
-import com.chineselearning.contentservice.domain.dto.LessonDto;
-import com.chineselearning.contentservice.domain.dto.LessonMaterialDto;
+import com.chineselearning.contentservice.domain.dto.*;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,9 +37,11 @@ public class ContentService
 
     // COURSE UNITS
 
-    public List<CourseUnitDto> getAllCourseUnits()
-    {
-        List<CourseUnit> units = courseUnitDao.findAllByOrderByOrderIndexAsc();
+    public List<CourseUnitDto> getAllCourseUnits(Integer hskLevel) {
+        List<CourseUnit> units = (hskLevel != null)
+                ? courseUnitDao.findByHskLevel(hskLevel)
+                : courseUnitDao.findAllByOrderByOrderIndexAsc();
+
         return units.stream()
                 .map(this::mapUnitToDto)
                 .collect(Collectors.toList());
@@ -53,6 +52,24 @@ public class ContentService
         CourseUnit unit = courseUnitDao.findById(id)
                 .orElseThrow(() -> new RuntimeException("CourseUnit not found with id: " + id));
         return mapUnitToDto(unit);
+    }
+
+    public CourseUnitFullDto getCourseUnitFull(Long id) {
+        CourseUnit unit = courseUnitDao.findById(id)
+                .orElseThrow(() -> new RuntimeException("CourseUnit not found with id: " + id));
+
+        List<LessonDto> lessons = lessonDao.findByUnitIdOrderByOrderIndexAsc(id).stream()
+                .map(this::mapLessonToDto)
+                .collect(Collectors.toList());
+
+        return new CourseUnitFullDto(
+                unit.getId(),
+                unit.getTitle(),
+                unit.getDescription(),
+                unit.getHskLevel(),
+                unit.getOrderIndex(),
+                lessons
+        );
     }
 
     public CourseUnitDto createCourseUnit(CourseUnitDto dto)

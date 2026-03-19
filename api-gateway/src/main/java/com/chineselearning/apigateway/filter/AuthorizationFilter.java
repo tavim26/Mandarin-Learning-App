@@ -45,8 +45,7 @@ public class AuthorizationFilter extends OncePerRequestFilter {
             new RouteRule(HttpMethod.POST,   "/api/content/materials"),
             new RouteRule(HttpMethod.DELETE, "/api/content/materials/"),
             new RouteRule(HttpMethod.POST,   "/api/users"),
-            new RouteRule(HttpMethod.GET,    "/api/users"),
-            new RouteRule(HttpMethod.PUT,    "/api/users/"),
+            new RouteRule(HttpMethod.GET,    "/api/users/search"),
             new RouteRule(HttpMethod.DELETE, "/api/users/"),
             new RouteRule(HttpMethod.GET,    "/api/progress/students/admin/all")
     );
@@ -59,7 +58,11 @@ public class AuthorizationFilter extends OncePerRequestFilter {
             Pattern.compile("^/api/progress/attempts/student/(\\d+).*$"),
             Pattern.compile("^/api/analysis/student/(\\d+).*$"),
             Pattern.compile("^/api/users/students/(\\d+).*$"),
-            Pattern.compile("^/api/users/teachers/(\\d+).*$")
+            Pattern.compile("^/api/users/teachers/(\\d+).*$"),
+            // Operatii de profil — utilizatorul isi poate modifica propriile date
+            Pattern.compile("^/api/users/(\\d+)/name.*$"),
+            Pattern.compile("^/api/users/(\\d+)/email.*$"),
+            Pattern.compile("^/api/users/(\\d+)/password$")
     );
 
     @Override

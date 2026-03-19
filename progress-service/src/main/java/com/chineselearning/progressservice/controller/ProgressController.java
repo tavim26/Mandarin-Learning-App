@@ -1,8 +1,6 @@
 package com.chineselearning.progressservice.controller;
 
-import com.chineselearning.progressservice.domain.dto.ExerciseAttemptDto;
-import com.chineselearning.progressservice.domain.dto.StudentLessonProgressDto;
-import com.chineselearning.progressservice.domain.dto.SubmitAttemptRequest;
+import com.chineselearning.progressservice.domain.dto.*;
 
 import com.chineselearning.progressservice.service.ProgressService;
 
@@ -141,6 +139,54 @@ public class ProgressController
         List<StudentLessonProgressDto> leaderboard = progressService.getLessonLeaderboard(lessonId);
         return ResponseEntity.ok(leaderboard);
     }
+
+
+
+    @GetMapping("/students/{studentId}/summary")
+    @Operation(
+            summary = "Obtine rezumatul dashboard-ului unui student",
+            description = "Returneaza XP, nivel, numar de lectii completate si in progres intr-un singur apel."
+    )
+    public ResponseEntity<?> getStudentSummary(
+            @PathVariable Long studentId,
+            @RequestHeader("X-User-Id") Long authenticatedUserId,
+            @RequestHeader("X-User-Role") String role)
+    {
+        if (isForbidden(studentId, authenticatedUserId, role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Acces interzis");
+        }
+
+        StudentSummaryDto summary = progressService.getStudentSummary(studentId);
+        return ResponseEntity.ok(summary);
+    }
+
+
+
+    @GetMapping("/units/{unitId}/student/{studentId}/progress")
+    @Operation(
+            summary = "Obtine progresul unui student la o unitate",
+            description = "Returneaza numarul de lectii completate, in progres si neincepute dintr-o unitate, plus procentul de completare al unitatii."
+    )
+    public ResponseEntity<?> getUnitProgress(
+            @PathVariable Long unitId,
+            @PathVariable Long studentId,
+            @RequestHeader("X-User-Id") Long authenticatedUserId,
+            @RequestHeader("X-User-Role") String role)
+    {
+        if (isForbidden(studentId, authenticatedUserId, role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Acces interzis");
+        }
+
+        try {
+            StudentUnitProgressDto progress = progressService.getUnitProgress(studentId, unitId);
+            return ResponseEntity.ok(progress);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(e.getMessage());
+        }
+    }
+
 
     // STUDENT poate accesa doar propriile date; ADMIN poate accesa orice
     private boolean isForbidden(Long requestedStudentId, Long authenticatedUserId, String role)

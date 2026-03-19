@@ -23,6 +23,7 @@ Microserviciu responsabil pentru gestionarea tentativelor la exercitii, progresu
 |---|---|---|
 | `content-service` (8081) | `GET /api/content/exercises/{id}` | Obtine tipul si datele exercitiului pentru evaluare |
 | `content-service` (8081) | `GET /api/content/lessons/{id}` | Obtine lista exercitiilor si XP reward-ul lectiei |
+| `content-service` (8081) | `GET /api/content/units/{unitId}/lessons` | Obtine lista lectiilor dintr-o unitate pentru calculul progresului per unitate |
 
 `user-service` nu este apelat direct. `studentId` este preluat exclusiv din header-ul `X-User-Id` injectat de API Gateway.
 
@@ -75,6 +76,31 @@ exercise_attempts
   "level": 3
 }
 ```
+
+### `StudentSummaryDto`
+```json
+{
+  "studentId": 1,
+  "xpTotal": 250,
+  "level": 3,
+  "completedLessonsCount": 5,
+  "inProgressLessonsCount": 2
+}
+```
+
+### `StudentUnitProgressDto`
+```json
+{
+  "unitId": 1,
+  "studentId": 1,
+  "totalLessons": 5,
+  "completedLessons": 3,
+  "inProgressLessons": 1,
+  "notStartedLessons": 1,
+  "unitCompletionPct": 60.00
+}
+```
+> `unitCompletionPct` este calculat exclusiv pe baza lectiilor cu status `COMPLETED` din totalul lectiilor unitatii.
 
 ### `StudentLessonProgressDto`
 ```json
@@ -182,6 +208,24 @@ exercise_attempts
 
 ---
 
+#### `GET /api/progress/students/{studentId}/summary`
+- **Autorizare:** STUDENT (own), ADMIN
+- **Headers obligatorii:** `X-User-Id`, `X-User-Role`
+- **Response `200`:** `StudentSummaryDto` — XP, nivel, numar lectii completate si in progres intr-un singur apel
+- **Response `403`:** STUDENT incearca sa acceseze datele altui student
+
+---
+
+#### `GET /api/progress/units/{unitId}/student/{studentId}/progress`
+- **Autorizare:** STUDENT (own), ADMIN
+- **Headers obligatorii:** `X-User-Id`, `X-User-Role`
+- **Response `200`:** `StudentUnitProgressDto` — numar lectii completate, in progres, neincepute si procentul de completare al unitatii
+- **Response `400`:** unitatea nu exista in `content-service`
+- **Response `403`:** STUDENT incearca sa acceseze datele altui student
+- **Response `503`:** `content-service` indisponibil
+
+---
+
 ### Student XP & Nivel — `/api/progress/students`
 
 #### `GET /api/progress/students/leaderboard`
@@ -203,6 +247,7 @@ exercise_attempts
 - **Autorizare:** STUDENT (own), ADMIN
 - **Headers obligatorii:** `X-User-Id`, `X-User-Role`
 - **Response `200`:** `true` / `false`
+- **Response `403`:** STUDENT incearca sa acceseze datele altui student
 
 ---
 
@@ -224,6 +269,8 @@ exercise_attempts
 | GET | /api/progress/lessons/student/{studentId} | | own | | ✓ |
 | GET | /api/progress/lessons/student/{studentId}/in-progress | | own | | ✓ |
 | GET | /api/progress/lessons/{lessonId}/leaderboard | | ✓ | ✓ | ✓ |
+| GET | /api/progress/students/{studentId}/summary | | own | | ✓ |
+| GET | /api/progress/units/{unitId}/student/{studentId}/progress | | own | | ✓ |
 | GET | /api/progress/students/leaderboard | | ✓ | ✓ | ✓ |
 | GET | /api/progress/students/{studentId} | | own | | ✓ |
 | GET | /api/progress/students/{studentId}/exists | | own | | ✓ |
@@ -264,6 +311,8 @@ progressservice/
 │       ├── LessonResponseDto.java
 │       ├── StudentLessonProgressDto.java
 │       ├── StudentReplicaDto.java
+│       ├── StudentSummaryDto.java
+│       ├── StudentUnitProgressDto.java
 │       └── SubmitAttemptRequest.java
 ├── repository/
 │   ├── entities/

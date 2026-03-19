@@ -10,7 +10,7 @@ Microserviciu responsabil pentru gestionarea utilizatorilor, autentificare și a
 
 ## Tech Stack
 
-- Java 21, Spring Boot, Spring Security, Spring Data JPA
+- Java 17, Spring Boot, Spring Security, Spring Data JPA
 - PostgreSQL, jjwt, BCrypt
 
 ---
@@ -39,6 +39,8 @@ teachers
 ```
 
 **Relații:** `Credential` este agregatul root. `User` preia ID-ul din `Credential`. `Student` și `Teacher` preiau ID-ul din `User`. Un utilizator are fie `Student`, fie `Teacher`, fie niciunul (ADMIN).
+
+> **Ștergere:** se face întotdeauna prin `Credential` (agregatul root). CascadeType.ALL propagă ștergerea către `User` → `Student`/`Teacher`.
 
 ---
 
@@ -141,6 +143,9 @@ teachers
 #### `GET /api/users`
 - **Autorizare:** ADMIN only
 - **Response `200`:** listă de `UserDto`
+```json
+[{ "id": 1, "fullName": "string", "role": "STUDENT" }]
+```
 
 ---
 
@@ -162,10 +167,44 @@ teachers
 
 ---
 
+#### `PUT /api/users/{id}/email?newEmail={value}`
+- **Autorizare:** ADMIN, own
+- **Response `200`:** `UserDto` actualizat
+- **Response `400`:** email deja înregistrat
+- **Response `404`:** user inexistent
+
+---
+
+#### `PUT /api/users/{id}/password?oldPassword={value}&newPassword={value}`
+- **Autorizare:** ADMIN, own
+- **Notă:** necesită parola curentă pentru validare
+- **Response `204`:** succes
+- **Response `400`:** parola veche incorectă
+- **Response `404`:** user inexistent
+
+---
+
+#### `PUT /api/users/{id}/password/reset?newPassword={value}`
+- **Autorizare:** ADMIN only
+- **Notă:** resetare parolă fără verificarea parolei vechi
+- **Response `204`:** succes
+- **Response `404`:** user inexistent
+
+---
+
 #### `DELETE /api/users/{id}`
 - **Autorizare:** ADMIN only
 - **Response `204`** / `404`
-- Cascade delete: șterge și înregistrările din `students`/`teachers`
+- Cascade delete: șterge `User`, `Student`/`Teacher` asociat
+
+---
+
+#### `GET /api/users/students`
+- **Autorizare:** ADMIN only
+- **Response `200`:** listă profil complet studenți
+```json
+[{ "userId": 1, "fullName": "string", "role": "STUDENT", "nickname": "string", "email": "string" }]
+```
 
 ---
 
@@ -173,10 +212,7 @@ teachers
 - **Autorizare:** ADMIN, STUDENT (own)
 - **Response `200`:**
 ```json
-{
-  "userId": 1,
-  "nickname": "string"
-}
+{ "userId": 1, "nickname": "string" }
 ```
 
 ---
@@ -187,14 +223,20 @@ teachers
 
 ---
 
+#### `GET /api/users/teachers`
+- **Autorizare:** ADMIN only
+- **Response `200`:** listă profil complet profesori
+```json
+[{ "userId": 1, "fullName": "string", "role": "TEACHER", "title": "string", "email": "string" }]
+```
+
+---
+
 #### `GET /api/users/teachers/{userId}`
 - **Autorizare:** ADMIN, TEACHER (own)
 - **Response `200`:**
 ```json
-{
-  "userId": 1,
-  "title": "string"
-}
+{ "userId": 1, "title": "string" }
 ```
 
 ---
@@ -216,9 +258,14 @@ teachers
 | GET    | /api/users/{id}                         |        |         |         | ✓     |
 | GET    | /api/users/search                       |        |         |         | ✓     |
 | PUT    | /api/users/{id}/name                    |        |         |         | ✓     |
+| PUT    | /api/users/{id}/email                   |        | own     | own     | ✓     |
+| PUT    | /api/users/{id}/password                |        | own     | own     | ✓     |
+| PUT    | /api/users/{id}/password/reset          |        |         |         | ✓     |
 | DELETE | /api/users/{id}                         |        |         |         | ✓     |
+| GET    | /api/users/students                     |        |         |         | ✓     |
 | GET    | /api/users/students/{userId}            |        | own     |         | ✓     |
 | PUT    | /api/users/students/{userId}/nickname   |        | own     |         | ✓     |
+| GET    | /api/users/teachers                     |        |         |         | ✓     |
 | GET    | /api/users/teachers/{userId}            |        |         | own     | ✓     |
 | PUT    | /api/users/teachers/{userId}/title      |        |         | own     | ✓     |
 
@@ -231,16 +278,17 @@ teachers
 ```
 userservice/
 ├── domain/
-│   ├── Credential.java         (agregat root)
+│   ├── Credential.java             (agregat root)
 │   ├── User.java
 │   ├── Student.java
 │   ├── Teacher.java
-│   ├── dao/                    (interfețe DAO — fără dependențe Spring)
-│   └── dto/                    (Auth, Register, User, Student, Teacher DTOs)
+│   ├── dao/                        (interfețe DAO — fără dependențe Spring)
+│   └── dto/                        (Auth, Register, User, Student, Teacher,
+│                                    StudentProfile, TeacherProfile DTOs)
 ├── repository/
-│   ├── entities/               (CredentialEntity, UserEntity, StudentEntity, TeacherEntity)
-│   ├── jpa/                    (interfețe JpaRepository)
-│   └── *Dao.java               (implementări DAO cu toEntity() / toDomain())
+│   ├── entities/                   (CredentialEntity, UserEntity, StudentEntity, TeacherEntity)
+│   ├── jpa/                        (interfețe JpaRepository)
+│   └── *Dao.java                   (implementări DAO cu toEntity() / toDomain())
 ├── service/
 │   ├── AuthService.java
 │   ├── UserService.java
@@ -250,5 +298,5 @@ userservice/
 │   ├── AuthController.java
 │   └── UserController.java
 └── config/
-    └── SecurityConfig.java     (anyRequest().permitAll() — autorizarea e în API Gateway)
+    └── SecurityConfig.java         (anyRequest().permitAll() — autorizarea e în API Gateway)
 ```

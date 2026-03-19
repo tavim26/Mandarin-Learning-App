@@ -1,9 +1,6 @@
 package com.chineselearning.contentservice.controller;
 
-import com.chineselearning.contentservice.domain.dto.CourseUnitDto;
-import com.chineselearning.contentservice.domain.dto.ExerciseDto;
-import com.chineselearning.contentservice.domain.dto.LessonDto;
-import com.chineselearning.contentservice.domain.dto.LessonMaterialDto;
+import com.chineselearning.contentservice.domain.dto.*;
 
 import com.chineselearning.contentservice.service.ContentService;
 
@@ -30,10 +27,11 @@ public class ContentController {
 
     // 1. COURSE UNITS
 
-    @Operation(summary = "Obtine toate unitatile", description = "Returneaza o lista cu toate unitatile de curs ordonate dupa index.")
+    @Operation(summary = "Obtine toate unitatile", description = "Returneaza unitatile de curs, optional filtrate dupa nivelul HSK.")
     @GetMapping("/units")
-    public ResponseEntity<List<CourseUnitDto>> getAllUnits() {
-        return ResponseEntity.ok(contentService.getAllCourseUnits());
+    public ResponseEntity<List<CourseUnitDto>> getAllUnits(
+            @RequestParam(required = false) Integer hskLevel) {
+        return ResponseEntity.ok(contentService.getAllCourseUnits(hskLevel));
     }
 
     @Operation(summary = "Gaseste o unitate", description = "Returneaza detaliile unei unitati pe baza ID-ului.")
@@ -41,6 +39,16 @@ public class ContentController {
     public ResponseEntity<CourseUnitDto> getUnit(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(contentService.getCourseUnit(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @Operation(summary = "Unitate completa cu lectii", description = "Returneaza unitatea cu toate lectiile asociate.")
+    @GetMapping("/units/{id}/full")
+    public ResponseEntity<CourseUnitFullDto> getUnitFull(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(contentService.getCourseUnitFull(id));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }

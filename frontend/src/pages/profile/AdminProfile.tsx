@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
 const AdminProfile = () => {
-  const { userId, fullName, role, setAuth, token } = useAuthStore();
+  const { userId, fullName, role, email, setAuth, token } = useAuthStore();
 
   // Sectiunea de informatii generale
   const [nameValue, setNameValue] = useState(fullName ?? '');
@@ -21,6 +21,7 @@ const AdminProfile = () => {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [showOldPassword, setShowOldPassword] = useState(false);
 
   const handleUpdateInfo = async () => {
     if (!userId) return;
@@ -39,15 +40,16 @@ const AdminProfile = () => {
         await updateUserEmail(userId, emailValue);
       }
 
-      // Actualizeaza store-ul cu noul nume
-      if (token && role) {
-        setAuth({
-          token,
-          userId,
-          role,
-          fullName: nameValue,
-        });
-      }
+     // Actualizeaza store-ul cu noul nume si emailul curent
+if (token && role && userId) {
+  setAuth({
+    token,
+    userId,
+    role,
+    fullName: nameValue,
+    email: emailValue.trim() !== '' ? emailValue : (email ?? ''),
+  });
+}
 
       setInfoSuccess(true);
       setEmailValue('');
@@ -152,19 +154,31 @@ const AdminProfile = () => {
             />
           </div>
 
-          {/* Camp email nou */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              New Email Address
-            </label>
-            <Input
-              type="email"
-              placeholder="Leave blank to keep current email"
-              className="h-11 rounded-xl border-gray-200 bg-gray-50"
-              value={emailValue}
-              onChange={(e) => setEmailValue(e.target.value)}
-            />
-          </div>
+          {/* Email curent — doar afisare */}
+<div className="space-y-1.5">
+  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+    Current Email Address
+  </label>
+  <Input
+    className="h-11 rounded-xl border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed"
+    value={email ?? ''}
+    readOnly
+  />
+</div>
+
+{/* Email nou — editabil */}
+<div className="space-y-1.5">
+  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+    New Email Address
+  </label>
+  <Input
+    type="email"
+    placeholder="Leave blank to keep current email"
+    className="h-11 rounded-xl border-gray-200 bg-gray-50"
+    value={emailValue}
+    onChange={(e) => setEmailValue(e.target.value)}
+  />
+</div>
 
           {infoError && <p className="text-xs text-red-500">{infoError}</p>}
           {infoSuccess && (
@@ -196,19 +210,28 @@ const AdminProfile = () => {
           Change Password
         </h2>
 
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Current Password
-            </label>
-            <Input
-              type="password"
-              placeholder="Current password"
-              className="h-11 rounded-xl border-gray-200 bg-gray-50"
-              value={oldPassword}
-              onChange={(e) => setOldPassword(e.target.value)}
-            />
-          </div>
+        <div className="space-y-1.5">
+  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+    Current Password
+  </label>
+  <div className="relative">
+    <Input
+      type={showOldPassword ? 'text' : 'password'}
+      placeholder="Current password"
+      className="h-11 rounded-xl border-gray-200 bg-gray-50 pr-12"
+      value={oldPassword}
+      onChange={(e) => setOldPassword(e.target.value)}
+    />
+    <button
+      type="button"
+      onClick={() => setShowOldPassword((prev) => !prev)}
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium"
+      style={{ color: '#9ca3af' }}
+    >
+      {showOldPassword ? 'Hide' : 'Show'}
+    </button>
+  </div>
+
 
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">

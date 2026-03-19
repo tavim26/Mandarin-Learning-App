@@ -1,5 +1,6 @@
 package com.chineselearning.progressservice.service;
 
+import com.chineselearning.progressservice.domain.dto.*;
 import com.chineselearning.progressservice.domain.ports.IContentServicePort;
 
 import com.chineselearning.progressservice.domain.ExerciseAttempt;
@@ -9,13 +10,6 @@ import com.chineselearning.progressservice.domain.StudentReplica;
 import com.chineselearning.progressservice.domain.dao.IExerciseAttemptDao;
 import com.chineselearning.progressservice.domain.dao.IStudentLessonProgressDao;
 import com.chineselearning.progressservice.domain.dao.IStudentReplicaDao;
-
-import com.chineselearning.progressservice.domain.dto.EvaluationResultDto;
-import com.chineselearning.progressservice.domain.dto.ExerciseAttemptDto;
-import com.chineselearning.progressservice.domain.dto.ExerciseResponseDto;
-import com.chineselearning.progressservice.domain.dto.LessonResponseDto;
-import com.chineselearning.progressservice.domain.dto.StudentLessonProgressDto;
-import com.chineselearning.progressservice.domain.dto.SubmitAttemptRequest;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -138,6 +132,63 @@ public class ProgressService
                 .stream()
                 .map(this::mapToExerciseAttemptDto)
                 .collect(Collectors.toList());
+    }
+
+
+    @Transactional(readOnly = true)
+    public StudentSummaryDto getStudentSummary(Long studentId)
+    {
+        StudentReplica replica = studentReplicaDao.findById(studentId)
+                .orElse(new StudentReplica(studentId)); // student fara tentative inca
+
+        long completed = lessonProgressDao.countByStudentIdAndStatus(studentId, "COMPLETED");
+        long inProgress = lessonProgressDao.countByStudentIdAndStatus(studentId, "IN_PROGRESS");
+
+        return new StudentSummaryDto(
+                studentId,
+                replica.getXpTotal(),
+                replica.getLevel(),
+                completed,
+                inProgress
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public StudentUnitProgressDto getUnitProgress(Long studentId, Long unitId)
+    {
+        List<LessonResponseDto> lessons = contentServicePort.getLessonsForUnit(unitId);
+
+        if (lessons.isEmpty())
+        {
+            return new StudentUnitProgressDto(unitId, studentId, 0, 0, 0, 0, BigDecimal.ZERO);
+        }
+
+        List<Long> lessonIds = lessons.stream()
+                .map(LessonResponseDto::getId)
+                .collect(Collectors.toList());
+
+        // Incarca doar progresele existente — lectiile fara inregistrare sunt implicit NOT_STARTED
+        List<StudentLessonProgress> existingProgresses =
+                lessonProgressDao.findByStudentIdAndLessonIdIn(studentId, lessonIds);
+
+        long completed = existingProgresses.stream()
+                .filter(p -> "COMPLETED".equals(p.getStatus()))
+                .count();
+
+        long inProgress = existingProgresses.stream()
+                .filter(p -> "IN_PROGRESS".equals(p.getStatus()))
+                .count();
+
+        long notStarted = lessons.size() - completed - inProgress;
+
+        BigDecimal unitCompletionPct = BigDecimal.valueOf((completed * 100.0) / lessons.size())
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+
+        return new StudentUnitProgressDto(
+                unitId, studentId, lessons.size(),
+                completed, inProgress, notStarted,
+                unitCompletionPct
+        );
     }
 
 

@@ -20,4 +20,8 @@ public interface StudentLessonProgressJpaRepository extends JpaRepository<Studen
 
     // Top 10 studenti dupa procentul de completare pentru o lectie specifica
     List<StudentLessonProgressEntity> findTop10ByLessonIdOrderByCompletionPctDesc(Long lessonId);
+
+    long countByStudentIdAndStatus(Long studentId, String status);
+
+    List<StudentLessonProgressEntity> findByStudentIdAndLessonIdIn(Long studentId, List<Long> lessonIds);
 }

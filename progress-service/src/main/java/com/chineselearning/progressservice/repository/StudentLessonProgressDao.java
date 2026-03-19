@@ -57,6 +57,22 @@ public class StudentLessonProgressDao implements IStudentLessonProgressDao {
     }
 
 
+    @Override
+    public long countByStudentIdAndStatus(Long studentId, String status)
+    {
+        return jpaRepository.countByStudentIdAndStatus(studentId, status);
+    }
+
+
+    @Override
+    public List<StudentLessonProgress> findByStudentIdAndLessonIdIn(Long studentId, List<Long> lessonIds)
+    {
+        return jpaRepository.findByStudentIdAndLessonIdIn(studentId, lessonIds)
+                .stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
 
 
     private StudentLessonProgressEntity toEntity(StudentLessonProgress domain) {

@@ -8,4 +8,6 @@ import java.util.List;
 public interface CourseUnitJpaRepository extends JpaRepository<CourseUnitEntity, Long> {
 
     List<CourseUnitEntity> findAllByOrderByOrderIndexAsc();
+
+    List<CourseUnitEntity> findByHskLevelOrderByOrderIndexAsc(Integer hskLevel);
 }
