@@ -10,5 +10,11 @@ public interface IChatMessageDao
 
     List<ChatMessage> findBySessionIdOrderByCreatedAtAsc(Long sessionId);
 
+    List<ChatMessage> findBySessionIdOrderByCreatedAtAsc(Long sessionId, int page, int size);
+
     List<ChatMessage> findRecentBySessionId(Long sessionId, int limit);
+
+    int countBySessionId(Long sessionId);
+
+    long countTotalBySessionId(Long sessionId);
 }

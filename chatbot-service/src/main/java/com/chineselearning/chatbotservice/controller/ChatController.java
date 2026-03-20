@@ -72,6 +72,42 @@ public class ChatController
     }
 
 
+    @GetMapping("/sessions/paged")
+    public ResponseEntity<PagedResponse<ChatSessionDto>> getSessionsByStudentPaged(
+            @RequestHeader("X-User-Id") Long requestingStudentId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size)
+    {
+        return ResponseEntity.ok(chatService.getSessionsByStudentPaged(requestingStudentId, page, size));
+    }
+
+    @GetMapping("/sessions/{sessionId}/messages/paged")
+    public ResponseEntity<PagedResponse<ChatMessageDto>> getMessagesPaged(
+            @PathVariable Long sessionId,
+            @RequestHeader("X-User-Id") Long requestingStudentId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) throws AccessDeniedException {
+        return ResponseEntity.ok(chatService.getMessagesPaged(sessionId, requestingStudentId, page, size));
+    }
+
+
+    @PatchMapping("/sessions/{sessionId}/rename")
+    public ResponseEntity<ChatSessionDto> renameSession(
+            @PathVariable Long sessionId,
+            @RequestHeader("X-User-Id") Long requestingStudentId,
+            @RequestParam String newTitle) throws AccessDeniedException {
+        return ResponseEntity.ok(chatService.renameSession(sessionId, requestingStudentId, newTitle));
+    }
+
+    @DeleteMapping("/sessions/{sessionId}")
+    public ResponseEntity<Void> deleteSession(
+            @PathVariable Long sessionId,
+            @RequestHeader("X-User-Id") Long requestingStudentId) throws AccessDeniedException {
+        chatService.deleteSession(sessionId, requestingStudentId);
+        return ResponseEntity.noContent().build();
+    }
+
+
     // EXCEPTION HANDLERS
 
     @ExceptionHandler(EntityNotFoundException.class)

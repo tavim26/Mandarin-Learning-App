@@ -14,4 +14,12 @@ public interface IChatSessionDao
     boolean existsById(Long id);
 
     List<ChatSession> findByStudentIdOrderByStartedAtDesc(Long studentId);
+
+    List<ChatSession> findByStudentIdOrderByStartedAtDesc(Long studentId, int page, int size);
+
+    long countByStudentId(Long studentId);
+
+    void deleteById(Long id);
+
+    boolean existsByIdAndStudentId(Long id, Long studentId);
 }

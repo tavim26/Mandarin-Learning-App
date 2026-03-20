@@ -5,6 +5,8 @@ import com.chineselearning.chatbotservice.domain.dao.IChatSessionDao;
 
 import com.chineselearning.chatbotservice.repository.entities.ChatSessionEntity;
 import com.chineselearning.chatbotservice.repository.jpa.ChatSessionJpaRepository;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -46,6 +48,35 @@ public class ChatSessionDao implements IChatSessionDao
                 .stream()
                 .map(this::toDomain)
                 .toList();
+    }
+
+
+    @Override
+    public List<ChatSession> findByStudentIdOrderByStartedAtDesc(Long studentId, int page, int size)
+    {
+        Pageable pageable = PageRequest.of(page, size);
+        return jpaRepository.findByStudentIdOrderByStartedAtDesc(studentId, pageable)
+                .stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
+    public long countByStudentId(Long studentId)
+    {
+        return jpaRepository.countByStudentId(studentId);
+    }
+
+    @Override
+    public void deleteById(Long id)
+    {
+        jpaRepository.deleteById(id);
+    }
+
+    @Override
+    public boolean existsByIdAndStudentId(Long id, Long studentId)
+    {
+        return jpaRepository.existsByIdAndStudentId(id, studentId);
     }
 
 

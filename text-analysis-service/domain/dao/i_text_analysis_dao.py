@@ -18,5 +18,11 @@ class ITextAnalysisDao(ABC):
         pass
 
     @abstractmethod
+    def find_page_by_student_id(
+        self, student_id: int, offset: int, limit: int
+    ) -> tuple[list[TextAnalysis], int]:
+        pass
+
+    @abstractmethod
     def delete(self, analysis: TextAnalysis) -> None:
         pass

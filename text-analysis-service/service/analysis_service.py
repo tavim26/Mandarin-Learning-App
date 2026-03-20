@@ -11,6 +11,7 @@ from domain.dao.i_text_analysis_dao import ITextAnalysisDao
 from domain.dto.analysis_token_dto import AnalysisTokenDto
 from domain.dto.analyze_request_dto import AnalyzeTextRequestDto
 from domain.dto.text_analysis_dto import TextAnalysisDto
+from domain.dto.text_analysis_summary_dto import TextAnalysisSummaryDto
 
 from service.nlp_service import NlpService
 from service.ocr_service import OcrService
@@ -89,6 +90,22 @@ class AnalysisService:
         self._text_analysis_dao.delete(analysis)
         return True
 
+    def get_analyses_by_student_paginated(
+            self, student_id: int, page: int, size: int
+    ) -> dict:
+        offset = (page - 1) * size
+        analyses, total = self._text_analysis_dao.find_page_by_student_id(
+            student_id, offset, size
+        )
+        total_pages = (total + size - 1) // size
+
+        return {
+            "items": [self._to_summary_dto(a) for a in analyses],
+            "total": total,
+            "page": page,
+            "size": size,
+            "total_pages": total_pages,
+        }
 
 
 
@@ -157,6 +174,7 @@ class AnalysisService:
 
 
 
+
     def _to_dto(self, analysis: TextAnalysis) -> TextAnalysisDto:
         return TextAnalysisDto(
             id=analysis.id,
@@ -179,4 +197,17 @@ class AnalysisService:
                 )
                 for t in analysis.tokens
             ]
+        )
+
+    def _to_summary_dto(self, analysis: TextAnalysis) -> TextAnalysisSummaryDto:
+        from domain.dto.text_analysis_summary_dto import TextAnalysisSummaryDto
+        return TextAnalysisSummaryDto(
+            id=analysis.id,
+            student_id=analysis.student_id,
+            raw_text=analysis.raw_text,
+            source_type=analysis.source_type,
+            overall_hsk_level=analysis.overall_hsk_level,
+            created_at=analysis.created_at,
+            translated_text=analysis.translated_text,
+            translation_language=analysis.translation_language,
         )

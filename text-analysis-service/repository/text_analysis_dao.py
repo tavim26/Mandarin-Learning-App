@@ -59,6 +59,27 @@ class TextAnalysisDao(ITextAnalysisDao):
             self.db.rollback()
             raise
 
+    def find_page_by_student_id(
+            self, student_id: int, offset: int, limit: int
+    ) -> tuple[list[TextAnalysis], int]:
+        base_query = (
+            self.db.query(TextAnalysisEntity)
+            .filter(TextAnalysisEntity.student_id == student_id)
+        )
+
+        total = base_query.count()
+
+        entities = (
+            base_query
+            # tokenii NU sunt incarcati la listare — doar la GET /{analysis_id}
+            .order_by(TextAnalysisEntity.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
+
+        return [self._to_domain(e) for e in entities], total
+
 
 
 

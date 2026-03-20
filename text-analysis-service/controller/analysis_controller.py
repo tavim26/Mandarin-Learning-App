@@ -7,6 +7,10 @@ from service.analysis_service import AnalysisService
 from service.ocr_service import OcrException
 from service.translation_service import TranslationException
 
+from fastapi import Query
+from domain.dto.text_analysis_summary_dto import TextAnalysisSummaryDto
+from domain.dto.page_dto import PageDto
+
 from utils.dependencies import get_analysis_service
 
 router = APIRouter(prefix="/api/analysis", tags=["analysis"])
@@ -101,3 +105,16 @@ def delete_analysis(
     # ownership-ul se verifica inainte de stergere
     _verify_student_access(x_user_id, x_user_role, analysis.student_id)
     service.delete_analysis(analysis_id)
+
+
+@router.get("/student/{student_id}", response_model=PageDto)
+def get_analyses_by_student(
+    student_id: int,
+    x_user_id: int = Header(..., alias="X-User-Id"),
+    x_user_role: str = Header(..., alias="X-User-Role"),
+    page: int = Query(default=1, ge=1),
+    size: int = Query(default=20, ge=1, le=100),
+    service: AnalysisService = Depends(get_analysis_service),
+):
+    _verify_student_access(x_user_id, x_user_role, student_id)
+    return service.get_analyses_by_student_paginated(student_id, page, size)

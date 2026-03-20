@@ -10,6 +10,8 @@ public class ChatSessionDto
     private String title;
     private LocalDateTime startedAt;
     private LocalDateTime endedAt;
+    private String lastMessagePreview;
+    private int messageCount;
 
     public ChatSessionDto() {}
 
@@ -27,4 +29,10 @@ public class ChatSessionDto
 
     public LocalDateTime getEndedAt() { return endedAt; }
     public void setEndedAt(LocalDateTime endedAt) { this.endedAt = endedAt; }
+
+    public String getLastMessagePreview() { return lastMessagePreview; }
+    public void setLastMessagePreview(String lastMessagePreview) { this.lastMessagePreview = lastMessagePreview; }
+
+    public int getMessageCount() { return messageCount; }
+    public void setMessageCount(int messageCount) { this.messageCount = messageCount; }
 }

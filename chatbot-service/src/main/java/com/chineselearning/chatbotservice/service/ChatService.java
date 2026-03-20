@@ -58,7 +58,7 @@ public class ChatService
     {
         return chatSessionDao.findByStudentIdOrderByStartedAtDesc(requestingStudentId)
                 .stream()
-                .map(this::mapSessionToDto)
+                .map(session -> enrichSessionDto(mapSessionToDto(session)))
                 .toList();
     }
 
@@ -104,9 +104,16 @@ public class ChatService
         userMessage.setSender("STUDENT");
         userMessage.setContent(request.getContent());
         userMessage.setCreatedAt(LocalDateTime.now());
-
-        // capturam entitatea returnata pentru a obtine ID-ul generat
         userMessage = chatMessageDao.save(userMessage);
+
+        // daca sesiunea nu are titlu si acesta este primul mesaj, genereaza titlul automat
+        if (session.getTitle() == null && chatMessageDao.countBySessionId(sessionId) == 1)
+        {
+            String content = request.getContent();
+            String autoTitle = content.length() > 40 ? content.substring(0, 40) + "..." : content;
+            session.setTitle(autoTitle);
+            chatSessionDao.save(session);
+        }
 
         List<AiService.ContextMessage> context = buildContextWindow(sessionId, userMessage.getId());
 
@@ -162,6 +169,93 @@ public class ChatService
 
         Collections.reverse(ordered);
         return ordered;
+    }
+
+
+    // Populeaza preview-ul ultimului mesaj si numarul total de mesaje pentru afisarea in sidebar
+    private ChatSessionDto enrichSessionDto(ChatSessionDto dto)
+    {
+        int count = chatMessageDao.countBySessionId(dto.getId());
+        dto.setMessageCount(count);
+
+        if (count > 0)
+        {
+            List<ChatMessage> lastMessage = chatMessageDao.findRecentBySessionId(dto.getId(), 1);
+            if (!lastMessage.isEmpty())
+            {
+                String content = lastMessage.get(0).getContent();
+                // trunchiem la 60 de caractere pentru afisare in sidebar
+                String preview = content.length() > 60 ? content.substring(0, 60) + "..." : content;
+                dto.setLastMessagePreview(preview);
+            }
+        }
+
+        return dto;
+    }
+
+
+
+
+    @Transactional(readOnly = true)
+    public PagedResponse<ChatSessionDto> getSessionsByStudentPaged(Long requestingStudentId, int page, int size)
+    {
+        List<ChatSessionDto> content = chatSessionDao
+                .findByStudentIdOrderByStartedAtDesc(requestingStudentId, page, size)
+                .stream()
+                .map(session -> enrichSessionDto(mapSessionToDto(session)))
+                .toList();
+
+        long total = chatSessionDao.countByStudentId(requestingStudentId);
+        return new PagedResponse<>(content, page, size, total);
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<ChatMessageDto> getMessagesPaged(Long sessionId, Long requestingStudentId, int page, int size) throws AccessDeniedException {
+        ChatSession session = chatSessionDao.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException("Sesiunea cu id " + sessionId + " nu exista."));
+
+        if (!session.getStudentId().equals(requestingStudentId))
+        {
+            throw new AccessDeniedException("Nu aveti permisiunea de a accesa aceasta sesiune.");
+        }
+
+        List<ChatMessageDto> content = chatMessageDao
+                .findBySessionIdOrderByCreatedAtAsc(sessionId, page, size)
+                .stream()
+                .map(this::mapMessageToDto)
+                .toList();
+
+        long total = chatMessageDao.countTotalBySessionId(sessionId);
+        return new PagedResponse<>(content, page, size, total);
+    }
+
+    @Transactional
+    public ChatSessionDto renameSession(Long sessionId, Long requestingStudentId, String newTitle) throws AccessDeniedException {
+        ChatSession session = chatSessionDao.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException("Sesiunea cu id " + sessionId + " nu exista."));
+
+        if (!session.getStudentId().equals(requestingStudentId))
+        {
+            throw new AccessDeniedException("Nu aveti permisiunea de a modifica aceasta sesiune.");
+        }
+
+        session.setTitle(newTitle);
+        return mapSessionToDto(chatSessionDao.save(session));
+    }
+
+    @Transactional
+    public void deleteSession(Long sessionId, Long requestingStudentId) throws AccessDeniedException {
+        if (!chatSessionDao.existsByIdAndStudentId(sessionId, requestingStudentId))
+        {
+            // daca sesiunea nu exista deloc, 404; daca exista dar apartine altui student, 403
+            if (!chatSessionDao.existsById(sessionId))
+            {
+                throw new EntityNotFoundException("Sesiunea cu id " + sessionId + " nu exista.");
+            }
+            throw new AccessDeniedException("Nu aveti permisiunea de a sterge aceasta sesiune.");
+        }
+
+        chatSessionDao.deleteById(sessionId);
     }
 
 
