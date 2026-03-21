@@ -1,15 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Header
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Header, Query
 
 from domain.dto.analyze_request_dto import AnalyzeTextRequestDto
 from domain.dto.text_analysis_dto import TextAnalysisDto
+from domain.dto.page_dto import PageDto
+from domain.dto.student_stats_dto import StudentStatsDto as StudentStatsDtoResponse
 
 from service.analysis_service import AnalysisService
 from service.ocr_service import OcrException
 from service.translation_service import TranslationException
-
-from fastapi import Query
-from domain.dto.text_analysis_summary_dto import TextAnalysisSummaryDto
-from domain.dto.page_dto import PageDto
 
 from utils.dependencies import get_analysis_service
 
@@ -28,6 +26,8 @@ def _verify_student_access(x_user_id: int, x_user_role: str, target_student_id: 
             detail="Acces interzis: nu poti accesa resursele altui student"
         )
 
+
+# --- endpoints POST ---
 
 @router.post("/text", response_model=TextAnalysisDto, status_code=201)
 def analyze_text(
@@ -64,16 +64,45 @@ async def analyze_image(
         raise HTTPException(status_code=503, detail=str(e))
 
 
-@router.get("/student/{student_id}", response_model=list[TextAnalysisDto])
-def get_analyses_by_student(
+# --- endpoints GET cu path /student/... ---
+# IMPORTANT: toate rutele /student/... trebuie declarate INAINTEA rutei /{analysis_id}
+# altfel FastAPI ar putea interpreta "student" ca valoare pentru analysis_id
+
+@router.get("/student/{student_id}/stats", response_model=StudentStatsDtoResponse)
+def get_student_stats(
     student_id: int,
     x_user_id: int = Header(..., alias="X-User-Id"),
     x_user_role: str = Header(..., alias="X-User-Role"),
     service: AnalysisService = Depends(get_analysis_service),
 ):
     _verify_student_access(x_user_id, x_user_role, student_id)
-    return service.get_analyses_by_student(student_id)
+    return service.get_student_stats(student_id)
 
+
+@router.get("/student/{student_id}", response_model=PageDto)
+def get_analyses_by_student(
+    student_id: int,
+    x_user_id: int = Header(..., alias="X-User-Id"),
+    x_user_role: str = Header(..., alias="X-User-Role"),
+    page: int = Query(default=1, ge=1),
+    size: int = Query(default=20, ge=1, le=100),
+    source_type: str | None = Query(default=None, pattern="^(MANUAL|OCR)$"),
+    hsk_level: int | None = Query(default=None, ge=1, le=6),
+    sort_order: str = Query(default="newest", pattern="^(newest|oldest)$"),
+    service: AnalysisService = Depends(get_analysis_service),
+):
+    _verify_student_access(x_user_id, x_user_role, student_id)
+    return service.get_analyses_by_student_paginated(
+        student_id=student_id,
+        page=page,
+        size=size,
+        source_type=source_type,
+        hsk_level=hsk_level,
+        sort_order=sort_order,
+    )
+
+
+# --- endpoints GET/DELETE cu path /{analysis_id} ---
 
 @router.get("/{analysis_id}", response_model=TextAnalysisDto)
 def get_analysis_by_id(
@@ -85,7 +114,6 @@ def get_analysis_by_id(
     result = service.get_analysis_by_id(analysis_id)
     if result is None:
         raise HTTPException(status_code=404, detail="Analiza nu a fost gasita")
-
     # ownership-ul se verifica dupa ce obtinem analiza si cunoastem student_id-ul real
     _verify_student_access(x_user_id, x_user_role, result.student_id)
     return result
@@ -101,20 +129,6 @@ def delete_analysis(
     analysis = service.get_analysis_by_id(analysis_id)
     if analysis is None:
         raise HTTPException(status_code=404, detail="Analiza nu a fost gasita")
-
     # ownership-ul se verifica inainte de stergere
     _verify_student_access(x_user_id, x_user_role, analysis.student_id)
     service.delete_analysis(analysis_id)
-
-
-@router.get("/student/{student_id}", response_model=PageDto)
-def get_analyses_by_student(
-    student_id: int,
-    x_user_id: int = Header(..., alias="X-User-Id"),
-    x_user_role: str = Header(..., alias="X-User-Role"),
-    page: int = Query(default=1, ge=1),
-    size: int = Query(default=20, ge=1, le=100),
-    service: AnalysisService = Depends(get_analysis_service),
-):
-    _verify_student_access(x_user_id, x_user_role, student_id)
-    return service.get_analyses_by_student_paginated(student_id, page, size)

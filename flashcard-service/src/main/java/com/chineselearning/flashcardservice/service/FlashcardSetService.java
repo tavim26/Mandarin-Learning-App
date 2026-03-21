@@ -4,20 +4,22 @@ import com.chineselearning.flashcardservice.domain.Flashcard;
 import com.chineselearning.flashcardservice.domain.FlashcardSet;
 
 import com.chineselearning.flashcardservice.domain.dao.IFlashcardDao;
+import com.chineselearning.flashcardservice.domain.dao.IFlashcardProgressDao;
 import com.chineselearning.flashcardservice.domain.dao.IFlashcardSetDao;
 
-import com.chineselearning.flashcardservice.domain.dto.CreateFlashcardRequest;
-import com.chineselearning.flashcardservice.domain.dto.CreateFlashcardSetRequest;
-import com.chineselearning.flashcardservice.domain.dto.FlashcardDto;
-import com.chineselearning.flashcardservice.domain.dto.FlashcardSetDto;
-import com.chineselearning.flashcardservice.domain.dto.UpdateFlashcardRequest;
-import com.chineselearning.flashcardservice.domain.dto.UpdateFlashcardSetRequest;
+import com.chineselearning.flashcardservice.domain.dto.*;
+
+import com.chineselearning.flashcardservice.domain.FlashcardProgress;
+import com.chineselearning.flashcardservice.domain.dto.FlashcardSetStatsDto;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -26,11 +28,15 @@ public class FlashcardSetService
 
     private final IFlashcardSetDao flashcardSetDao;
     private final IFlashcardDao flashcardDao;
+    private final IFlashcardProgressDao flashcardProgressDao;
 
-    public FlashcardSetService(IFlashcardSetDao flashcardSetDao, IFlashcardDao flashcardDao)
+    public FlashcardSetService(IFlashcardSetDao flashcardSetDao,
+                               IFlashcardDao flashcardDao,
+                               IFlashcardProgressDao flashcardProgressDao)
     {
         this.flashcardSetDao = flashcardSetDao;
         this.flashcardDao = flashcardDao;
+        this.flashcardProgressDao = flashcardProgressDao;
     }
 
     // OPERATII PE SETURI
@@ -145,6 +151,96 @@ public class FlashcardSetService
     }
 
 
+    @Transactional(readOnly = true)
+    public FlashcardSetStatsDto getSetStats(Long studentId, Long setId)
+    {
+        findSetOrThrow(setId);
+
+        List<Flashcard> allCards = flashcardDao.findBySetId(setId);
+        List<Long> allCardIds = allCards.stream()
+                .map(Flashcard::getId)
+                .toList();
+
+        List<FlashcardProgress> existingProgress = flashcardProgressDao
+                .findByStudentIdAndFlashcardIdIn(studentId, allCardIds);
+
+        LocalDateTime now = LocalDateTime.now();
+
+        int totalCards    = allCards.size();
+        int newCards      = totalCards - existingProgress.size();
+        int learningCards = (int) existingProgress.stream()
+                .filter(p -> p.getRepetitionCount() < 3)
+                .count();
+        int matureCards   = (int) existingProgress.stream()
+                .filter(p -> p.getIntervalDays() >= 21)
+                .count();
+        int dueFromExisting = (int) existingProgress.stream()
+                .filter(p -> p.getNextReviewAt() != null && !p.getNextReviewAt().isAfter(now))
+                .count();
+        int dueToday      = dueFromExisting + newCards;
+
+        BigDecimal averageEF = existingProgress.isEmpty()
+                ? new BigDecimal("2.5")
+                : existingProgress.stream()
+                .map(FlashcardProgress::getEasinessFactor)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(new BigDecimal(existingProgress.size()), 2, java.math.RoundingMode.HALF_UP);
+
+        FlashcardSetStatsDto dto = new FlashcardSetStatsDto();
+        dto.setSetId(setId);
+        dto.setTotalCards(totalCards);
+        dto.setNewCards(newCards);
+        dto.setLearningCards(learningCards);
+        dto.setMatureCards(matureCards);
+        dto.setDueToday(dueToday);
+        dto.setAverageEasinessFactor(averageEF);
+        return dto;
+    }
+
+
+    @Transactional(readOnly = true)
+    public TotalDueStatsDto getTotalDueStats(Long studentId)
+    {
+        List<FlashcardSet> allSets = flashcardSetDao.findByStudentIdOrderByIdDesc(studentId);
+        LocalDateTime now = LocalDateTime.now();
+
+        List<DueCountBySetDto> bySet = allSets.stream()
+                .map(set -> {
+                    List<Flashcard> cards = flashcardDao.findBySetId(set.getId());
+                    List<Long> cardIds = cards.stream()
+                            .map(Flashcard::getId)
+                            .toList();
+
+                    List<FlashcardProgress> progress = flashcardProgressDao
+                            .findByStudentIdAndFlashcardIdIn(studentId, cardIds);
+
+                    int seenIds   = progress.size();
+                    int newCards  = cards.size() - seenIds;
+                    int dueFromExisting = (int) progress.stream()
+                            .filter(p -> p.getNextReviewAt() != null && !p.getNextReviewAt().isAfter(now))
+                            .count();
+                    int dueCount  = dueFromExisting + newCards;
+
+                    DueCountBySetDto dto = new DueCountBySetDto();
+                    dto.setSetId(set.getId());
+                    dto.setSetTitle(set.getTitle());
+                    dto.setDueCount(dueCount);
+                    return dto;
+                })
+                .filter(dto -> dto.getDueCount() > 0)
+                .toList();
+
+        int totalDue = bySet.stream()
+                .mapToInt(DueCountBySetDto::getDueCount)
+                .sum();
+
+        TotalDueStatsDto result = new TotalDueStatsDto();
+        result.setTotalDue(totalDue);
+        result.setBySet(bySet);
+        return result;
+    }
+
+
 
     // METODE HELPER
 
@@ -178,6 +274,7 @@ public class FlashcardSetService
         dto.setStudentId(set.getStudentId());
         dto.setTitle(set.getTitle());
         dto.setDescription(set.getDescription());
+        dto.setCardCount(set.getFlashcards().size());
         return dto;
     }
 

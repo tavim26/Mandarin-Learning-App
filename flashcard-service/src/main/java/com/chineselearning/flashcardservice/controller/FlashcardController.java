@@ -1,15 +1,6 @@
 package com.chineselearning.flashcardservice.controller;
 
-import com.chineselearning.flashcardservice.domain.dto.CreateFlashcardRequest;
-import com.chineselearning.flashcardservice.domain.dto.CreateFlashcardSetRequest;
-import com.chineselearning.flashcardservice.domain.dto.FlashcardDto;
-import com.chineselearning.flashcardservice.domain.dto.FlashcardProgressDto;
-import com.chineselearning.flashcardservice.domain.dto.FlashcardReviewDto;
-import com.chineselearning.flashcardservice.domain.dto.FlashcardSetDto;
-import com.chineselearning.flashcardservice.domain.dto.ReviewResultDto;
-import com.chineselearning.flashcardservice.domain.dto.SubmitReviewRequest;
-import com.chineselearning.flashcardservice.domain.dto.UpdateFlashcardRequest;
-import com.chineselearning.flashcardservice.domain.dto.UpdateFlashcardSetRequest;
+import com.chineselearning.flashcardservice.domain.dto.*;
 
 import com.chineselearning.flashcardservice.service.FlashcardSetService;
 import com.chineselearning.flashcardservice.service.ReviewService;
@@ -170,6 +161,36 @@ public class FlashcardController
     {
         flashcardSetService.deleteFlashcard(userId, flashcardId);
         return ResponseEntity.noContent().build();
+    }
+
+
+    @Operation(
+            summary = "Statistici set",
+            description = "Returneaza distributia cardurilor dintr-un set per categorie SM-2: " +
+                    "new, learning, mature, scadente azi si easiness factor mediu."
+    )
+    @GetMapping("/sets/{setId}/stats")
+    public ResponseEntity<FlashcardSetStatsDto> getSetStats(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable Long setId)
+    {
+        FlashcardSetStatsDto stats = flashcardSetService.getSetStats(userId, setId);
+        return ResponseEntity.ok(stats);
+    }
+
+
+    @Operation(
+            summary = "Total carduri scadente — toate seturile",
+            description = "Returneaza numarul total de carduri scadente azi pentru studentul autentificat, " +
+                    "detaliat per set. Include carduri nevazute niciodata si carduri cu nextReviewAt <= now. " +
+                    "Seturile fara carduri scadente sunt excluse din raspuns."
+    )
+    @GetMapping("/reviews/due/all")
+    public ResponseEntity<TotalDueStatsDto> getTotalDueStats(
+            @RequestHeader("X-User-Id") Long userId)
+    {
+        TotalDueStatsDto stats = flashcardSetService.getTotalDueStats(userId);
+        return ResponseEntity.ok(stats);
     }
 
 

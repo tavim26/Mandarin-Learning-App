@@ -60,19 +60,41 @@ class TextAnalysisDao(ITextAnalysisDao):
             raise
 
     def find_page_by_student_id(
-            self, student_id: int, offset: int, limit: int
+            self,
+            student_id: int,
+            offset: int,
+            limit: int,
+            source_type: str | None,
+            hsk_level: int | None,
+            sort_order: str,
     ) -> tuple[list[TextAnalysis], int]:
         base_query = (
             self.db.query(TextAnalysisEntity)
             .filter(TextAnalysisEntity.student_id == student_id)
         )
 
+        # filtru optional dupa source_type — MANUAL sau OCR
+        if source_type is not None:
+            base_query = base_query.filter(
+                TextAnalysisEntity.source_type == source_type
+            )
+
+        # filtru optional dupa overall_hsk_level
+        if hsk_level is not None:
+            base_query = base_query.filter(
+                TextAnalysisEntity.overall_hsk_level == hsk_level
+            )
+
+        # sortare dupa data — newest (desc) sau oldest (asc)
+        if sort_order == "oldest":
+            base_query = base_query.order_by(TextAnalysisEntity.created_at.asc())
+        else:
+            base_query = base_query.order_by(TextAnalysisEntity.created_at.desc())
+
         total = base_query.count()
 
         entities = (
             base_query
-            # tokenii NU sunt incarcati la listare — doar la GET /{analysis_id}
-            .order_by(TextAnalysisEntity.created_at.desc())
             .offset(offset)
             .limit(limit)
             .all()
@@ -80,6 +102,19 @@ class TextAnalysisDao(ITextAnalysisDao):
 
         return [self._to_domain(e) for e in entities], total
 
+    def get_source_type_split(self, student_id: int) -> dict[str, int]:
+        from sqlalchemy import func
+
+        rows = (
+            self.db.query(
+                TextAnalysisEntity.source_type,
+                func.count(TextAnalysisEntity.id).label("count"),
+            )
+            .filter(TextAnalysisEntity.student_id == student_id)
+            .group_by(TextAnalysisEntity.source_type)
+            .all()
+        )
+        return {row.source_type: row.count for row in rows}
 
 
 

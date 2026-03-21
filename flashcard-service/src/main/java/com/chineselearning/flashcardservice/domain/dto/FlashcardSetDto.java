@@ -7,6 +7,8 @@ public class FlashcardSetDto {
     private String title;
     private String description;
 
+    private Integer cardCount;
+
     public FlashcardSetDto() {}
 
     public Long getId() { return id; }
@@ -20,4 +22,7 @@ public class FlashcardSetDto {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public Integer getCardCount() { return cardCount; }
+    public void setCardCount(Integer cardCount) { this.cardCount = cardCount; }
 }

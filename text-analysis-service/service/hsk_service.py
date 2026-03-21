@@ -26,3 +26,10 @@ class HskService:
 
     def get_level(self, hanzi: str) -> int | None:
         return self._hsk_map.get(hanzi)
+
+    def get_total_per_level(self) -> dict[int, int]:
+        # numara cate cuvinte are fiecare nivel HSK in dictionar
+        totals: dict[int, int] = {}
+        for level in self._hsk_map.values():
+            totals[level] = totals.get(level, 0) + 1
+        return totals

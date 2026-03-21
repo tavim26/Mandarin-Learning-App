@@ -19,8 +19,18 @@ class ITextAnalysisDao(ABC):
 
     @abstractmethod
     def find_page_by_student_id(
-        self, student_id: int, offset: int, limit: int
+        self,
+        student_id: int,
+        offset: int,
+        limit: int,
+        source_type: str | None,
+        hsk_level: int | None,
+        sort_order: str,
     ) -> tuple[list[TextAnalysis], int]:
+        pass
+
+    @abstractmethod
+    def get_source_type_split(self, student_id: int) -> dict[str, int]:
         pass
 
     @abstractmethod

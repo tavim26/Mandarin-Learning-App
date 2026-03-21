@@ -36,4 +36,5 @@ def get_analysis_service(db: Session = Depends(get_db)) -> AnalysisService:
         text_analysis_dao=text_analysis_dao,
         analysis_token_dao=analysis_token_dao,
         translation_service=_translation_service,
+        hsk_service=_hsk_service,
     )

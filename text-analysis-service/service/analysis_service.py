@@ -12,6 +12,11 @@ from domain.dto.analysis_token_dto import AnalysisTokenDto
 from domain.dto.analyze_request_dto import AnalyzeTextRequestDto
 from domain.dto.text_analysis_dto import TextAnalysisDto
 from domain.dto.text_analysis_summary_dto import TextAnalysisSummaryDto
+from domain.dto.student_stats_dto import StudentStatsDto
+from domain.dto.student_stats_dto import HskUniqueCharsDto
+from domain.dto.student_stats_dto import HskTokenDistributionDto
+
+from service.hsk_service import HskService
 
 from service.nlp_service import NlpService
 from service.ocr_service import OcrService
@@ -21,13 +26,14 @@ from service.translation_service import TranslationService
 class AnalysisService:
 
     def __init__(
-        self,
-        db: Session,
-        nlp_service: NlpService,
-        ocr_service: OcrService,
-        text_analysis_dao: ITextAnalysisDao,
-        analysis_token_dao: IAnalysisTokenDao,
-        translation_service: TranslationService,
+            self,
+            db: Session,
+            nlp_service: NlpService,
+            ocr_service: OcrService,
+            text_analysis_dao: ITextAnalysisDao,
+            analysis_token_dao: IAnalysisTokenDao,
+            translation_service: TranslationService,
+            hsk_service: HskService,
     ):
         self._db = db
         self._nlp = nlp_service
@@ -35,6 +41,7 @@ class AnalysisService:
         self._text_analysis_dao = text_analysis_dao
         self._analysis_token_dao = analysis_token_dao
         self._translation = translation_service
+        self._hsk = hsk_service
 
 
     def analyze_text(self, request: AnalyzeTextRequestDto, student_id: int) -> TextAnalysisDto:
@@ -91,11 +98,22 @@ class AnalysisService:
         return True
 
     def get_analyses_by_student_paginated(
-            self, student_id: int, page: int, size: int
+            self,
+            student_id: int,
+            page: int,
+            size: int,
+            source_type: str | None,
+            hsk_level: int | None,
+            sort_order: str,
     ) -> dict:
         offset = (page - 1) * size
         analyses, total = self._text_analysis_dao.find_page_by_student_id(
-            student_id, offset, size
+            student_id=student_id,
+            offset=offset,
+            limit=size,
+            source_type=source_type,
+            hsk_level=hsk_level,
+            sort_order=sort_order,
         )
         total_pages = (total + size - 1) // size
 
@@ -106,6 +124,42 @@ class AnalysisService:
             "size": size,
             "total_pages": total_pages,
         }
+
+    def get_student_stats(self, student_id: int) -> StudentStatsDto:
+
+        # statistica 1 — distributie tokeni pe nivel HSK
+        raw_distribution = self._analysis_token_dao.get_token_hsk_distribution(student_id)
+        token_distribution = [
+            HskTokenDistributionDto(hsk_level=level, token_count=count)
+            for level, count in sorted(
+                raw_distribution,
+                key=lambda x: (x[0] is None, x[0])  # None merge la final
+            )
+        ]
+
+        # statistica 2 — split MANUAL vs OCR
+        source_type_split = self._text_analysis_dao.get_source_type_split(student_id)
+
+        # statistica 3 — caractere unice per nivel HSK
+        totals_per_level = self._hsk.get_total_per_level()
+        raw_unique = self._analysis_token_dao.get_unique_chars_per_hsk_level(student_id)
+        unique_chars_per_hsk_level = [
+            HskUniqueCharsDto(
+                hsk_level=level,
+                unique_count=unique_count,
+                total_in_level=totals_per_level.get(level, 0),
+                percentage=round(
+                    (unique_count / totals_per_level[level]) * 100, 2
+                ) if totals_per_level.get(level) else 0.0,
+            )
+            for level, unique_count in sorted(raw_unique, key=lambda x: x[0])
+        ]
+
+        return StudentStatsDto(
+            token_distribution=token_distribution,
+            source_type_split=source_type_split,
+            unique_chars_per_hsk_level=unique_chars_per_hsk_level,
+        )
 
 
 

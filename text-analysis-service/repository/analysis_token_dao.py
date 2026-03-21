@@ -34,6 +34,49 @@ class AnalysisTokenDao(IAnalysisTokenDao):
         return [self._to_domain(e) for e in entities]
 
 
+    def get_token_hsk_distribution(self, student_id: int) -> list[tuple[int | None, int]]:
+        from repository.entities.text_analysis_entity import TextAnalysisEntity
+        from sqlalchemy import func
+
+        # join cu text_analyses pentru a filtra dupa student_id
+        rows = (
+            self.db.query(
+                AnalysisTokenEntity.hsk_level,
+                func.count(AnalysisTokenEntity.id).label("token_count"),
+            )
+            .join(
+                TextAnalysisEntity,
+                AnalysisTokenEntity.analysis_id == TextAnalysisEntity.id,
+            )
+            .filter(TextAnalysisEntity.student_id == student_id)
+            .group_by(AnalysisTokenEntity.hsk_level)
+            .all()
+        )
+        return [(row.hsk_level, row.token_count) for row in rows]
+
+
+    def get_unique_chars_per_hsk_level(self, student_id: int) -> list[tuple[int, int]]:
+        from repository.entities.text_analysis_entity import TextAnalysisEntity
+        from sqlalchemy import func
+
+        # numara hanzi distincte per nivel HSK — ignora tokenii fara nivel HSK
+        rows = (
+            self.db.query(
+                AnalysisTokenEntity.hsk_level,
+                func.count(AnalysisTokenEntity.hanzi.distinct()).label("unique_count"),
+            )
+            .join(
+                TextAnalysisEntity,
+                AnalysisTokenEntity.analysis_id == TextAnalysisEntity.id,
+            )
+            .filter(TextAnalysisEntity.student_id == student_id)
+            .filter(AnalysisTokenEntity.hsk_level.isnot(None))
+            .group_by(AnalysisTokenEntity.hsk_level)
+            .all()
+        )
+        return [(row.hsk_level, row.unique_count) for row in rows]
+
+
 
 
 
