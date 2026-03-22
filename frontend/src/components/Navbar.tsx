@@ -1,9 +1,16 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import { getStudentReplica } from '@/api/progressApi';
 
 interface NavLink {
   label: string;
   path: string;
+}
+
+interface StudentStats {
+  xpTotal: number;
+  level: number;
 }
 
 const NAV_LINKS: Record<string, NavLink[]> = {
@@ -27,7 +34,26 @@ const NAV_LINKS: Record<string, NavLink[]> = {
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { fullName, role, clearAuth } = useAuthStore();
+  const { fullName, role, userId, clearAuth } = useAuthStore();
+
+  // Statistici XP/level — doar pentru STUDENT
+  const [studentStats, setStudentStats] = useState<StudentStats | null>(null);
+
+  useEffect(() => {
+    if (role !== 'STUDENT' || !userId) return;
+
+    const fetchStats = async () => {
+      try {
+        const data = await getStudentReplica(userId);
+        setStudentStats({ xpTotal: data.xpTotal, level: data.level });
+      } catch {
+  // La 404 (student fara activitate) — afiseaza valorile initiale
+  setStudentStats({ xpTotal: 0, level: 1 });
+}
+    };
+
+    fetchStats();
+  }, [role, userId]);
 
   const links = role ? NAV_LINKS[role] ?? [] : [];
 
@@ -74,8 +100,35 @@ const Navbar = () => {
         })}
       </div>
 
-      {/* Dreapta — profil si logout */}
+      {/* Dreapta — XP badge (doar student), profil si logout */}
       <div className="flex items-center gap-4 flex-shrink-0">
+
+        {/* Badge XP/Level — vizibil doar daca studentul are activitate */}
+        {role === 'STUDENT' && studentStats !== null && (
+          <div
+            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl"
+            style={{ background: '#fff7f0', border: '1px solid #fde8d4' }}
+          >
+            <div className="flex flex-col items-end">
+              <span
+                className="text-xs font-bold leading-none"
+                style={{ color: '#e85d04', fontFamily: 'Outfit, sans-serif' }}
+              >
+                Level {studentStats.level}
+              </span>
+              <span className="text-xs text-gray-400 leading-none mt-0.5">
+                {studentStats.xpTotal} XP
+              </span>
+            </div>
+            {/* Indicator circular nivel */}
+            <div
+              className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+              style={{ background: '#e85d04', fontFamily: 'Outfit, sans-serif' }}
+            >
+              {studentStats.level}
+            </div>
+          </div>
+        )}
 
         {/* Click pe nume/avatar duce la pagina de profil */}
         <Link

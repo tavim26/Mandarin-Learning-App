@@ -15,6 +15,13 @@ import StudentProfile from '@/pages/profile/StudentProfile';
 import TeacherProfile from '@/pages/profile/TeacherProfile';
 import AdminProfile from '@/pages/profile/AdminProfile';
 
+import TeacherUnitPage from '@/pages/teacher/TeacherUnitPage';
+import TeacherLessonPage from '@/pages/teacher/TeacherLessonPage';
+
+import StudentUnitsPage from '@/pages/student/StudentUnitsPage';
+import StudentUnitLessonsPage from '@/pages/student/StudentUnitLessonsPage';
+import StudentLessonPage from '@/pages/student/StudentLessonPage';
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles?: Role[];
@@ -137,9 +144,65 @@ const AppRouter = () => {
   }
 />
 
+
+{/* Pagina lectii dintr-o unitate */}
+<Route
+  path="/teacher/units/:unitId"
+  element={
+    <ProtectedRoute allowedRoles={['TEACHER']}>
+      <TeacherUnitPage />
+    </ProtectedRoute>
+  }
+/>
+
+{/* Pagina exercitii + materiale dintr-o lectie */}
+<Route
+  path="/teacher/lessons/:lessonId"
+  element={
+    <ProtectedRoute allowedRoles={['TEACHER']}>
+      <TeacherLessonPage />
+    </ProtectedRoute>
+  }
+
+  
+/>
+
+{/* Pagina unitati de curs — student */}
+<Route
+  path="/lessons"
+  element={
+    <ProtectedRoute allowedRoles={['STUDENT']}>
+      <StudentUnitsPage />
+    </ProtectedRoute>
+  }
+/>
+
+{/* Pagina lectii dintr-o unitate — student */}
+<Route
+  path="/lessons/units/:unitId"
+  element={
+    <ProtectedRoute allowedRoles={['STUDENT']}>
+      <StudentUnitLessonsPage />
+    </ProtectedRoute>
+  }
+/>
+
+{/* Pagina detaliu lectie — student */}
+<Route
+  path="/lessons/:lessonId"
+  element={
+    <ProtectedRoute allowedRoles={['STUDENT']}>
+      <StudentLessonPage />
+    </ProtectedRoute>
+  }
+/>
+
       </Routes>
     </BrowserRouter>
   );
 };
+
+
+
 
 export default AppRouter;

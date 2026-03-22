@@ -6,38 +6,11 @@ import {
 } from '@/api/usersApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import EditUserModal, { type EditForm } from '@/components/modals/EditUserModal';
+import CreateUserModal, { type CreateUserForm } from '@/components/modals/CreateUserModal';
+import ResetPasswordModal from '@/components/modals/ResetPasswordModal';
+import DeleteConfirmModal from '@/components/modals/DeleteConfirmModal';
 
-interface EditStudentForm {
-  userId: number;
-  fullName: string;
-  email: string;
-  type: 'STUDENT';
-}
-
-interface EditTeacherForm {
-  userId: number;
-  fullName: string;
-  email: string;
-  title: string;
-  type: 'TEACHER';
-}
-
-type EditForm = EditStudentForm | EditTeacherForm;
-
-interface CreateForm {
-  fullName: string;
-  email: string;
-  password: string;
-  role: 'STUDENT' | 'TEACHER';
-}
-
-interface ResetPasswordForm {
-  userId: number;
-  fullName: string;
-  newPassword: string;
-}
-
-// Props pentru UserTable — definit ca interfata separata
 interface UserTableProps {
   title: string;
   count: number;
@@ -47,12 +20,9 @@ interface UserTableProps {
   rows: (StudentProfileDto | TeacherProfileDto)[];
   onEdit: (form: EditForm) => void;
   onDelete: (target: { id: number; fullName: string }) => void;
-  onResetPassword: (form: ResetPasswordForm) => void;
+  onResetPassword: (userId: number, fullName: string) => void;
 }
 
-// ----------------------------------------------------------------
-// UserTable definit IN AFARA AdminUsers — nu se re-creeaza la render
-// ----------------------------------------------------------------
 const UserTable = ({
   title, count, searchValue, onSearch, role, rows,
   onEdit, onDelete, onResetPassword,
@@ -138,20 +108,9 @@ const UserTable = ({
                     <button
                       onClick={() => {
                         if (role === 'STUDENT') {
-                          onEdit({
-                            userId: user.userId,
-                            fullName: user.fullName,
-                            email: user.email,
-                            type: 'STUDENT',
-                          });
+                          onEdit({ userId: user.userId, fullName: user.fullName, email: user.email, type: 'STUDENT' });
                         } else {
-                          onEdit({
-                            userId: user.userId,
-                            fullName: user.fullName,
-                            email: user.email,
-                            title: (user as TeacherProfileDto).title ?? '',
-                            type: 'TEACHER',
-                          });
+                          onEdit({ userId: user.userId, fullName: user.fullName, email: user.email, title: (user as TeacherProfileDto).title ?? '', type: 'TEACHER' });
                         }
                       }}
                       className="text-xs font-medium px-3 py-1.5 rounded-lg transition-all hover:bg-gray-100"
@@ -160,11 +119,7 @@ const UserTable = ({
                       Edit
                     </button>
                     <button
-                      onClick={() => onResetPassword({
-                        userId: user.userId,
-                        fullName: user.fullName,
-                        newPassword: '',
-                      })}
+                      onClick={() => onResetPassword(user.userId, user.fullName)}
                       className="text-xs font-medium px-3 py-1.5 rounded-lg transition-all hover:bg-blue-50"
                       style={{ color: '#0369a1' }}
                     >
@@ -188,9 +143,6 @@ const UserTable = ({
   );
 };
 
-// ----------------------------------------------------------------
-// Componenta principala
-// ----------------------------------------------------------------
 const AdminUsers = () => {
   const [students, setStudents] = useState<StudentProfileDto[]>([]);
   const [teachers, setTeachers] = useState<TeacherProfileDto[]>([]);
@@ -200,21 +152,10 @@ const AdminUsers = () => {
   const [studentSearch, setStudentSearch] = useState('');
   const [teacherSearch, setTeacherSearch] = useState('');
 
-  const [editForm, setEditForm] = useState<EditForm | null>(null);
-  const [editError, setEditError] = useState<string | null>(null);
-  const [editLoading, setEditLoading] = useState(false);
-
-  const [createForm, setCreateForm] = useState<CreateForm | null>(null);
-  const [createError, setCreateError] = useState<string | null>(null);
-  const [createLoading, setCreateLoading] = useState(false);
-
+  const [editTarget, setEditTarget] = useState<EditForm | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; fullName: string } | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-
-  const [resetForm, setResetForm] = useState<ResetPasswordForm | null>(null);
-  const [resetError, setResetError] = useState<string | null>(null);
-  const [resetLoading, setResetLoading] = useState(false);
+  const [resetTarget, setResetTarget] = useState<{ userId: number; fullName: string } | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -247,83 +188,36 @@ const AdminUsers = () => {
     t.email.toLowerCase().includes(teacherSearch.toLowerCase())
   );
 
-  const handleEdit = async () => {
-    if (!editForm) return;
-    try {
-      setEditLoading(true);
-      setEditError(null);
-      const original = editForm.type === 'STUDENT'
-        ? students.find((s) => s.userId === editForm.userId)
-        : teachers.find((t) => t.userId === editForm.userId);
-      if (original && editForm.fullName !== original.fullName) {
-        await updateUserName(editForm.userId, editForm.fullName);
-      }
-      if (original && editForm.email !== original.email) {
-        await updateUserEmail(editForm.userId, editForm.email);
-      }
-      if (editForm.type === 'TEACHER' && original &&
-        editForm.title !== (original as TeacherProfileDto).title) {
-        await updateTeacherTitle(editForm.userId, editForm.title);
-      }
-      await fetchData();
-      setEditForm(null);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setEditError(err.message);
-      } else {
-        setEditError('Failed to update user.');
-      }
-    } finally {
-      setEditLoading(false);
+  const handleEdit = async (data: EditForm) => {
+    const original = data.type === 'STUDENT'
+      ? students.find((s) => s.userId === data.userId)
+      : teachers.find((t) => t.userId === data.userId);
+    if (original && data.fullName !== original.fullName) {
+      await updateUserName(data.userId, data.fullName);
     }
+    if (original && data.email !== original.email) {
+      await updateUserEmail(data.userId, data.email);
+    }
+    if (data.type === 'TEACHER' && original && data.title !== (original as TeacherProfileDto).title) {
+      await updateTeacherTitle(data.userId, data.title);
+    }
+    await fetchData();
   };
 
-  const handleCreate = async () => {
-    if (!createForm) return;
-    try {
-      setCreateLoading(true);
-      setCreateError(null);
-      await createUser(createForm);
-      await fetchData();
-      setCreateForm(null);
-    } catch {
-      setCreateError('This email is already registered.');
-    } finally {
-      setCreateLoading(false);
-    }
+  const handleCreate = async (data: CreateUserForm) => {
+    await createUser(data);
+    await fetchData();
   };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    try {
-      setDeleteLoading(true);
-      setDeleteError(null);
-      await deleteUser(deleteTarget.id);
-      await fetchData();
-      setDeleteTarget(null);
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        setDeleteError(err.message);
-      } else {
-        setDeleteError('Failed to delete user.');
-      }
-    } finally {
-      setDeleteLoading(false);
-    }
+    await deleteUser(deleteTarget.id);
+    setDeleteTarget(null);
+    await fetchData();
   };
 
-  const handleResetPassword = async () => {
-    if (!resetForm) return;
-    try {
-      setResetLoading(true);
-      setResetError(null);
-      await resetUserPassword(resetForm.userId, resetForm.newPassword);
-      setResetForm(null);
-    } catch {
-      setResetError('Failed to reset password.');
-    } finally {
-      setResetLoading(false);
-    }
+  const handleResetPassword = async (userId: number, newPassword: string) => {
+    await resetUserPassword(userId, newPassword);
   };
 
   if (loading) {
@@ -345,7 +239,37 @@ const AdminUsers = () => {
   return (
     <div className="space-y-8">
 
-      {/* Header pagina */}
+      {editTarget && (
+        <EditUserModal
+          initial={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSave={handleEdit}
+        />
+      )}
+      {showCreateModal && (
+        <CreateUserModal
+          onClose={() => setShowCreateModal(false)}
+          onSave={handleCreate}
+        />
+      )}
+      {resetTarget && (
+        <ResetPasswordModal
+          userId={resetTarget.userId}
+          fullName={resetTarget.fullName}
+          onClose={() => setResetTarget(null)}
+          onSave={handleResetPassword}
+        />
+      )}
+      {deleteTarget && (
+        <DeleteConfirmModal
+          title="Delete User"
+          description={`Are you sure you want to delete ${deleteTarget.fullName}? This action cannot be undone.`}
+          onConfirm={handleDelete}
+          onClose={() => setDeleteTarget(null)}
+        />
+      )}
+
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <h1
@@ -359,7 +283,7 @@ const AdminUsers = () => {
           </p>
         </div>
         <Button
-          onClick={() => setCreateForm({ fullName: '', email: '', password: '', role: 'STUDENT' })}
+          onClick={() => setShowCreateModal(true)}
           className="h-10 px-5 rounded-xl text-white font-semibold text-sm hover:opacity-90"
           style={{ background: '#e85d04' }}
         >
@@ -375,9 +299,9 @@ const AdminUsers = () => {
         onSearch={setStudentSearch}
         role="STUDENT"
         rows={filteredStudents}
-        onEdit={setEditForm}
+        onEdit={setEditTarget}
         onDelete={setDeleteTarget}
-        onResetPassword={setResetForm}
+        onResetPassword={(userId, fullName) => setResetTarget({ userId, fullName })}
       />
 
       {/* Tabel profesori */}
@@ -388,254 +312,10 @@ const AdminUsers = () => {
         onSearch={setTeacherSearch}
         role="TEACHER"
         rows={filteredTeachers}
-        onEdit={setEditForm}
+        onEdit={setEditTarget}
         onDelete={setDeleteTarget}
-        onResetPassword={setResetForm}
+        onResetPassword={(userId, fullName) => setResetTarget({ userId, fullName })}
       />
-
-      {/* ---- MODAL EDITARE ---- */}
-      {editForm && (
-        <div
-          className="fixed inset-0 flex items-center justify-center z-50"
-          style={{ background: 'rgba(0,0,0,0.4)' }}
-          onClick={() => setEditForm(null)}
-        >
-          <div
-            className="bg-white rounded-2xl p-8 w-full max-w-sm space-y-5"
-            style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-              Edit User
-            </h2>
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Full Name</label>
-                <Input
-                  className="h-11 rounded-xl border-gray-200 bg-gray-50"
-                  value={editForm.fullName}
-                  onChange={(e) => setEditForm((p) => p ? { ...p, fullName: e.target.value } : null)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</label>
-                <Input
-                  type="email"
-                  className="h-11 rounded-xl border-gray-200 bg-gray-50"
-                  value={editForm.email}
-                  onChange={(e) => setEditForm((p) => p ? { ...p, email: e.target.value } : null)}
-                />
-              </div>
-              {editForm.type === 'TEACHER' && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Title</label>
-                  <Input
-                    placeholder="e.g. Professor, Dr."
-                    className="h-11 rounded-xl border-gray-200 bg-gray-50"
-                    value={editForm.title}
-                    onChange={(e) => setEditForm((p) => p && p.type === 'TEACHER' ? { ...p, title: e.target.value } : p)}
-                  />
-                </div>
-              )}
-              {editError && <p className="text-xs text-red-500">{editError}</p>}
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setEditForm(null)}
-                className="flex-1 h-11 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all"
-              >
-                Cancel
-              </button>
-              <Button
-                onClick={handleEdit}
-                disabled={editLoading}
-                className="flex-1 h-11 rounded-xl text-white font-semibold text-sm hover:opacity-90"
-                style={{ background: '#e85d04' }}
-              >
-                {editLoading ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ---- MODAL CREARE ---- */}
-      {createForm && (
-        <div
-          className="fixed inset-0 flex items-center justify-center z-50"
-          style={{ background: 'rgba(0,0,0,0.4)' }}
-          onClick={() => setCreateForm(null)}
-        >
-          <div
-            className="bg-white rounded-2xl p-8 w-full max-w-sm space-y-5"
-            style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-              New User
-            </h2>
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Role</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {(['STUDENT', 'TEACHER'] as const).map((r) => (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => setCreateForm((p) => p ? { ...p, role: r } : null)}
-                      className="h-11 rounded-xl border text-sm font-medium transition-all"
-                      style={{
-                        borderColor: createForm.role === r ? '#e85d04' : '#e5e7eb',
-                        background: createForm.role === r ? '#fff7f0' : '#f9fafb',
-                        color: createForm.role === r ? '#e85d04' : '#6b7280',
-                      }}
-                    >
-                      {r.charAt(0) + r.slice(1).toLowerCase()}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Full Name</label>
-                <Input
-                  placeholder="Full name"
-                  className="h-11 rounded-xl border-gray-200 bg-gray-50"
-                  value={createForm.fullName}
-                  onChange={(e) => setCreateForm((p) => p ? { ...p, fullName: e.target.value } : null)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Email</label>
-                <Input
-                  type="email"
-                  placeholder="Email address"
-                  className="h-11 rounded-xl border-gray-200 bg-gray-50"
-                  value={createForm.email}
-                  onChange={(e) => setCreateForm((p) => p ? { ...p, email: e.target.value } : null)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Password</label>
-                <Input
-                  type="password"
-                  placeholder="Password"
-                  className="h-11 rounded-xl border-gray-200 bg-gray-50"
-                  value={createForm.password}
-                  onChange={(e) => setCreateForm((p) => p ? { ...p, password: e.target.value } : null)}
-                />
-              </div>
-              {createError && <p className="text-xs text-red-500">{createError}</p>}
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setCreateForm(null)}
-                className="flex-1 h-11 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all"
-              >
-                Cancel
-              </button>
-              <Button
-                onClick={handleCreate}
-                disabled={createLoading}
-                className="flex-1 h-11 rounded-xl text-white font-semibold text-sm hover:opacity-90"
-                style={{ background: '#e85d04' }}
-              >
-                {createLoading ? 'Creating...' : 'Create User'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ---- MODAL RESET PAROLA ---- */}
-      {resetForm && (
-        <div
-          className="fixed inset-0 flex items-center justify-center z-50"
-          style={{ background: 'rgba(0,0,0,0.4)' }}
-          onClick={() => setResetForm(null)}
-        >
-          <div
-            className="bg-white rounded-2xl p-8 w-full max-w-sm space-y-5"
-            style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-              Reset Password
-            </h2>
-            <p className="text-sm text-gray-500">
-              Set a new password for{' '}
-              <span className="font-semibold text-gray-800">{resetForm.fullName}</span>.
-            </p>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">New Password</label>
-              <Input
-                type="password"
-                placeholder="New password"
-                className="h-11 rounded-xl border-gray-200 bg-gray-50"
-                value={resetForm.newPassword}
-                onChange={(e) => setResetForm((p) => p ? { ...p, newPassword: e.target.value } : null)}
-              />
-            </div>
-            {resetError && <p className="text-xs text-red-500">{resetError}</p>}
-            <div className="flex gap-3">
-              <button
-                onClick={() => setResetForm(null)}
-                className="flex-1 h-11 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all"
-              >
-                Cancel
-              </button>
-              <Button
-                onClick={handleResetPassword}
-                disabled={resetLoading}
-                className="flex-1 h-11 rounded-xl text-white font-semibold text-sm hover:opacity-90"
-                style={{ background: '#0369a1' }}
-              >
-                {resetLoading ? 'Resetting...' : 'Reset Password'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ---- MODAL STERGERE ---- */}
-      {deleteTarget && (
-        <div
-          className="fixed inset-0 flex items-center justify-center z-50"
-          style={{ background: 'rgba(0,0,0,0.4)' }}
-          onClick={() => setDeleteTarget(null)}
-        >
-          <div
-            className="bg-white rounded-2xl p-8 w-full max-w-sm space-y-5"
-            style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-              Delete User
-            </h2>
-            <p className="text-sm text-gray-500">
-              Are you sure you want to delete{' '}
-              <span className="font-semibold text-gray-800">{deleteTarget.fullName}</span>?
-              This action cannot be undone.
-            </p>
-            {deleteError && <p className="text-xs text-red-500">{deleteError}</p>}
-            <div className="flex gap-3">
-              <button
-                onClick={() => { setDeleteTarget(null); setDeleteError(null); }}
-                className="flex-1 h-11 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all"
-              >
-                Cancel
-              </button>
-              <Button
-                onClick={handleDelete}
-                disabled={deleteLoading}
-                className="flex-1 h-11 rounded-xl text-white font-semibold text-sm hover:opacity-90"
-                style={{ background: '#c1121f' }}
-              >
-                {deleteLoading ? 'Deleting...' : 'Delete'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
     </div>
   );

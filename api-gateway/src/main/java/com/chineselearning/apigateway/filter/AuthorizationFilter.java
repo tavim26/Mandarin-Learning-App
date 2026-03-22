@@ -33,17 +33,6 @@ public class AuthorizationFilter extends OncePerRequestFilter {
 
     // Endpoint-uri ADMIN only
     private static final List<RouteRule> ADMIN_ONLY_ROUTES = List.of(
-            new RouteRule(HttpMethod.POST,   "/api/content/units"),
-            new RouteRule(HttpMethod.PUT,    "/api/content/units/"),
-            new RouteRule(HttpMethod.DELETE, "/api/content/units/"),
-            new RouteRule(HttpMethod.POST,   "/api/content/lessons"),
-            new RouteRule(HttpMethod.PUT,    "/api/content/lessons/"),
-            new RouteRule(HttpMethod.DELETE, "/api/content/lessons/"),
-            new RouteRule(HttpMethod.POST,   "/api/content/exercises"),
-            new RouteRule(HttpMethod.PUT,    "/api/content/exercises/"),
-            new RouteRule(HttpMethod.DELETE, "/api/content/exercises/"),
-            new RouteRule(HttpMethod.POST,   "/api/content/materials"),
-            new RouteRule(HttpMethod.DELETE, "/api/content/materials/"),
             new RouteRule(HttpMethod.POST,   "/api/users"),
             new RouteRule(HttpMethod.GET,    "/api/users/search"),
             new RouteRule(HttpMethod.DELETE, "/api/users/"),

@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
-from config.database import get_db
+from repository.config import get_db
 from domain.dao.i_analysis_token_dao import IAnalysisTokenDao
 from domain.dao.i_text_analysis_dao import ITextAnalysisDao
 from repository.analysis_token_dao import AnalysisTokenDao

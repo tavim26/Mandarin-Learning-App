@@ -5,10 +5,11 @@ import {
   updateUserEmail,
   updateOwnPassword,
   updateStudentNickname,
-  getStudentProfile,
 } from '@/api/usersApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+
+import { getStudentReplica } from '@/api/progressApi';
 
 const StudentProfile = () => {
   const { userId, fullName, role, email, setAuth, token } = useAuthStore();
@@ -30,19 +31,24 @@ const StudentProfile = () => {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
-  // Incarca nickname-ul curent al studentului
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!userId) return;
-      try {
-        const profile = await getStudentProfile(userId);
-        setNicknameValue(profile.nickname ?? '');
-      } catch {
-        // Nickname-ul ramane gol daca nu exista
-      }
-    };
-    fetchProfile();
-  }, [userId]);
+
+  
+// Statistici XP/level
+const [studentStats, setStudentStats] = useState<{ xpTotal: number; level: number } | null>(null);
+
+useEffect(() => {
+  if (!userId) return;
+  const fetchStats = async () => {
+    try {
+      const data = await getStudentReplica(userId);
+      setStudentStats({ xpTotal: data.xpTotal, level: data.level });
+    }  catch {
+  // La 404 (student fara activitate) — afiseaza valorile initiale
+  setStudentStats({ xpTotal: 0, level: 1 });
+}
+  };
+  fetchStats();
+}, [userId]);
 
   const handleUpdateInfo = async () => {
     if (!userId) return;
@@ -129,29 +135,47 @@ const StudentProfile = () => {
         className="bg-white rounded-2xl p-8 space-y-6"
         style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}
       >
-        {/* Avatar si rol */}
-        <div className="flex items-center gap-4">
-          <div
-            className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0"
-            style={{ background: '#e85d04' }}
+       {/* Avatar, rol si statistici XP */}
+<div className="flex items-center gap-4">
+  <div
+    className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0"
+    style={{ background: '#e85d04' }}
+  >
+    {fullName?.charAt(0).toUpperCase()}
+  </div>
+  <div className="flex-1">
+    <p
+      className="text-xl font-bold text-gray-900"
+      style={{ fontFamily: 'Outfit, sans-serif' }}
+    >
+      {fullName}
+    </p>
+    <div className="flex items-center gap-2 mt-1 flex-wrap">
+      <span
+        className="text-xs font-semibold px-2.5 py-1 rounded-md"
+        style={{ background: '#f0fdf4', color: '#15803d' }}
+      >
+        {role}
+      </span>
+      {studentStats !== null && (
+        <>
+          <span
+            className="text-xs font-semibold px-2.5 py-1 rounded-md"
+            style={{ background: '#fff7f0', color: '#e85d04' }}
           >
-            {fullName?.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <p
-              className="text-xl font-bold text-gray-900"
-              style={{ fontFamily: 'Outfit, sans-serif' }}
-            >
-              {fullName}
-            </p>
-            <span
-              className="text-xs font-semibold px-2.5 py-1 rounded-md"
-              style={{ background: '#f0fdf4', color: '#15803d' }}
-            >
-              {role}
-            </span>
-          </div>
-        </div>
+            Level {studentStats.level}
+          </span>
+          <span
+            className="text-xs font-semibold px-2.5 py-1 rounded-md"
+            style={{ background: '#fff7f0', color: '#e85d04' }}
+          >
+            {studentStats.xpTotal} XP
+          </span>
+        </>
+      )}
+    </div>
+  </div>
+</div>
 
         <div style={{ borderTop: '1px solid #f3f4f6' }} className="pt-6 space-y-4">
           <h2
