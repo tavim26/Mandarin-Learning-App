@@ -4,6 +4,7 @@ from domain.dto.analyze_request_dto import AnalyzeTextRequestDto
 from domain.dto.text_analysis_dto import TextAnalysisDto
 from domain.dto.page_dto import PageDto
 from domain.dto.student_stats_dto import StudentStatsDto as StudentStatsDtoResponse
+from domain.dto.preview_dto import PreviewRequestDto, PreviewResponseDto
 
 from service.analysis_service import AnalysisService
 from service.ocr_service import OcrException
@@ -132,3 +133,16 @@ def delete_analysis(
     # ownership-ul se verifica inainte de stergere
     _verify_student_access(x_user_id, x_user_role, analysis.student_id)
     service.delete_analysis(analysis_id)
+
+
+
+
+@router.post("/preview", response_model=PreviewResponseDto)
+def preview_text(
+    request: PreviewRequestDto,
+    x_user_id: int = Header(..., alias="X-User-Id"),
+    x_user_role: str = Header(..., alias="X-User-Role"),
+    service: AnalysisService = Depends(get_analysis_service),
+):
+
+    return service.preview_text(request.text)

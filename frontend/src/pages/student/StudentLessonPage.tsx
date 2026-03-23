@@ -17,6 +17,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
+import ChineseText from '@/components/ChineseText';
+
 // ----------------------------------------------------------------
 // Componente per tip de exercitiu — definite in afara paginii
 // ----------------------------------------------------------------
@@ -96,8 +98,10 @@ const MultipleChoiceExercise = ({ exercise, result, onSubmit, submitting }: Exer
   );
 };
 
+
+
 // --- TRANSLATION ---
-const TranslationExercise = ({ exercise, result, onSubmit, submitting }: ExerciseProps) => {
+const TranslationExercise = ({ result, onSubmit, submitting }: ExerciseProps) => {
   const [value, setValue] = useState('');
   const isCorrect = result?.isCorrect ?? null;
 
@@ -108,12 +112,6 @@ const TranslationExercise = ({ exercise, result, onSubmit, submitting }: Exercis
 
   return (
     <div className="space-y-4">
-      <div
-        className="p-4 rounded-xl text-lg font-medium text-center"
-        style={{ background: '#fff7f0', color: '#e85d04', fontFamily: 'Outfit, sans-serif' }}
-      >
-        {exercise.prompt.replace('Traduce în română: ', '').replace('Translate: ', '')}
-      </div>
 
       <Input
         placeholder="Your translation..."
@@ -149,6 +147,11 @@ const TranslationExercise = ({ exercise, result, onSubmit, submitting }: Exercis
     </div>
   );
 };
+
+
+
+
+
 
 const FillBlankExercise = ({ exercise, result, onSubmit, submitting }: ExerciseProps) => {
   const correctAnswers = (exercise.contentData as { correctAnswers?: string[] })?.correctAnswers ?? [];
@@ -211,39 +214,45 @@ const FillBlankExercise = ({ exercise, result, onSubmit, submitting }: ExerciseP
 
       {/* Prompt cu blank-uri clickabile */}
       <div
-        className="p-5 rounded-xl text-base leading-loose"
-        style={{ background: '#f9fafb' }}
-      >
-        {parts.map((part, i) => (
-          <span key={i} className="align-middle">
-            <span className="text-gray-700">{part}</span>
-            {i < parts.length - 1 && (
-              <button
-                onClick={() => handleBlankClick(i)}
-                className="inline-flex items-center justify-center mx-2 px-4 py-1 rounded-xl border-2 min-w-16 text-base font-bold align-middle transition-all"
-                style={{
-                  minWidth: '80px',
-                  height: '40px',
-                  borderColor: result
-                    ? isCorrect ? '#15803d' : '#c1121f'
-                    : placed[i] ? '#e85d04' : '#d1d5db',
-                  background: result
-                    ? isCorrect ? '#f0fdf4' : '#fef2f2'
-                    : placed[i] ? '#fff7f0' : '#ffffff',
-                  color: result
-                    ? isCorrect ? '#15803d' : '#c1121f'
-                    : placed[i] ? '#e85d04' : '#9ca3af',
-                  borderStyle: placed[i] ? 'solid' : 'dashed',
-                  cursor: placed[i] && !isCorrect ? 'pointer' : 'default',
-                }}
-              >
-                {placed[i] ?? ''}
-              </button>
-            )}
-          </span>
-        ))}
-      </div>
+  className="p-5 rounded-xl text-base leading-loose"
+  style={{ background: '#f9fafb' }}
+>
+  {parts.map((part, i) => {
+    // Elimina prefixul "Completează: " sau "Completeaza: " doar din primul segment
+    const displayPart = i === 0
+      ? part.replace(/^Completea[zz]ă?:\s*/i, '')
+      : part;
 
+    return (
+      <span key={i} className="align-middle">
+        <ChineseText text={displayPart} />
+        {i < parts.length - 1 && (
+          <button
+            onClick={() => handleBlankClick(i)}
+            className="inline-flex items-center justify-center mx-2 px-4 py-1 rounded-xl border-2 min-w-16 text-base font-bold align-middle transition-all"
+            style={{
+              minWidth: '80px',
+              height: '40px',
+              borderColor: result
+                ? isCorrect ? '#15803d' : '#c1121f'
+                : placed[i] ? '#e85d04' : '#d1d5db',
+              background: result
+                ? isCorrect ? '#f0fdf4' : '#fef2f2'
+                : placed[i] ? '#fff7f0' : '#ffffff',
+              color: result
+                ? isCorrect ? '#15803d' : '#c1121f'
+                : placed[i] ? '#e85d04' : '#9ca3af',
+              borderStyle: placed[i] ? 'solid' : 'dashed',
+              cursor: placed[i] && !isCorrect ? 'pointer' : 'default',
+            }}
+          >
+            {placed[i] ?? ''}
+          </button>
+        )}
+      </span>
+    );
+  })}
+</div>
       {/* Pool de tile-uri disponibile */}
       <div className="space-y-2">
         <p className="text-xs text-gray-400">
@@ -251,21 +260,21 @@ const FillBlankExercise = ({ exercise, result, onSubmit, submitting }: ExerciseP
         </p>
         <div className="flex flex-wrap gap-2 min-h-12">
           {availableTiles.map((tile, i) => (
-            <button
-              key={`${tile}-${i}`}
-              onClick={() => handleTileClick(tile, i)}
-              disabled={isCorrect === true || placed.every((p) => p !== null)}
-              className="px-4 py-2 rounded-xl border-2 text-sm font-bold transition-all hover:opacity-80 active:scale-95"
-              style={{
-                borderColor: '#e85d04',
-                background: '#fff7f0',
-                color: '#e85d04',
-                opacity: placed.every((p) => p !== null) ? 0.4 : 1,
-              }}
-            >
-              {tile}
-            </button>
-          ))}
+  <button
+    key={`${tile}-${i}`}
+    onClick={() => handleTileClick(tile, i)}
+    disabled={isCorrect === true || placed.every((p) => p !== null)}
+    className="px-4 py-2 rounded-xl border-2 text-sm font-bold transition-all hover:opacity-80 active:scale-95"
+    style={{
+      borderColor: '#e85d04',
+      background: '#fff7f0',
+      color: '#e85d04',
+      opacity: placed.every((p) => p !== null) ? 0.4 : 1,
+    }}
+  >
+    {tile}
+  </button>
+))}
           {availableTiles.length === 0 && !isCorrect && (
             <p className="text-xs text-gray-400 self-center">
               All tiles placed. Click a blank to return a tile.
@@ -725,27 +734,26 @@ const StudentLessonPage = () => {
           >
             {/* Header exercitiu */}
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span
-                  className="text-xs font-bold px-2.5 py-1 rounded-md"
-                  style={{ background: '#fff7f0', color: '#e85d04' }}
-                >
-                  {currentExercise.type}
-                </span>
-                {currentExercise.difficulty && (
-                  <span className="text-xs text-gray-400">
-                    Difficulty: {currentExercise.difficulty}/5
-                  </span>
-                )}
-              </div>
-              <p
-                className="text-lg font-semibold text-gray-900"
-                style={{ fontFamily: 'Outfit, sans-serif' }}
-              >
-                {currentExercise.prompt}
-              </p>
-            </div>
-
+  <div className="flex items-center gap-2">
+    <span
+      className="text-xs font-bold px-2.5 py-1 rounded-md"
+      style={{ background: '#fff7f0', color: '#e85d04' }}
+    >
+      {currentExercise.type}
+    </span>
+    {currentExercise.difficulty && (
+      <span className="text-xs text-gray-400">
+        Difficulty: {currentExercise.difficulty}/5
+      </span>
+    )}
+  </div>
+  <p
+  className="text-lg font-semibold text-gray-900"
+  style={{ fontFamily: 'Outfit, sans-serif' }}
+>
+   <ChineseText text={currentExercise.prompt} />
+</p>
+</div>
             {/* UI specific tipului */}
             {renderExercise(currentExercise)}
           </div>

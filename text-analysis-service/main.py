@@ -1,10 +1,13 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
-from repository.config import engine
+from repository.config.database import engine
 from repository.base import Base
 
 from controller.analysis_controller import router as analysis_router
+
+import repository.entities.text_analysis_entity
+import repository.entities.analysis_token_entity
 
 
 @asynccontextmanager

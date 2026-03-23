@@ -3,21 +3,18 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 
 from domain.analysis_token import AnalysisToken
-from domain.text_analysis import TextAnalysis
-
 from domain.dao.i_analysis_token_dao import IAnalysisTokenDao
 from domain.dao.i_text_analysis_dao import ITextAnalysisDao
-
 from domain.dto.analysis_token_dto import AnalysisTokenDto
 from domain.dto.analyze_request_dto import AnalyzeTextRequestDto
+from domain.dto.preview_dto import PreviewResponseDto
+from domain.dto.student_stats_dto import HskTokenDistributionDto
+from domain.dto.student_stats_dto import HskUniqueCharsDto
+from domain.dto.student_stats_dto import StudentStatsDto
 from domain.dto.text_analysis_dto import TextAnalysisDto
 from domain.dto.text_analysis_summary_dto import TextAnalysisSummaryDto
-from domain.dto.student_stats_dto import StudentStatsDto
-from domain.dto.student_stats_dto import HskUniqueCharsDto
-from domain.dto.student_stats_dto import HskTokenDistributionDto
-
+from domain.text_analysis import TextAnalysis
 from service.hsk_service import HskService
-
 from service.nlp_service import NlpService
 from service.ocr_service import OcrService
 from service.translation_service import TranslationService
@@ -159,6 +156,23 @@ class AnalysisService:
             token_distribution=token_distribution,
             source_type_split=source_type_split,
             unique_chars_per_hsk_level=unique_chars_per_hsk_level,
+        )
+
+    def preview_text(self, text: str) -> PreviewResponseDto:
+        from domain.dto.preview_dto import PreviewResponseDto, PreviewTokenDto
+
+        processed_tokens = self._nlp.process(text)
+
+        return PreviewResponseDto(
+            tokens=[
+                PreviewTokenDto(
+                    hanzi=t["hanzi"],
+                    pinyin=t["pinyin"],
+                    hsk_level=t["hsk_level"],
+                    position_index=t["position_index"],
+                )
+                for t in processed_tokens
+            ]
         )
 
 
