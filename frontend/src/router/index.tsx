@@ -21,6 +21,9 @@ import TeacherLessonPage from '@/pages/teacher/TeacherLessonPage';
 import StudentUnitsPage from '@/pages/student/StudentUnitsPage';
 import StudentUnitLessonsPage from '@/pages/student/StudentUnitLessonsPage';
 import StudentLessonPage from '@/pages/student/StudentLessonPage';
+import AnalysisPage from '@/pages/student/AnalysisPage';
+
+import FlashcardsPage from '@/pages/student/FlashcardsPage';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -193,6 +196,25 @@ const AppRouter = () => {
   element={
     <ProtectedRoute allowedRoles={['STUDENT']}>
       <StudentLessonPage />
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/analysis"
+  element={
+    <ProtectedRoute allowedRoles={['STUDENT']}>
+      <AnalysisPage />
+    </ProtectedRoute>
+  }
+/>
+
+
+<Route
+  path="/flashcards"
+  element={
+    <ProtectedRoute allowedRoles={['STUDENT']}>
+      <FlashcardsPage />
     </ProtectedRoute>
   }
 />

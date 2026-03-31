@@ -1,4 +1,5 @@
 import Navbar from './Navbar';
+import ChatbotWidget from '@/components/ChatbotWidget';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -8,11 +9,12 @@ interface AppLayoutProps {
 // Navbar-ul apare automat fara a fi importat in fiecare pagina
 const AppLayout = ({ children }: AppLayoutProps) => {
   return (
-    <div className="min-h-screen" style={{ background: '#f8f7f5' }}>
+     <div className="min-h-screen" style={{ background: '#f8f7f5' }}>
       <Navbar />
-      <main className="max-w-7xl mx-auto px-8 py-8">
+      <main className="max-w-7xl mx-auto px-6 py-8">
         {children}
       </main>
+      <ChatbotWidget />
     </div>
   );
 };
