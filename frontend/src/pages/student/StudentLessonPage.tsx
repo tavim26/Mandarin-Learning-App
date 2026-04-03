@@ -1,26 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import {
-  getLesson,
-  getMaterialsByLesson,
-  type LessonDto,
-  type ExerciseDto,
-  type LessonMaterialDto,
-} from '@/api/contentApi';
-import {
-  submitAttempt,
-  getLessonProgress,
-  type ExerciseAttemptDto,
-  type StudentLessonProgressDto,
-} from '@/api/progressApi';
+import { useLesson, useMaterials } from '@/hooks/useContent';
+import { useLessonProgress, useExerciseAttempts } from '@/hooks/useProgress';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-
 import ChineseText from '@/components/ChineseText';
+import type { ExerciseDto, ExerciseAttemptDto } from '@/types';
 
 // ----------------------------------------------------------------
-// Componente per tip de exercitiu — definite in afara paginii
+// Componente per tip de exercitiu — UI pur, fara logica de fetch
 // ----------------------------------------------------------------
 
 interface ExerciseProps {
@@ -30,17 +19,15 @@ interface ExerciseProps {
   submitting: boolean;
 }
 
-// --- MULTIPLE CHOICE ---
 const MultipleChoiceExercise = ({ exercise, result, onSubmit, submitting }: ExerciseProps) => {
   const options = (exercise.contentData as { options?: string[] })?.options ?? [];
   const [selected, setSelected] = useState<number | null>(null);
+  const isCorrect = result?.isCorrect ?? null;
 
   const handleSubmit = async () => {
     if (selected === null) return;
     await onSubmit({ selectedIndex: selected });
   };
-
-  const isCorrect = result?.isCorrect ?? null;
 
   return (
     <div className="space-y-4">
@@ -71,19 +58,14 @@ const MultipleChoiceExercise = ({ exercise, result, onSubmit, submitting }: Exer
           );
         })}
       </div>
-
       {result && (
         <div
           className="p-3 rounded-xl text-sm font-medium"
-          style={{
-            background: isCorrect ? '#f0fdf4' : '#fef2f2',
-            color: isCorrect ? '#15803d' : '#c1121f',
-          }}
+          style={{ background: isCorrect ? '#f0fdf4' : '#fef2f2', color: isCorrect ? '#15803d' : '#c1121f' }}
         >
           {result.feedbackText ?? (isCorrect ? 'Correct!' : 'Incorrect. Try again!')}
         </div>
       )}
-
       {(!result || !isCorrect) && (
         <Button
           onClick={handleSubmit}
@@ -98,9 +80,6 @@ const MultipleChoiceExercise = ({ exercise, result, onSubmit, submitting }: Exer
   );
 };
 
-
-
-// --- TRANSLATION ---
 const TranslationExercise = ({ result, onSubmit, submitting }: ExerciseProps) => {
   const [value, setValue] = useState('');
   const isCorrect = result?.isCorrect ?? null;
@@ -112,7 +91,6 @@ const TranslationExercise = ({ result, onSubmit, submitting }: ExerciseProps) =>
 
   return (
     <div className="space-y-4">
-
       <Input
         placeholder="Your translation..."
         className="h-12 rounded-xl border-gray-200 bg-gray-50 text-sm"
@@ -121,19 +99,14 @@ const TranslationExercise = ({ result, onSubmit, submitting }: ExerciseProps) =>
         onKeyDown={(e) => { if (e.key === 'Enter' && !isCorrect) handleSubmit(); }}
         disabled={isCorrect === true}
       />
-
       {result && (
         <div
           className="p-3 rounded-xl text-sm font-medium"
-          style={{
-            background: isCorrect ? '#f0fdf4' : '#fef2f2',
-            color: isCorrect ? '#15803d' : '#c1121f',
-          }}
+          style={{ background: isCorrect ? '#f0fdf4' : '#fef2f2', color: isCorrect ? '#15803d' : '#c1121f' }}
         >
           {result.feedbackText ?? (isCorrect ? 'Correct!' : 'Incorrect. Try again!')}
         </div>
       )}
-
       {(!result || !isCorrect) && (
         <Button
           onClick={handleSubmit}
@@ -148,57 +121,41 @@ const TranslationExercise = ({ result, onSubmit, submitting }: ExerciseProps) =>
   );
 };
 
-
-
-
-
-
 const FillBlankExercise = ({ exercise, result, onSubmit, submitting }: ExerciseProps) => {
   const correctAnswers = (exercise.contentData as { correctAnswers?: string[] })?.correctAnswers ?? [];
   const parts = exercise.prompt.split('___');
   const blanksCount = parts.length - 1;
 
-  // Tile-urile disponibile — amestecate, pot fi duplicate daca exista raspunsuri identice
   const [availableTiles, setAvailableTiles] = useState<string[]>(
     () => [...correctAnswers].sort(() => Math.random() - 0.5)
   );
-
-  // Raspunsurile plasate in blank-uri — null inseamna gol
-  const [placed, setPlaced] = useState<(string | null)[]>(
-    Array(blanksCount).fill(null)
-  );
+  const [placed, setPlaced] = useState<(string | null)[]>(Array(blanksCount).fill(null));
 
   const isCorrect = result?.isCorrect ?? null;
   const allFilled = placed.every((p) => p !== null);
 
-  // Click pe tile disponibil — il plaseaza in primul blank gol
   const handleTileClick = (tile: string, tileIndex: number) => {
     if (isCorrect) return;
     const firstEmpty = placed.findIndex((p) => p === null);
     if (firstEmpty === -1) return;
-
     const newPlaced = [...placed];
     newPlaced[firstEmpty] = tile;
     setPlaced(newPlaced);
-
     const newTiles = [...availableTiles];
     newTiles.splice(tileIndex, 1);
     setAvailableTiles(newTiles);
   };
 
-  // Click pe blank completat — returneaza tile-ul in pool
   const handleBlankClick = (blankIndex: number) => {
     if (isCorrect) return;
     const tile = placed[blankIndex];
     if (!tile) return;
-
     const newPlaced = [...placed];
     newPlaced[blankIndex] = null;
     setPlaced(newPlaced);
     setAvailableTiles((prev) => [...prev, tile]);
   };
 
-  // Reset complet
   const handleReset = () => {
     setPlaced(Array(blanksCount).fill(null));
     setAvailableTiles([...correctAnswers].sort(() => Math.random() - 0.5));
@@ -211,100 +168,64 @@ const FillBlankExercise = ({ exercise, result, onSubmit, submitting }: ExerciseP
 
   return (
     <div className="space-y-6">
-
-      {/* Prompt cu blank-uri clickabile */}
-      <div
-  className="p-5 rounded-xl text-base leading-loose"
-  style={{ background: '#f9fafb' }}
->
-  {parts.map((part, i) => {
-    // Elimina prefixul "Completează: " sau "Completeaza: " doar din primul segment
-    const displayPart = i === 0
-      ? part.replace(/^Completea[zz]ă?:\s*/i, '')
-      : part;
-
-    return (
-      <span key={i} className="align-middle">
-        <ChineseText text={displayPart} />
-        {i < parts.length - 1 && (
-          <button
-            onClick={() => handleBlankClick(i)}
-            className="inline-flex items-center justify-center mx-2 px-4 py-1 rounded-xl border-2 min-w-16 text-base font-bold align-middle transition-all"
-            style={{
-              minWidth: '80px',
-              height: '40px',
-              borderColor: result
-                ? isCorrect ? '#15803d' : '#c1121f'
-                : placed[i] ? '#e85d04' : '#d1d5db',
-              background: result
-                ? isCorrect ? '#f0fdf4' : '#fef2f2'
-                : placed[i] ? '#fff7f0' : '#ffffff',
-              color: result
-                ? isCorrect ? '#15803d' : '#c1121f'
-                : placed[i] ? '#e85d04' : '#9ca3af',
-              borderStyle: placed[i] ? 'solid' : 'dashed',
-              cursor: placed[i] && !isCorrect ? 'pointer' : 'default',
-            }}
-          >
-            {placed[i] ?? ''}
-          </button>
-        )}
-      </span>
-    );
-  })}
-</div>
-      {/* Pool de tile-uri disponibile */}
-      <div className="space-y-2">
-        <p className="text-xs text-gray-400">
-          {isCorrect ? '' : 'Click a tile to place it in the blank. Click a filled blank to return it.'}
-        </p>
-        <div className="flex flex-wrap gap-2 min-h-12">
-          {availableTiles.map((tile, i) => (
-  <button
-    key={`${tile}-${i}`}
-    onClick={() => handleTileClick(tile, i)}
-    disabled={isCorrect === true || placed.every((p) => p !== null)}
-    className="px-4 py-2 rounded-xl border-2 text-sm font-bold transition-all hover:opacity-80 active:scale-95"
-    style={{
-      borderColor: '#e85d04',
-      background: '#fff7f0',
-      color: '#e85d04',
-      opacity: placed.every((p) => p !== null) ? 0.4 : 1,
-    }}
-  >
-    {tile}
-  </button>
-))}
-          {availableTiles.length === 0 && !isCorrect && (
-            <p className="text-xs text-gray-400 self-center">
-              All tiles placed. Click a blank to return a tile.
-            </p>
-          )}
-        </div>
+      <div className="p-5 rounded-xl text-base leading-loose" style={{ background: '#f9fafb' }}>
+        {parts.map((part, i) => {
+          const displayPart = i === 0 ? part.replace(/^Completea[zz]ă?:\s*/i, '') : part;
+          return (
+            <span key={i} className="align-middle">
+              <ChineseText text={displayPart} />
+              {i < parts.length - 1 && (
+                <button
+                  onClick={() => handleBlankClick(i)}
+                  className="inline-flex items-center justify-center mx-2 px-4 py-1 rounded-xl border-2 min-w-16 text-base font-bold align-middle transition-all"
+                  style={{
+                    minWidth: '80px',
+                    height: '40px',
+                    borderColor: placed[i] ? (isCorrect ? '#15803d' : '#e85d04') : '#d1d5db',
+                    background: placed[i] ? (isCorrect ? '#f0fdf4' : '#fff7f0') : '#ffffff',
+                    color: placed[i] ? (isCorrect ? '#15803d' : '#e85d04') : '#9ca3af',
+                  }}
+                >
+                  {placed[i] ?? '?'}
+                </button>
+              )}
+            </span>
+          );
+        })}
       </div>
 
-      {/* Feedback */}
+      {/* Tile-uri disponibile */}
+      <div className="flex flex-wrap gap-2">
+        {availableTiles.map((tile, i) => (
+          <button
+            key={i}
+            onClick={() => handleTileClick(tile, i)}
+            disabled={!!isCorrect}
+            className="px-4 py-2 rounded-xl border-2 text-sm font-bold transition-all hover:border-orange-400 hover:bg-orange-50 disabled:opacity-50"
+            style={{ borderColor: '#e5e7eb', background: '#ffffff', color: '#374151' }}
+          >
+            {tile}
+          </button>
+        ))}
+      </div>
+
       {result && (
         <div
           className="p-3 rounded-xl text-sm font-medium"
-          style={{
-            background: isCorrect ? '#f0fdf4' : '#fef2f2',
-            color: isCorrect ? '#15803d' : '#c1121f',
-          }}
+          style={{ background: isCorrect ? '#f0fdf4' : '#fef2f2', color: isCorrect ? '#15803d' : '#c1121f' }}
         >
           {result.feedbackText ?? (isCorrect ? 'Correct!' : 'Incorrect. Try again!')}
         </div>
       )}
 
-      {/* Butoane */}
-      {(!result || !isCorrect) && (
+      {!isCorrect && (
         <div className="flex gap-3">
-          <button
+          <Button
             onClick={handleReset}
-            className="h-11 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-500 hover:bg-gray-50 transition-all"
+            className="h-11 px-5 rounded-xl font-semibold text-sm bg-gray-100 hover:bg-gray-200 text-gray-700"
           >
             Reset
-          </button>
+          </Button>
           <Button
             onClick={handleSubmit}
             disabled={!allFilled || submitting}
@@ -319,144 +240,88 @@ const FillBlankExercise = ({ exercise, result, onSubmit, submitting }: ExerciseP
   );
 };
 
-// --- MATCHING ---
 const MatchingExercise = ({ exercise, result, onSubmit, submitting }: ExerciseProps) => {
-  // Citeste din noul format "pairs"
   const pairs = (exercise.contentData as { pairs?: { left: string; right: string }[] })?.pairs ?? [];
-  const keys = pairs.map((p) => p.left);
-  const values = pairs.map((p) => p.right);
-  const correctMatches = Object.fromEntries(pairs.map((p) => [p.left, p.right]));
-
-  // Restul componentei ramane identic
-  // Amesteca valorile pentru afisare
-  const [shuffledValues] = useState(() => [...values].sort(() => Math.random() - 0.5));
-  const [userMatches, setUserMatches] = useState<Record<string, string>>({});
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
-
+  const [selected, setSelected] = useState<string | null>(null);
+  const [matches, setMatches] = useState<Record<string, string>>({});
   const isCorrect = result?.isCorrect ?? null;
 
-  const handleKeyClick = (key: string) => {
+  const [rightItems] = useState<string[]>(
+  () => [...pairs.map((p) => p.right)].sort(() => Math.random() - 0.5)
+);
+  const allMatched = Object.keys(matches).length === pairs.length;
+
+  const handleLeftClick = (left: string) => {
     if (isCorrect) return;
-    setSelectedKey(selectedKey === key ? null : key);
+    setSelected(left);
   };
 
-  const handleValueClick = (value: string) => {
-    if (!selectedKey || isCorrect) return;
-    setUserMatches((prev) => ({ ...prev, [selectedKey]: value }));
-    setSelectedKey(null);
+  const handleRightClick = (right: string) => {
+    if (!selected || isCorrect) return;
+    setMatches((prev) => ({ ...prev, [selected]: right }));
+    setSelected(null);
   };
 
   const handleSubmit = async () => {
-    if (Object.keys(userMatches).length < keys.length) return;
-    await onSubmit({ matches: userMatches });
+    if (!allMatched) return;
+    await onSubmit({ matches });
   };
-
-  const allMatched = Object.keys(userMatches).length === keys.length;
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-gray-400">
-        Click a Chinese character, then click its translation to match them.
-      </p>
-
       <div className="grid grid-cols-2 gap-3">
-        {/* Coloana stanga — chei */}
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider text-center">
-            Chinese
-          </p>
-          {keys.map((key) => {
-            const isSelected = selectedKey === key;
-            const isMatched = userMatches[key] !== undefined;
-            const matchCorrect = result && correctMatches[key] === userMatches[key];
-
-            return (
-              <button
-                key={key}
-                onClick={() => handleKeyClick(key)}
-                className="w-full p-3 rounded-xl border-2 text-center font-bold text-lg transition-all"
-                style={{
-                  borderColor: result
-                    ? matchCorrect ? '#15803d' : '#c1121f'
-                    : isSelected ? '#e85d04'
-                    : isMatched ? '#9ca3af'
-                    : '#e5e7eb',
-                  background: result
-                    ? matchCorrect ? '#f0fdf4' : '#fef2f2'
-                    : isSelected ? '#fff7f0'
-                    : isMatched ? '#f9fafb'
-                    : '#ffffff',
-                  color: isSelected ? '#e85d04' : '#374151',
-                }}
-              >
-                {key}
-                {isMatched && !isSelected && (
-                  <span className="block text-xs font-normal text-gray-400 mt-0.5">
-                    → {userMatches[key]}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+          {pairs.map((pair) => (
+            <button
+              key={pair.left}
+              onClick={() => handleLeftClick(pair.left)}
+              className="w-full p-3 rounded-xl border-2 text-sm font-bold text-left transition-all"
+              style={{
+                borderColor: selected === pair.left ? '#e85d04' : matches[pair.left] ? '#15803d' : '#e5e7eb',
+                background: selected === pair.left ? '#fff7f0' : matches[pair.left] ? '#f0fdf4' : '#ffffff',
+                color: selected === pair.left ? '#e85d04' : matches[pair.left] ? '#15803d' : '#374151',
+              }}
+            >
+              {pair.left}
+            </button>
+          ))}
         </div>
-
-        {/* Coloana dreapta — valori amestecate */}
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider text-center">
-            Translation
-          </p>
-          {shuffledValues.map((val) => {
-            const isUsed = Object.values(userMatches).includes(val);
-
-            return (
-              <button
-                key={val}
-                onClick={() => handleValueClick(val)}
-                disabled={isUsed || isCorrect === true}
-                className="w-full p-3 rounded-xl border-2 text-center text-sm font-medium transition-all"
-                style={{
-                  borderColor: selectedKey && !isUsed ? '#0369a1' : '#e5e7eb',
-                  background: selectedKey && !isUsed ? '#f0f9ff' : isUsed ? '#f9fafb' : '#ffffff',
-                  color: isUsed ? '#9ca3af' : '#374151',
-                  opacity: isUsed ? 0.6 : 1,
-                }}
-              >
-                {val}
-              </button>
-            );
-          })}
+          {rightItems.map((right) => (
+            <button
+              key={right}
+              onClick={() => handleRightClick(right)}
+              className="w-full p-3 rounded-xl border-2 text-sm font-medium text-left transition-all"
+              style={{
+                borderColor: Object.values(matches).includes(right) ? '#15803d' : '#e5e7eb',
+                background: Object.values(matches).includes(right) ? '#f0fdf4' : '#f9fafb',
+                color: Object.values(matches).includes(right) ? '#15803d' : '#374151',
+              }}
+            >
+              {right}
+            </button>
+          ))}
         </div>
       </div>
 
       {result && (
         <div
           className="p-3 rounded-xl text-sm font-medium"
-          style={{
-            background: isCorrect ? '#f0fdf4' : '#fef2f2',
-            color: isCorrect ? '#15803d' : '#c1121f',
-          }}
+          style={{ background: isCorrect ? '#f0fdf4' : '#fef2f2', color: isCorrect ? '#15803d' : '#c1121f' }}
         >
           {result.feedbackText ?? (isCorrect ? 'Correct!' : 'Incorrect. Try again!')}
         </div>
       )}
 
-      {(!result || !isCorrect) && (
-        <div className="flex gap-3">
-          <button
-            onClick={() => { setUserMatches({}); setSelectedKey(null); }}
-            className="h-11 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-500 hover:bg-gray-50 transition-all"
-          >
-            Reset
-          </button>
-          <Button
-            onClick={handleSubmit}
-            disabled={!allMatched || submitting}
-            className="h-11 px-8 rounded-xl text-white font-semibold text-sm hover:opacity-90"
-            style={{ background: '#e85d04' }}
-          >
-            {submitting ? 'Checking...' : 'Submit'}
-          </Button>
-        </div>
+      {!isCorrect && (
+        <Button
+          onClick={handleSubmit}
+          disabled={!allMatched || submitting}
+          className="h-11 px-8 rounded-xl text-white font-semibold text-sm hover:opacity-90"
+          style={{ background: '#e85d04' }}
+        >
+          {submitting ? 'Checking...' : 'Submit'}
+        </Button>
       )}
     </div>
   );
@@ -468,90 +333,54 @@ const MatchingExercise = ({ exercise, result, onSubmit, submitting }: ExercisePr
 
 const StudentLessonPage = () => {
   const { lessonId } = useParams<{ lessonId: string }>();
-  const parsedLessonId = parseInt(lessonId ?? '0');
-  const { userId } = useAuthStore();
   const navigate = useNavigate();
+  const { userId } = useAuthStore();
+  const parsedLessonId = parseInt(lessonId ?? '0');
 
-  const [lesson, setLesson] = useState<LessonDto | null>(null);
-  const [materials, setMaterials] = useState<LessonMaterialDto[]>([]);
-  const [progress, setProgress] = useState<StudentLessonProgressDto | null>(null);
+  // --- Hooks (ViewModel) ---
+  const { lesson, loading: lessonLoading, error: lessonError } = useLesson(parsedLessonId);
+  const { materials } = useMaterials(parsedLessonId);
+  const { progress, refetch: refetchProgress } = useLessonProgress(userId!, parsedLessonId);
+  const { submit, submitting } = useExerciseAttempts();
+
+  // --- Stare UI (View) ---
   const [results, setResults] = useState<Record<number, ExerciseAttemptDto>>({});
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [submitting, setSubmitting] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [showCompletion, setShowCompletion] = useState(false);
 
-  const exercises: ExerciseDto[] = lesson?.exercises ?? [];
+  const exercises = lesson?.exercises ?? [];
 
-  useEffect(() => {
-    if (!userId) return;
-    fetchData();
-  }, [parsedLessonId, userId]);
+  const handleSubmit = async (exerciseId: number, answer: Record<string, unknown>) => {
+    const result = await submit({
+      exerciseId,
+      submittedAnswer: answer as never,
+    });
+    setResults((prev) => ({ ...prev, [exerciseId]: result }));
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const [lessonData, materialsData] = await Promise.all([
-        getLesson(parsedLessonId),
-        getMaterialsByLesson(parsedLessonId),
-      ]);
-      setLesson(lessonData);
-      setMaterials(materialsData);
-
-      // Fetch progres curent — poate sa nu existe (404)
-      const progressData = await getLessonProgress(userId!, parsedLessonId).catch(() => null);
-      setProgress(progressData);
-    } catch {
-      setError('Failed to load lesson.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = async (answer: Record<string, unknown>) => {
-    if (!exercises[currentIndex]) return;
-    const exercise = exercises[currentIndex];
-    setSubmitting(true);
-    try {
-      const result = await submitAttempt({ exerciseId: exercise.id, submittedAnswer: answer });
-      const updatedResults = { ...results, [exercise.id]: result };
-      setResults(updatedResults);
-
-      // Refresh progres dupa fiecare submit
-      const progressData = await getLessonProgress(userId!, parsedLessonId).catch(() => null);
-      setProgress(progressData);
-
-      // Verifica daca toate exercitiile sunt rezolvate corect
-      const allCorrect = exercises.every(
-        (ex) => updatedResults[ex.id]?.isCorrect === true
-      );
-      if (allCorrect) setShowCompletion(true);
-    } catch {
-      // Eroare de retea — nu blocam UI-ul
-    } finally {
-      setSubmitting(false);
+    // Refresheaza progresul dupa fiecare tentativa corecta
+    const updated = await refetchProgress();
+    if (updated?.status === 'COMPLETED' && !showCompletion) {
+      setShowCompletion(true);
     }
   };
 
   const renderExercise = (exercise: ExerciseDto) => {
-    const result = results[exercise.id] ?? null;
-    const props = { exercise, result, onSubmit: handleSubmit, submitting };
-
+    const props: ExerciseProps = {
+      exercise,
+      result: results[exercise.id] ?? null,
+      onSubmit: (answer) => handleSubmit(exercise.id, answer),
+      submitting,
+    };
     switch (exercise.type) {
       case 'MULTIPLE_CHOICE': return <MultipleChoiceExercise {...props} />;
-      case 'TRANSLATION': return <TranslationExercise {...props} />;
-      case 'FILL_BLANK': return <FillBlankExercise {...props} />;
-      case 'MATCHING': return <MatchingExercise {...props} />;
-      default: return (
-        <p className="text-sm text-gray-400">
-          Exercise type "{exercise.type}" is not supported yet.
-        </p>
-      );
+      case 'TRANSLATION':     return <TranslationExercise {...props} />;
+      case 'FILL_BLANK':      return <FillBlankExercise {...props} />;
+      case 'MATCHING':        return <MatchingExercise {...props} />;
+      default:                return <p className="text-sm text-gray-400">Unknown exercise type.</p>;
     }
   };
 
-  if (loading) {
+  if (lessonLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <p className="text-gray-400 text-sm">Loading...</p>
@@ -559,10 +388,10 @@ const StudentLessonPage = () => {
     );
   }
 
-  if (error || !lesson) {
+  if (lessonError || !lesson) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-red-500 text-sm">{error ?? 'Lesson not found.'}</p>
+        <p className="text-red-500 text-sm">{lessonError ?? 'Lesson not found.'}</p>
       </div>
     );
   }
@@ -574,7 +403,6 @@ const StudentLessonPage = () => {
   return (
     <div className="space-y-6 max-w-3xl">
 
-      {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm">
         <Link
           to="/lessons"
@@ -587,7 +415,6 @@ const StudentLessonPage = () => {
         <span className="text-gray-500 truncate">{lesson.title}</span>
       </div>
 
-      {/* Header lectie */}
       <div className="space-y-3">
         <div className="flex items-center gap-3 flex-wrap">
           <h1
@@ -606,8 +433,6 @@ const StudentLessonPage = () => {
         {lesson.description && (
           <p className="text-gray-400 text-sm">{lesson.description}</p>
         )}
-
-        {/* Progress bar lectie */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <span className="text-xs text-gray-400">
@@ -623,16 +448,12 @@ const StudentLessonPage = () => {
           <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${lessonPct}%`,
-                background: lessonPct === 100 ? '#15803d' : '#e85d04',
-              }}
+              style={{ width: `${lessonPct}%`, background: lessonPct === 100 ? '#15803d' : '#e85d04' }}
             />
           </div>
         </div>
       </div>
 
-      {/* Banner completare lectie */}
       {showCompletion && (
         <div
           className="rounded-2xl p-6 text-center space-y-3"
@@ -657,38 +478,33 @@ const StudentLessonPage = () => {
         </div>
       )}
 
-      {/* Materiale lectie */}
-      {materials.length > 0 && (
-        <div
-          className="bg-white rounded-2xl p-5 space-y-3"
-          style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}
+  {materials.length > 0 && (
+  <div
+    className="bg-white rounded-2xl p-5 space-y-3"
+    style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}
+  >
+    <p className="text-sm font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
+      Learning Materials
+    </p>
+    <div className="flex flex-wrap gap-2">
+      {materials.map((mat) => (
+        
+        <a
+          key={mat.id}
+          href={mat.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-80"
+          style={{ background: '#f0f9ff', color: '#0369a1' }}
         >
-          <p
-            className="text-sm font-bold text-gray-900"
-            style={{ fontFamily: 'Outfit, sans-serif' }}
-          >
-            Learning Materials
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {materials.map((mat) => (
-              
-              <a
-                key={mat.id}
-                href={mat.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:opacity-80"
-                style={{ background: '#f0f9ff', color: '#0369a1' }}
-              >
-                <span>{mat.type || 'LINK'}</span>
-                <span>— {mat.title}</span>
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
+          <span>{mat.type || 'LINK'}</span>
+          <span>— {mat.title}</span>
+        </a>
+      ))}
+    </div>
+  </div>
+)}
 
-      {/* Sectiunea exercitii */}
       {exercises.length === 0 ? (
         <div
           className="bg-white rounded-2xl p-12 text-center"
@@ -699,7 +515,7 @@ const StudentLessonPage = () => {
       ) : (
         <div className="space-y-4">
 
-          {/* Navigare pills — numerotate ca Moodle */}
+          {/* Pills navigare exercitii */}
           <div className="flex flex-wrap gap-2">
             {exercises.map((ex, i) => {
               const isCorrect = results[ex.id]?.isCorrect;
@@ -710,8 +526,8 @@ const StudentLessonPage = () => {
               let border = '#e5e7eb';
               let color = '#6b7280';
 
-              if (isCurrent) { border = '#e85d04'; color = '#e85d04'; bg = '#fff7f0'; }
-              else if (isCorrect) { border = '#15803d'; color = '#15803d'; bg = '#f0fdf4'; }
+              if (isCurrent)                    { border = '#e85d04'; color = '#e85d04'; bg = '#fff7f0'; }
+              else if (isCorrect)               { border = '#15803d'; color = '#15803d'; bg = '#f0fdf4'; }
               else if (hasAttempt && !isCorrect) { border = '#c1121f'; color = '#c1121f'; bg = '#fef2f2'; }
 
               return (
@@ -732,29 +548,24 @@ const StudentLessonPage = () => {
             className="bg-white rounded-2xl p-8 space-y-6"
             style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}
           >
-            {/* Header exercitiu */}
             <div className="space-y-2">
-  <div className="flex items-center gap-2">
-    <span
-      className="text-xs font-bold px-2.5 py-1 rounded-md"
-      style={{ background: '#fff7f0', color: '#e85d04' }}
-    >
-      {currentExercise.type}
-    </span>
-    {currentExercise.difficulty && (
-      <span className="text-xs text-gray-400">
-        Difficulty: {currentExercise.difficulty}/5
-      </span>
-    )}
-  </div>
-  <p
-  className="text-lg font-semibold text-gray-900"
-  style={{ fontFamily: 'Outfit, sans-serif' }}
->
-   <ChineseText text={currentExercise.prompt} />
-</p>
-</div>
-            {/* UI specific tipului */}
+              <div className="flex items-center gap-2">
+                <span
+                  className="text-xs font-bold px-2.5 py-1 rounded-md"
+                  style={{ background: '#fff7f0', color: '#e85d04' }}
+                >
+                  {currentExercise.type}
+                </span>
+                {currentExercise.difficulty && (
+                  <span className="text-xs text-gray-400">
+                    Difficulty: {currentExercise.difficulty}/5
+                  </span>
+                )}
+              </div>
+              <p className="text-lg font-semibold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
+                <ChineseText text={currentExercise.prompt} />
+              </p>
+            </div>
             {renderExercise(currentExercise)}
           </div>
 
@@ -765,7 +576,7 @@ const StudentLessonPage = () => {
               disabled={currentIndex === 0}
               className="h-10 px-5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              ← Previous
+              Previous
             </button>
             <span className="text-xs text-gray-400">
               {currentIndex + 1} of {exercises.length}
@@ -775,7 +586,7 @@ const StudentLessonPage = () => {
               disabled={currentIndex === exercises.length - 1}
               className="h-10 px-5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              Next →
+              Next
             </button>
           </div>
 

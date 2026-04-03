@@ -1,254 +1,203 @@
 # api-gateway
 
-Microserviciu responsabil pentru autentificarea JWT, autorizarea pe baza de rol si rutarea request-urilor catre microserviciile din platforma de invatare a limbii chineze mandarine.
+Microserviciu responsabil pentru autentificarea JWT, autorizarea bazata pe roluri (RBAC) si rutarea request-urilor catre microserviciile downstream ale platformei de invatare a limbii chineze.
 
 - **Port:** `8080`
 - **Baza de date:** Nu — stateless, fara persistenta
-- **Emite JWT:** Nu — validare exclusiva, emiterea este responsabilitatea `user-service`
-- **Toate request-urile** catre microservicii trec obligatoriu prin Gateway
+- **Emite JWT:** Nu — validare exclusiv; emiterea este responsabilitatea `user-service`
+- **Swagger UI:** Nu — Gateway-ul nu expune documentatie proprie
 
 ---
 
 ## Tech Stack
 
-- Java 21, Spring Boot 4.x, Spring Cloud Gateway (MVC Blocking)
+- Java 21, Spring Boot 4.0.3
+- Spring Cloud Gateway (MVC Blocking — `spring-cloud-starter-gateway-server-webmvc`)
 - Spring Security
 - JJWT 0.12.6 (validare HS256)
 
 ---
 
-## Roluri suportate
+## Rol in arhitectura
 
-| Rol | Descriere |
-|---|---|
-| `STUDENT` | Acces la propriile resurse + endpoint-uri publice per rol |
-| `TEACHER` | Acces la continut educational (read-only) + propriul profil |
-| `ADMIN` | Acces complet la toate endpoint-urile |
-
----
-
-## Fluxul de autentificare
+API Gateway-ul este singurul punct de intrare in sistem. Niciun microserviciu downstream nu este expus direct. Fluxul unui request este:
 
 ```
 Client
-  │
-  ├── POST /api/auth/login ──────────────────────────────▶ user-service (8082)
-  │        (fara JWT)                                        └── returneaza JWT
-  │
-  └── Orice alt request
-       Authorization: Bearer <JWT>
-              │
-              ▼
-        API Gateway (8080)
-              │
-              ├── Valideaza JWT (HS256, secret partajat cu user-service)
-              ├── Extrage userId + role din claims
-              ├── Verifica autorizarea pe baza de rol
-              ├── Verifica ownership (own) pentru resurse per utilizator
-              │
-              ├── Injecteaza headere downstream:
-              │     X-User-Id: <userId>
-              │     X-User-Role: <role>
-              │
-              └── Proxy catre microserviciul destinatar
+  └── API Gateway :8080
+        ├── JwtAuthenticationFilter   (@Order 1) — valideaza JWT, injecteaza headere
+        ├── AuthorizationFilter       (@Order 2) — verifica rolul si ownership-ul
+        └── Proxy → microserviciu downstream
 ```
 
 ---
 
-## JWT — structura token
+## Rute configurate
 
-**Algoritm:** HS256
-**Secret:** partajat intre `api-gateway` si `user-service`
+| ID ruta | Path prefix | Serviciu destinatie | Port |
+|---|---|---|---|
+| `user-service` | `/api/auth/**`, `/api/users/**` | user-service | 8082 |
+| `content-service` | `/api/content/**` | content-service | 8081 |
+| `progress-service` | `/api/progress/**` | progress-service | 8083 |
+| `chatbot-service` | `/api/chatbot/**` | chatbot-service | 8084 |
+| `analysis-service` | `/api/analysis/**` | text-analysis-service | 8085 |
+| `flashcard-service` | `/api/flashcards/**` | flashcard-service | 8086 |
 
-**Claims payload:**
+---
 
-| Claim | Tip | Descriere |
-|---|---|---|
-| `sub` | String | email-ul utilizatorului |
-| `userId` | Long | ID-ul utilizatorului |
-| `role` | String | `STUDENT` / `TEACHER` / `ADMIN` |
-| `iat` | Date | emis la |
-| `exp` | Date | expira la |
+## Filtre de securitate
 
-**Utilizare in frontend:**
+### `JwtAuthenticationFilter` — `@Order(1)`
+
+Responsabilitati:
+- Verifica prezenta headerului `Authorization: Bearer <token>`
+- Valideaza semnatura si expirarea JWT folosind secretul HS256 partajat cu `user-service`
+- Extrage claims-urile `userId` si `role` din payload
+- Injecteaza headerele `X-User-Id` si `X-User-Role` in request-ul transmis downstream
+- Blocheaza cu `401 Unauthorized` orice request cu token absent, expirat sau corupt
+
+Endpoint-uri excluse (nu necesita JWT):
 ```
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
+POST /api/auth/register
+POST /api/auth/login
 ```
 
----
+**Headere injectate downstream:**
 
-## Headere injectate downstream
-
-Fiecare microserviciu primeste automat aceste headere pe orice request autentificat:
-
-| Header | Tip | Descriere |
+| Header | Tip | Sursa |
 |---|---|---|
-| `X-User-Id` | `Long` | `userId` din JWT claims |
-| `X-User-Role` | `String` | `STUDENT` / `TEACHER` / `ADMIN` |
+| `X-User-Id` | `Long` | claim `userId` din JWT |
+| `X-User-Role` | `String` | claim `role` din JWT (`STUDENT` / `TEACHER` / `ADMIN`) |
 
-> Microserviciile nu valideaza JWT-ul direct — citesc exclusiv aceste headere.
+> Microserviciile downstream NU valideaza JWT — se bazeaza exclusiv pe aceste headere. Validarea JWT este centralizata exclusiv in Gateway.
 
 ---
 
-## Endpoint-uri publice (fara JWT)
+### `AuthorizationFilter` — `@Order(2)`
 
-| Method | Path | Destinatie |
+Responsabilitati:
+- Aplica regulile RBAC pe baza headerului `X-User-Role` injectat de filtrul anterior
+- Verifica ownership-ul resurselor (`own`) prin compararea `{userId}` din path cu `X-User-Id`
+- Blocheaza cu `403 Forbidden` request-urile care incalca regulile
+
+#### Reguli de autorizare — prioritate de evaluare
+
+Evaluarea se face in ordine. La primul match, decizia este finala.
+
+**1. ADMIN** — acces nerestrictiv la toate endpoint-urile
+
+**2. TEACHER** — blocat complet de la serviciile exclusive pentru studenti:
+```
+/api/flashcards/**
+/api/analysis/**
+/api/chatbot/**
+```
+
+**3. ADMIN-only routes** — blocate pentru STUDENT si TEACHER:
+
+| Method | Path regex | Descriere |
 |---|---|---|
-| `POST` | `/api/auth/register` | user-service (8082) |
-| `POST` | `/api/auth/login` | user-service (8082) |
+| `POST` | `^/api/users$` | Creare utilizator |
+| `GET` | `^/api/users$` | Lista toti utilizatorii |
+| `GET` | `^/api/users/\\d+$` | Detaliu utilizator dupa ID |
+| `GET` | `^/api/users/search.*$` | Cautare utilizatori dupa nume |
+| `PUT` | `^/api/users/\\d+/name.*$` | Modificare nume utilizator |
+| `PUT` | `^/api/users/\\d+/password/reset.*$` | Reset parola fara verificare |
+| `DELETE` | `^/api/users/\\d+.*$` | Stergere utilizator |
+| `GET` | `^/api/users/students$` | Lista completa studenti |
+| `GET` | `^/api/users/teachers$` | Lista completa profesori |
+| `GET` | `^/api/progress/students/admin/all$` | Toti studentii cu XP |
 
----
+> Matching-ul se face prin `String.matches()` cu regex precis — nu prin `startsWith` — pentru a evita coliziunile intre rute cu prefix comun (ex: `GET /api/users/students` vs `GET /api/users/students/{id}`).
 
-## Reguli de autorizare per serviciu
+**4. Verificare ownership (`own`)** — aplicata pentru STUDENT si TEACHER:
 
-### Regula `own`
-Un `STUDENT` poate accesa doar resursele proprii. Gateway-ul verifica ca `{studentId}` / `{userId}` din path coincide cu `userId` din JWT.
+Daca path-ul request-ului contine `{userId}` sau `{studentId}`, valoarea este extrasa si comparata cu `X-User-Id`. In caz de nepotrivire → `403 Forbidden`.
 
-Path-urile verificate pentru `own`:
-- `/api/flashcards/sets/student/{studentId}`
-- `/api/progress/students/{studentId}`
-- `/api/progress/lessons/student/{studentId}`
-- `/api/progress/attempts/student/{studentId}`
-- `/api/analysis/student/{studentId}`
-- `/api/users/students/{userId}`
-- `/api/users/teachers/{userId}`
-
----
-
-### user-service — port 8082
-
-| Method | Path | PUBLIC | STUDENT | TEACHER | ADMIN |
-|---|---|---|---|---|---|
-| POST | /api/auth/register | ✓ | | | |
-| POST | /api/auth/login | ✓ | | | |
-| POST | /api/users | | | | ✓ |
-| GET | /api/users | | | | ✓ |
-| GET | /api/users/{id} | | | | ✓ |
-| GET | /api/users/search | | | | ✓ |
-| PUT | /api/users/{id}/name | | | | ✓ |
-| DELETE | /api/users/{id} | | | | ✓ |
-| GET | /api/users/students/{userId} | | own | | ✓ |
-| PUT | /api/users/students/{userId}/nickname | | own | | ✓ |
-| GET | /api/users/teachers/{userId} | | | own | ✓ |
-| PUT | /api/users/teachers/{userId}/title | | | own | ✓ |
-
----
-
-### content-service — port 8081
-
-| Method | Path | PUBLIC | STUDENT | TEACHER | ADMIN |
-|---|---|---|---|---|---|
-| GET | /api/content/units | | ✓ | ✓ | ✓ |
-| GET | /api/content/units/{id} | | ✓ | ✓ | ✓ |
-| POST | /api/content/units | | | | ✓ |
-| PUT | /api/content/units/{id} | | | | ✓ |
-| DELETE | /api/content/units/{id} | | | | ✓ |
-| GET | /api/content/units/{unitId}/lessons | | ✓ | ✓ | ✓ |
-| GET | /api/content/lessons/{id} | | ✓ | ✓ | ✓ |
-| POST | /api/content/lessons | | | | ✓ |
-| PUT | /api/content/lessons/{id} | | | | ✓ |
-| DELETE | /api/content/lessons/{id} | | | | ✓ |
-| GET | /api/content/lessons/{lessonId}/exercises | | ✓ | ✓ | ✓ |
-| GET | /api/content/exercises/{id} | | ✓ | ✓ | ✓ |
-| POST | /api/content/exercises | | | | ✓ |
-| PUT | /api/content/exercises/{id} | | | | ✓ |
-| DELETE | /api/content/exercises/{id} | | | | ✓ |
-| GET | /api/content/lessons/{lessonId}/materials | | ✓ | ✓ | ✓ |
-| POST | /api/content/materials | | | | ✓ |
-| DELETE | /api/content/materials/{id} | | | | ✓ |
-
----
-
-### progress-service — port 8083
-
-| Method | Path | PUBLIC | STUDENT | TEACHER | ADMIN |
-|---|---|---|---|---|---|
-| POST | /api/progress/attempts | | own | | ✓ |
-| GET | /api/progress/attempts/student/{studentId}/exercise/{exerciseId} | | own | | ✓ |
-| GET | /api/progress/lessons/student/{studentId}/lesson/{lessonId} | | own | | ✓ |
-| GET | /api/progress/lessons/student/{studentId} | | own | | ✓ |
-| GET | /api/progress/lessons/student/{studentId}/in-progress | | own | | ✓ |
-| GET | /api/progress/lessons/{lessonId}/leaderboard | | ✓ | ✓ | ✓ |
-| GET | /api/progress/students/leaderboard | | ✓ | ✓ | ✓ |
-| GET | /api/progress/students/{studentId} | | own | | ✓ |
-| GET | /api/progress/students/{studentId}/exists | | own | | ✓ |
-| GET | /api/progress/students/admin/all | | | | ✓ |
-
----
-
-### chatbot-service — port 8084
-
-> TEACHER nu are acces la niciun endpoint al acestui serviciu.
-
-| Method | Path | PUBLIC | STUDENT | TEACHER | ADMIN |
-|---|---|---|---|---|---|
-| POST | /api/chatbot/sessions | | own | | ✓ |
-| GET | /api/chatbot/sessions | | own | | ✓ |
-| PATCH | /api/chatbot/sessions/{sessionId}/end | | own | | ✓ |
-| POST | /api/chatbot/sessions/{sessionId}/messages | | own | | ✓ |
-| GET | /api/chatbot/sessions/{sessionId}/messages | | own | | ✓ |
-
----
-
-### text-analysis-service — port 8085 (FastAPI / Python)
-
-> TEACHER nu are acces la niciun endpoint al acestui serviciu.
-
-| Method | Path | PUBLIC | STUDENT | TEACHER | ADMIN |
-|---|---|---|---|---|---|
-| POST | /api/analysis/text | | own | | ✓ |
-| POST | /api/analysis/ocr | | own | | ✓ |
-| GET | /api/analysis/student/{studentId} | | own | | ✓ |
-| GET | /api/analysis/{analysisId} | | own | | ✓ |
-| DELETE | /api/analysis/{analysisId} | | own | | ✓ |
-
----
-
-### flashcard-service — port 8086
-
-> TEACHER nu are acces la niciun endpoint al acestui serviciu.
-
-| Method | Path | PUBLIC | STUDENT | TEACHER | ADMIN |
-|---|---|---|---|---|---|
-| POST | /api/flashcards/sets | | own | | ✓ |
-| GET | /api/flashcards/sets/student/{studentId} | | own | | ✓ |
-| GET | /api/flashcards/sets/{setId} | | own | | ✓ |
-| PUT | /api/flashcards/sets/{setId} | | own | | ✓ |
-| DELETE | /api/flashcards/sets/{setId} | | own | | ✓ |
-| POST | /api/flashcards/cards | | own | | ✓ |
-| GET | /api/flashcards/sets/{setId}/cards | | own | | ✓ |
-| GET | /api/flashcards/cards/{flashcardId} | | own | | ✓ |
-| PUT | /api/flashcards/cards/{flashcardId} | | own | | ✓ |
-| DELETE | /api/flashcards/cards/{flashcardId} | | own | | ✓ |
-| POST | /api/flashcards/reviews | | own | | ✓ |
-| GET | /api/flashcards/reviews/due/{studentId} | | own | | ✓ |
-| GET | /api/flashcards/reviews/history/{studentId}/{flashcardId} | | own | | ✓ |
-| GET | /api/flashcards/reviews/progress/{studentId}/{flashcardId} | | own | | ✓ |
-
----
-
-## Coduri de eroare returnate de Gateway
-
-| Cod | Cauza |
+| Pattern regex | Camp verificat |
 |---|---|
-| `401` | Token JWT lipsa, expirat sau corupt |
-| `403` | Rol insuficient sau incercare de acces la resursa altui utilizator |
+| `^/api/flashcards/sets/student/(\\d+).*$` | `studentId` |
+| `^/api/progress/students/(\\d+).*$` | `studentId` |
+| `^/api/progress/lessons/student/(\\d+).*$` | `studentId` |
+| `^/api/progress/attempts/student/(\\d+).*$` | `studentId` |
+| `^/api/progress/units/\\d+/student/(\\d+).*$` | `studentId` (al doilea segment numeric) |
+| `^/api/analysis/student/(\\d+).*$` | `studentId` |
+| `^/api/users/students/(\\d+).*$` | `userId` |
+| `^/api/users/teachers/(\\d+).*$` | `userId` |
+| `^/api/users/(\\d+)/email.*$` | `userId` |
+| `^/api/users/(\\d+)/password$` | `userId` |
 
-> Erorile `404`, `409`, `503` etc. sunt returnate de microserviciile downstream, nu de Gateway.
+> Endpoint-urile fara `{userId}` in path (ex: `POST /api/chatbot/sessions`, `POST /api/flashcards/reviews`) nu necesita verificare de ownership in Gateway — identitatea este preluata exclusiv din `X-User-Id` header in serviciul downstream.
 
 ---
 
-## Rutare — mapare prefix path catre microserviciu
+## JWT
 
-| Prefix path | Microserviciu | Port |
+- **Algoritm:** HS256
+- **Secret:** partajat cu `user-service` — configurat in `application.properties`
+- **Validare:** semnatura + expirare (prin JJWT `Jwts.parser()`)
+- **Claims folosite:** `userId` (Long), `role` (String)
+
+---
+
+## Configurare CORS
+
+Frontend-ul React este permis explicit:
+
+| Proprietate | Valoare |
+|---|---|
+| `allowedOrigins` | `http://localhost:5173` |
+| `allowedMethods` | `GET, POST, PUT, DELETE, PATCH, OPTIONS` |
+| `allowedHeaders` | `*` |
+| `allowCredentials` | `true` |
+
+> Pentru deployment in productie, `allowedOrigins` trebuie externalizat in `application.properties`.
+
+---
+
+## Coduri de raspuns emise de Gateway
+
+| Cod | Filtru | Cauza |
 |---|---|---|
-| `/api/auth/**` | user-service | 8082 |
-| `/api/users/**` | user-service | 8082 |
-| `/api/content/**` | content-service | 8081 |
-| `/api/progress/**` | progress-service | 8083 |
-| `/api/chatbot/**` | chatbot-service | 8084 |
-| `/api/analysis/**` | text-analysis-service | 8085 |
-| `/api/flashcards/**` | flashcard-service | 8086 |
+| `401 Unauthorized` | `JwtAuthenticationFilter` | Token absent, expirat sau corupt |
+| `403 Forbidden` | `AuthorizationFilter` | Rol insuficient sau ownership nepotrivit |
+
+> Codurile `4xx` si `5xx` emise de microserviciile downstream sunt propagate netransformat catre client.
+
+---
+
+## Configurare `application.properties`
+
+| Proprietate | Descriere |
+|---|---|
+| `server.port` | `8080` |
+| `application.security.jwt.secret-key` | Secret Base64 HS256, partajat cu `user-service` |
+| `spring.cloud.gateway.server.webmvc.routes[n].id` | Identificator ruta |
+| `spring.cloud.gateway.server.webmvc.routes[n].uri` | URI serviciu destinatie |
+| `spring.cloud.gateway.server.webmvc.routes[n].predicates[0]` | Pattern path pentru matching |
+
+---
+
+## Ghid pentru modificari viitoare
+
+### Adaugare endpoint nou intr-un microserviciu existent
+
+| Tip endpoint nou | Actiune necesara in Gateway |
+|---|---|
+| Accesibil tuturor rolurilor autentificate | Nicio modificare |
+| **ADMIN-only** | Adauga `AdminRule` in `ADMIN_ONLY_ROUTES` din `AuthorizationFilter` |
+| **Own** — contine `{userId}` sau `{studentId}` in path | Adauga `Pattern` in `OWN_RESOURCE_PATTERNS` din `AuthorizationFilter` |
+| Exclusiv STUDENT (serviciu nou blocat pentru TEACHER) | Adauga prefixul in `STUDENT_ONLY_PREFIXES` din `AuthorizationFilter` |
+
+### Adaugare microserviciu nou
+
+1. Adauga ruta in `application.properties`:
+```properties
+spring.cloud.gateway.server.webmvc.routes[N].id=nume-service
+spring.cloud.gateway.server.webmvc.routes[N].uri=http://localhost:PORT
+spring.cloud.gateway.server.webmvc.routes[N].predicates[0]=Path=/api/prefix/**
+```
+2. Evalueaza daca serviciul necesita reguli suplimentare in `AuthorizationFilter` (ADMIN-only routes, own patterns, sau blocare TEACHER).
 
 ---
 
@@ -257,11 +206,11 @@ Path-urile verificate pentru `own`:
 ```
 apigateway/
 ├── config/
-│   └── SecurityConfig.java          # Spring Security — rute publice vs protejate
+│   └── SecurityConfig.java         (SecurityFilterChain, CORS)
 ├── filter/
-│   ├── JwtAuthenticationFilter.java # Validare JWT + injectare headere downstream
-│   ├── AuthorizationFilter.java     # Verificare rol + ownership (own)
-│   └── MutableHttpServletRequest.java
+│   ├── JwtAuthenticationFilter.java (@Order 1 — autentificare JWT)
+│   ├── AuthorizationFilter.java     (@Order 2 — RBAC si ownership)
+│   └── MutableHttpServletRequest.java (wrapper pentru injectare headere)
 └── util/
-    └── JwtUtil.java                 # Parsare si validare token HS256
+    └── JwtUtil.java                 (extractie si validare claims JWT)
 ```

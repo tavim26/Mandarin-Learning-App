@@ -1,21 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
-import {
-  analyzeText,
-  analyzeOcr,
-  getAnalysisHistory,
-  getAnalysisById,
-  deleteAnalysis,
-  getStudentStats,
-  type TextAnalysisDto,
-  type TextAnalysisSummaryDto,
-  type StudentStatsDto,
-} from '@/api/analysisApi';
+import { createFlashcard } from '@/api/flashcardApi';
+import { useFlashcardSets } from '@/hooks/useFlashcards';
+import { useAnalysis } from '@/hooks/useAnalysis';
+import type {
+  TextAnalysisDto,
+  TranslationLanguage,
+  SourceType,
+} from '@/types';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from 'recharts';
-
 import useTTS from '@/hooks/useTTS';
 
 // ----------------------------------------------------------------
@@ -24,10 +20,22 @@ import useTTS from '@/hooks/useTTS';
 type Tab = 'analyze' | 'history' | 'stats';
 
 // ----------------------------------------------------------------
-// Componenta afisare rezultat analiza — tokeni cu pinyin ruby
+// Constante vizuale
 // ----------------------------------------------------------------
+const HSK_COLORS: Record<number, string> = {
+  1: '#15803d',
+  2: '#0369a1',
+  3: '#7c3aed',
+  4: '#c2410c',
+  5: '#b45309',
+  6: '#be123c',
+};
 
-// --- Modal creare flashcard din token ---
+const DONUT_COLORS = ['#e85d04', '#0369a1'];
+
+// ----------------------------------------------------------------
+// Modal creare flashcard din token
+// ----------------------------------------------------------------
 interface CreateFlashcardFromTokenModalProps {
   hanzi: string;
   pinyin: string | null;
@@ -38,34 +46,23 @@ interface CreateFlashcardFromTokenModalProps {
 const CreateFlashcardFromTokenModal = ({
   hanzi, pinyin, translation, onClose,
 }: CreateFlashcardFromTokenModalProps) => {
-  const { userId } = useAuthStore();
-  const [sets, setSets] = useState<import('@/api/flashcardApi').FlashcardSetDto[]>([]);
+  // useFlashcardSets inlocuieste dynamic import + state manual
+  const { sets, loading: loadingSets } = useFlashcardSets();
   const [selectedSetId, setSelectedSetId] = useState<number | null>(null);
   const [frontText, setFrontText] = useState(hanzi);
   const [backText, setBackText] = useState(
     [pinyin, translation].filter(Boolean).join(' — ')
   );
   const [loading, setLoading] = useState(false);
-  const [loadingSets, setLoadingSets] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Selecteaza primul set disponibil cand lista se incarca
   useEffect(() => {
-    const fetchSets = async () => {
-      if (!userId) return;
-      try {
-        const { getFlashcardSets } = await import('@/api/flashcardApi');
-        const data = await getFlashcardSets(userId);
-        setSets(data);
-        if (data.length > 0) setSelectedSetId(data[0].id);
-      } catch {
-        setError('Failed to load flashcard sets.');
-      } finally {
-        setLoadingSets(false);
-      }
-    };
-    fetchSets();
-  }, [userId]);
+    if (sets.length > 0 && !selectedSetId) {
+      setSelectedSetId(sets[0].id);
+    }
+  }, [sets]);
 
   const handleSave = async () => {
     if (!selectedSetId) { setError('Please select a set.'); return; }
@@ -73,7 +70,7 @@ const CreateFlashcardFromTokenModal = ({
     setLoading(true);
     setError(null);
     try {
-      const { createFlashcard } = await import('@/api/flashcardApi');
+      // createFlashcard este o actiune one-shot — import direct acceptabil
       await createFlashcard({ setId: selectedSetId, frontText: frontText.trim(), backText: backText.trim() });
       setSuccess(true);
       setTimeout(onClose, 1200);
@@ -102,14 +99,10 @@ const CreateFlashcardFromTokenModal = ({
         {success ? (
           <div className="text-center py-4 space-y-2">
             <p className="text-2xl">✓</p>
-            <p className="text-sm font-semibold" style={{ color: '#15803d' }}>
-              Flashcard created!
-            </p>
+            <p className="text-sm font-semibold" style={{ color: '#15803d' }}>Flashcard created!</p>
           </div>
         ) : (
           <div className="space-y-4">
-
-            {/* Selector set */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Flashcard Set
@@ -135,7 +128,6 @@ const CreateFlashcardFromTokenModal = ({
               )}
             </div>
 
-            {/* Front */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Front (Chinese)
@@ -147,7 +139,6 @@ const CreateFlashcardFromTokenModal = ({
               />
             </div>
 
-            {/* Back */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Back (Pinyin + Translation)
@@ -184,24 +175,17 @@ const CreateFlashcardFromTokenModal = ({
   );
 };
 
+// ----------------------------------------------------------------
+// Componenta afisare rezultat analiza — neschimbata (View pur)
+// ----------------------------------------------------------------
 interface AnalysisResultProps {
   result: TextAnalysisDto;
 }
-
-const HSK_COLORS: Record<number, string> = {
-  1: '#15803d',
-  2: '#0369a1',
-  3: '#7c3aed',
-  4: '#c2410c',
-  5: '#b45309',
-  6: '#be123c',
-};
 
 const AnalysisResult = ({ result }: AnalysisResultProps) => {
   const sorted = [...result.tokens].sort((a, b) => a.position_index - b.position_index);
   const fullText = sorted.map((t) => t.hanzi).join('');
 
-  // Stare tooltip token
   const [tooltipToken, setTooltipToken] = useState<{
     token: typeof sorted[0];
     x: number;
@@ -211,7 +195,6 @@ const AnalysisResult = ({ result }: AnalysisResultProps) => {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const { speak, isSpeaking, stop } = useTTS();
 
-  // Inchide tooltip la click in afara
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (tooltipRef.current && !tooltipRef.current.contains(e.target as Node)) {
@@ -234,7 +217,6 @@ const AnalysisResult = ({ result }: AnalysisResultProps) => {
 
   return (
     <>
-      {/* Modal creare flashcard */}
       {flashcardToken && (
         <CreateFlashcardFromTokenModal
           hanzi={flashcardToken.hanzi}
@@ -244,26 +226,25 @@ const AnalysisResult = ({ result }: AnalysisResultProps) => {
         />
       )}
 
-      {/* Tooltip token */}
       {tooltipToken && (
         <div
           ref={tooltipRef}
           className="fixed z-50"
-          style={{
-            left: `${tooltipToken.x}px`,
-            top: `${tooltipToken.y}px`,
-            transform: 'translate(-50%, -100%)',
-          }}
+          style={{ left: `${tooltipToken.x}px`, top: `${tooltipToken.y}px`, transform: 'translate(-50%, -100%)' }}
         >
           <div
             className="bg-white rounded-2xl p-4 space-y-3 min-w-52"
             style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.16)', border: '1px solid #f3f4f6' }}
           >
-            {/* Header — hanzi + audio */}
             <div className="flex items-center justify-between gap-3">
               <span
                 className="text-2xl font-bold"
-                style={{ color: tooltipToken.token.hsk_level ? HSK_COLORS[tooltipToken.token.hsk_level] ?? '#374151' : '#374151', fontFamily: 'Outfit, sans-serif' }}
+                style={{
+                  color: tooltipToken.token.hsk_level
+                    ? HSK_COLORS[tooltipToken.token.hsk_level] ?? '#374151'
+                    : '#374151',
+                  fontFamily: 'Outfit, sans-serif',
+                }}
               >
                 {tooltipToken.token.hanzi}
               </span>
@@ -283,20 +264,12 @@ const AnalysisResult = ({ result }: AnalysisResultProps) => {
                 </svg>
               </button>
             </div>
-
-            {/* Pinyin */}
             {tooltipToken.token.pinyin && (
-              <p className="text-sm font-medium" style={{ color: '#e85d04' }}>
-                {tooltipToken.token.pinyin}
-              </p>
+              <p className="text-sm font-medium" style={{ color: '#e85d04' }}>{tooltipToken.token.pinyin}</p>
             )}
-
-            {/* Traducere */}
             {tooltipToken.token.translation && (
               <p className="text-sm text-gray-600">{tooltipToken.token.translation}</p>
             )}
-
-            {/* HSK badge */}
             {tooltipToken.token.hsk_level && (
               <span
                 className="text-xs font-bold px-2 py-0.5 rounded-md inline-block"
@@ -308,8 +281,6 @@ const AnalysisResult = ({ result }: AnalysisResultProps) => {
                 HSK {tooltipToken.token.hsk_level}
               </span>
             )}
-
-            {/* Buton adaugare flashcard */}
             <button
               onClick={() => { setFlashcardToken(tooltipToken.token); setTooltipToken(null); }}
               className="w-full h-9 rounded-xl text-xs font-semibold text-white transition-all hover:opacity-90"
@@ -317,8 +288,6 @@ const AnalysisResult = ({ result }: AnalysisResultProps) => {
             >
               + Add to Flashcards
             </button>
-
-            {/* Triunghi */}
             <div
               className="absolute left-1/2 -translate-x-1/2 w-3 h-3 bg-white rotate-45"
               style={{ bottom: '-6px', border: '1px solid #f3f4f6', borderTop: 'none', borderLeft: 'none' }}
@@ -328,26 +297,22 @@ const AnalysisResult = ({ result }: AnalysisResultProps) => {
       )}
 
       <div className="space-y-5">
-
-        {/* Metadata + buton audio text complet */}
         <div className="flex items-center gap-2 flex-wrap">
           <span
             className="text-xs font-semibold px-2.5 py-1 rounded-md"
-            style={{ background: result.source_type === 'OCR' ? '#f0f9ff' : '#f0fdf4', color: result.source_type === 'OCR' ? '#0369a1' : '#15803d' }}
+            style={{
+              background: result.source_type === 'OCR' ? '#f0f9ff' : '#f0fdf4',
+              color: result.source_type === 'OCR' ? '#0369a1' : '#15803d',
+            }}
           >
             {result.source_type}
           </span>
           {result.overall_hsk_level && (
-            <span
-              className="text-xs font-semibold px-2.5 py-1 rounded-md"
-              style={{ background: '#fff7f0', color: '#e85d04' }}
-            >
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-md" style={{ background: '#fff7f0', color: '#e85d04' }}>
               Overall HSK {result.overall_hsk_level}
             </span>
           )}
           <span className="text-xs text-gray-400">{sorted.length} tokens</span>
-
-          {/* Buton play audio text complet */}
           <button
             onClick={() => isSpeaking ? stop() : speak(fullText)}
             className="ml-auto flex items-center gap-2 h-8 px-3 rounded-xl border-2 text-xs font-semibold transition-all"
@@ -365,11 +330,7 @@ const AnalysisResult = ({ result }: AnalysisResultProps) => {
           </button>
         </div>
 
-        {/* Tokeni clickabili cu ruby text */}
-        <div
-          className="p-5 rounded-2xl leading-loose"
-          style={{ background: '#f9fafb', lineHeight: '2.8' }}
-        >
+        <div className="p-5 rounded-2xl leading-loose" style={{ background: '#f9fafb', lineHeight: '2.8' }}>
           {sorted.map((token, i) => (
             <ruby
               key={i}
@@ -378,41 +339,25 @@ const AnalysisResult = ({ result }: AnalysisResultProps) => {
               style={{ color: token.hsk_level ? HSK_COLORS[token.hsk_level] ?? '#374151' : '#374151' }}
             >
               {token.hanzi}
-              <rt className="text-xs font-normal" style={{ color: '#9ca3af' }}>
-                {token.pinyin ?? ''}
-              </rt>
+              <rt className="text-xs font-normal" style={{ color: '#9ca3af' }}>{token.pinyin ?? ''}</rt>
             </ruby>
           ))}
         </div>
 
-        {/* Traducere globala */}
         {result.translated_text && (
-          <div
-            className="p-4 rounded-xl text-sm text-gray-600"
-            style={{ background: '#f0f9ff', borderLeft: '3px solid #0369a1' }}
-          >
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">
-              Translation
-            </span>
+          <div className="p-4 rounded-xl text-sm text-gray-600" style={{ background: '#f0f9ff', borderLeft: '3px solid #0369a1' }}>
+            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Translation</span>
             {result.translated_text}
           </div>
         )}
 
-        {/* Legenda culori HSK */}
         <div className="flex flex-wrap gap-2">
           {Object.entries(HSK_COLORS).map(([level, color]) => (
-            <span
-              key={level}
-              className="text-xs font-semibold px-2 py-0.5 rounded-md"
-              style={{ background: `${color}18`, color }}
-            >
+            <span key={level} className="text-xs font-semibold px-2 py-0.5 rounded-md" style={{ background: `${color}18`, color }}>
               HSK {level}
             </span>
           ))}
-          <span
-            className="text-xs font-semibold px-2 py-0.5 rounded-md"
-            style={{ background: '#f3f4f6', color: '#6b7280' }}
-          >
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-md" style={{ background: '#f3f4f6', color: '#6b7280' }}>
             No HSK
           </span>
         </div>
@@ -424,15 +369,16 @@ const AnalysisResult = ({ result }: AnalysisResultProps) => {
 // ----------------------------------------------------------------
 // Tab: Analyze
 // ----------------------------------------------------------------
-const AnalyzeTab = () => {
+const AnalyzeTab = ({ studentId }: { studentId: number }) => {
+  const { analyze, analyzeImage, result, loading } = useAnalysis(studentId);
+
+  // Stare UI — ramane in componenta
   const [mode, setMode] = useState<'text' | 'ocr'>('text');
   const [textInput, setTextInput] = useState('');
-  const [translationLanguage, setTranslationLanguage] = useState<'ro' | 'en'>('ro');
+  const [translationLanguage, setTranslationLanguage] = useState<TranslationLanguage>('ro');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<TextAnalysisDto | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageChange = (file: File) => {
@@ -443,19 +389,15 @@ const AnalyzeTab = () => {
   };
 
   const handleAnalyze = async () => {
-    setLoading(true);
     setError(null);
-    setResult(null);
     try {
-      let data: TextAnalysisDto;
       if (mode === 'text') {
-        if (!textInput.trim()) { setError('Please enter some text.'); setLoading(false); return; }
-        data = await analyzeText(textInput.trim(), translationLanguage);
+        if (!textInput.trim()) { setError('Please enter some text.'); return; }
+        await analyze(textInput.trim(), translationLanguage);
       } else {
-        if (!imageFile) { setError('Please select an image.'); setLoading(false); return; }
-        data = await analyzeOcr(imageFile, translationLanguage);
+        if (!imageFile) { setError('Please select an image.'); return; }
+        await analyzeImage(imageFile, translationLanguage);
       }
-      setResult(data);
     } catch (err: unknown) {
       if (err instanceof Error && err.message.includes('422')) {
         setError('No Chinese text detected in the image.');
@@ -464,20 +406,16 @@ const AnalyzeTab = () => {
       } else {
         setError('Analysis failed. Please try again.');
       }
-    } finally {
-      setLoading(false);
     }
   };
 
   return (
     <div className="space-y-6">
-
-      {/* Selector mod */}
       <div className="flex gap-2">
         {(['text', 'ocr'] as const).map((m) => (
           <button
             key={m}
-            onClick={() => { setMode(m); setResult(null); setError(null); }}
+            onClick={() => { setMode(m); setError(null); }}
             className="px-5 py-2 rounded-xl text-sm font-semibold transition-all border-2"
             style={{
               borderColor: mode === m ? '#e85d04' : '#e5e7eb',
@@ -488,8 +426,6 @@ const AnalyzeTab = () => {
             {m === 'text' ? 'Text Input' : 'Image / OCR'}
           </button>
         ))}
-
-        {/* Selector limba traducere */}
         <div className="ml-auto flex items-center gap-2">
           <span className="text-xs text-gray-400">Translate to:</span>
           <div className="flex gap-1">
@@ -533,12 +469,7 @@ const AnalyzeTab = () => {
           />
           {imagePreview ? (
             <div className="relative">
-              <img
-                src={imagePreview}
-                alt="Selected"
-                className="w-full max-h-48 object-contain rounded-xl"
-                style={{ border: '2px solid #e85d04' }}
-              />
+              <img src={imagePreview} alt="Selected" className="w-full max-h-48 object-contain rounded-xl" style={{ border: '2px solid #e85d04' }} />
               <button
                 onClick={() => { setImageFile(null); setImagePreview(null); }}
                 className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-md text-gray-500 hover:text-red-500 transition-colors"
@@ -576,10 +507,7 @@ const AnalyzeTab = () => {
       </button>
 
       {result && (
-        <div
-          className="bg-white rounded-2xl p-6"
-          style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}
-        >
+        <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}>
           <AnalysisResult result={result} />
         </div>
       )}
@@ -590,17 +518,12 @@ const AnalyzeTab = () => {
 // ----------------------------------------------------------------
 // Tab: History
 // ----------------------------------------------------------------
-interface HistoryTabProps {
-  studentId: number;
-}
+const HistoryTab = ({ studentId }: { studentId: number }) => {
+  const { fetchHistory, history, historyLoading, fetchById, remove } = useAnalysis(studentId);
 
-const HistoryTab = ({ studentId }: HistoryTabProps) => {
-  const [items, setItems] = useState<TextAnalysisSummaryDto[]>([]);
-  const [total, setTotal] = useState(0);
+  // Stare UI — ramane in componenta
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [sourceFilter, setSourceFilter] = useState<'MANUAL' | 'OCR' | ''>('');
+  const [sourceFilter, setSourceFilter] = useState<SourceType | ''>('');
   const [hskFilter, setHskFilter] = useState<string>('');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -608,61 +531,45 @@ const HistoryTab = ({ studentId }: HistoryTabProps) => {
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
   useEffect(() => {
-    fetchHistory();
+    fetchHistory({
+      page,
+      size: 10,
+      sort_order: sortOrder,
+      ...(sourceFilter ? { source_type: sourceFilter } : {}),
+      ...(hskFilter ? { hsk_level: parseInt(hskFilter) } : {}),
+    });
   }, [page, sourceFilter, hskFilter, sortOrder]);
 
-  const fetchHistory = async () => {
-    setLoading(true);
-    try {
-      const params: Record<string, unknown> = { page, size: 10, sort_order: sortOrder };
-      if (sourceFilter) params.source_type = sourceFilter;
-      if (hskFilter) params.hsk_level = parseInt(hskFilter);
-      const data = await getAnalysisHistory(studentId, params as Parameters<typeof getAnalysisHistory>[1]);
-      setItems(data.items);
-      setTotal(data.total);
-      setTotalPages(data.total_pages);
-    } catch {
-      setItems([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const items = history?.items ?? [];
+  const total = history?.total ?? 0;
+  const totalPages = history?.total_pages ?? 1;
 
   const handleExpand = async (id: number) => {
     if (expandedId === id) { setExpandedId(null); return; }
     setExpandedId(id);
     if (expandedData[id]) return;
-    try {
-      const data = await getAnalysisById(id);
-      setExpandedData((prev) => ({ ...prev, [id]: data }));
-    } catch { /* ignoram */ }
+    const data = await fetchById(id);
+    if (data) setExpandedData((prev) => ({ ...prev, [id]: data }));
   };
 
   const handleDelete = async (id: number) => {
-    try {
-      await deleteAnalysis(id);
-      setItems((prev) => prev.filter((i) => i.id !== id));
-      setTotal((prev) => prev - 1);
-      setDeleteTarget(null);
-      if (expandedId === id) setExpandedId(null);
-    } catch { /* ignoram */ }
+    await remove(id);
+    setDeleteTarget(null);
+    if (expandedId === id) setExpandedId(null);
   };
 
   return (
     <div className="space-y-5">
-
-      {/* Filtre */}
       <div className="flex flex-wrap gap-3 items-center">
         <select
           value={sourceFilter}
-          onChange={(e) => { setSourceFilter(e.target.value as 'MANUAL' | 'OCR' | ''); setPage(1); }}
+          onChange={(e) => { setSourceFilter(e.target.value as SourceType | ''); setPage(1); }}
           className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-600 outline-none"
         >
           <option value="">All sources</option>
           <option value="MANUAL">Manual</option>
           <option value="OCR">OCR</option>
         </select>
-
         <select
           value={hskFilter}
           onChange={(e) => { setHskFilter(e.target.value); setPage(1); }}
@@ -673,7 +580,6 @@ const HistoryTab = ({ studentId }: HistoryTabProps) => {
             <option key={l} value={l}>HSK {l}</option>
           ))}
         </select>
-
         <select
           value={sortOrder}
           onChange={(e) => { setSortOrder(e.target.value as 'newest' | 'oldest'); setPage(1); }}
@@ -682,30 +588,21 @@ const HistoryTab = ({ studentId }: HistoryTabProps) => {
           <option value="newest">Newest first</option>
           <option value="oldest">Oldest first</option>
         </select>
-
         <span className="text-xs text-gray-400 ml-auto">{total} analyses</span>
       </div>
 
-      {loading ? (
+      {historyLoading ? (
         <div className="flex items-center justify-center h-32">
           <p className="text-gray-400 text-sm">Loading...</p>
         </div>
       ) : items.length === 0 ? (
-        <div
-          className="bg-white rounded-2xl p-12 text-center"
-          style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}
-        >
+        <div className="bg-white rounded-2xl p-12 text-center" style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}>
           <p className="text-gray-400 text-sm">No analyses yet.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {items.map((item) => (
-            <div
-              key={item.id}
-              className="bg-white rounded-2xl overflow-hidden"
-              style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}
-            >
-              {/* Header row */}
+            <div key={item.id} className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}>
               <div
                 className="flex items-start justify-between gap-4 p-5 cursor-pointer hover:bg-gray-50 transition-colors"
                 onClick={() => handleExpand(item.id)}
@@ -725,10 +622,7 @@ const HistoryTab = ({ studentId }: HistoryTabProps) => {
                       {item.source_type}
                     </span>
                     {item.overall_hsk_level && (
-                      <span
-                        className="text-xs font-semibold px-2 py-0.5 rounded-md"
-                        style={{ background: '#fff7f0', color: '#e85d04' }}
-                      >
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-md" style={{ background: '#fff7f0', color: '#e85d04' }}>
                         HSK {item.overall_hsk_level}
                       </span>
                     )}
@@ -737,10 +631,7 @@ const HistoryTab = ({ studentId }: HistoryTabProps) => {
                     </span>
                   </div>
                 </div>
-                <div
-                  className="flex items-center gap-2 flex-shrink-0"
-                  onClick={(e) => e.stopPropagation()}
-                >
+                <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
                   {deleteTarget === item.id ? (
                     <>
                       <button
@@ -775,12 +666,8 @@ const HistoryTab = ({ studentId }: HistoryTabProps) => {
                 </div>
               </div>
 
-              {/* Expanded — tokeni completi */}
               {expandedId === item.id && (
-                <div
-                  className="px-5 pb-5"
-                  style={{ borderTop: '1px solid #f3f4f6' }}
-                >
+                <div className="px-5 pb-5" style={{ borderTop: '1px solid #f3f4f6' }}>
                   {expandedData[item.id] ? (
                     <div className="pt-4">
                       <AnalysisResult result={expandedData[item.id]} />
@@ -797,7 +684,6 @@ const HistoryTab = ({ studentId }: HistoryTabProps) => {
         </div>
       )}
 
-      {/* Paginare */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
           <button
@@ -805,17 +691,15 @@ const HistoryTab = ({ studentId }: HistoryTabProps) => {
             disabled={page === 1}
             className="h-9 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-40"
           >
-            ← Prev
+            Prev
           </button>
-          <span className="text-sm text-gray-400">
-            {page} / {totalPages}
-          </span>
+          <span className="text-sm text-gray-400">{page} / {totalPages}</span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
             className="h-9 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-40"
           >
-            Next →
+            Next
           </button>
         </div>
       )}
@@ -826,32 +710,14 @@ const HistoryTab = ({ studentId }: HistoryTabProps) => {
 // ----------------------------------------------------------------
 // Tab: Stats
 // ----------------------------------------------------------------
-interface StatsTabProps {
-  studentId: number;
-}
-
-const DONUT_COLORS = ['#e85d04', '#0369a1'];
-
-const StatsTab = ({ studentId }: StatsTabProps) => {
-  const [stats, setStats] = useState<StudentStatsDto | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const StatsTab = ({ studentId }: { studentId: number }) => {
+  const { fetchStats, stats, statsLoading, error } = useAnalysis(studentId);
 
   useEffect(() => {
-    const fetch = async () => {
-      try {
-        const data = await getStudentStats(studentId);
-        setStats(data);
-      } catch {
-        setError('Failed to load statistics.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch();
-  }, [studentId]);
+    fetchStats();
+  }, []);
 
-  if (loading) return (
+  if (statsLoading) return (
     <div className="flex items-center justify-center h-48">
       <p className="text-gray-400 text-sm">Loading stats...</p>
     </div>
@@ -863,7 +729,6 @@ const StatsTab = ({ studentId }: StatsTabProps) => {
     </div>
   );
 
-  // Pregatire date pentru grafice
   const distributionData = stats.token_distribution
     .map((d) => ({
       name: d.hsk_level ? `HSK ${d.hsk_level}` : 'No HSK',
@@ -879,25 +744,11 @@ const StatsTab = ({ studentId }: StatsTabProps) => {
 
   return (
     <div className="space-y-6">
-
-      {/* Grid charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* Token distribution per HSK */}
-        <div
-          className="bg-white rounded-2xl p-6 space-y-4"
-          style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}
-        >
+        <div className="bg-white rounded-2xl p-6 space-y-4" style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}>
           <div>
-            <h3
-              className="text-base font-bold text-gray-900"
-              style={{ fontFamily: 'Outfit, sans-serif' }}
-            >
-              Tokens by HSK Level
-            </h3>
-            <p className="text-xs text-gray-400 mt-0.5">
-              How many tokens you've encountered per level
-            </p>
+            <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>Tokens by HSK Level</h3>
+            <p className="text-xs text-gray-400 mt-0.5">How many tokens you've encountered per level</p>
           </div>
           {distributionData.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-8">No data yet.</p>
@@ -922,36 +773,17 @@ const StatsTab = ({ studentId }: StatsTabProps) => {
           )}
         </div>
 
-        {/* Source type split */}
-        <div
-          className="bg-white rounded-2xl p-6 space-y-4"
-          style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}
-        >
+        <div className="bg-white rounded-2xl p-6 space-y-4" style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}>
           <div>
-            <h3
-              className="text-base font-bold text-gray-900"
-              style={{ fontFamily: 'Outfit, sans-serif' }}
-            >
-              Analysis Sources
-            </h3>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Manual input vs OCR image analyses
-            </p>
+            <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>Analysis Sources</h3>
+            <p className="text-xs text-gray-400 mt-0.5">Manual input vs OCR image analyses</p>
           </div>
           {donutData.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-8">No data yet.</p>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
-                <Pie
-                  data={donutData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={90}
-                  paddingAngle={4}
-                  dataKey="value"
-                >
+                <Pie data={donutData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={4} dataKey="value">
                   {donutData.map((_, i) => (
                     <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />
                   ))}
@@ -967,22 +799,11 @@ const StatsTab = ({ studentId }: StatsTabProps) => {
         </div>
       </div>
 
-      {/* Vocabular HSK acoperit — progress bars */}
       {stats.unique_chars_per_hsk_level.length > 0 && (
-        <div
-          className="bg-white rounded-2xl p-6 space-y-5"
-          style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}
-        >
+        <div className="bg-white rounded-2xl p-6 space-y-5" style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}>
           <div>
-            <h3
-              className="text-base font-bold text-gray-900"
-              style={{ fontFamily: 'Outfit, sans-serif' }}
-            >
-              HSK Vocabulary Coverage
-            </h3>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Unique characters encountered from each HSK level's word list
-            </p>
+            <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>HSK Vocabulary Coverage</h3>
+            <p className="text-xs text-gray-400 mt-0.5">Unique characters encountered from each HSK level's word list</p>
           </div>
           <div className="space-y-4">
             {stats.unique_chars_per_hsk_level
@@ -992,10 +813,7 @@ const StatsTab = ({ studentId }: StatsTabProps) => {
                 return (
                   <div key={item.hsk_level} className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span
-                        className="text-xs font-bold px-2 py-0.5 rounded-md"
-                        style={{ background: `${color}18`, color }}
-                      >
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-md" style={{ background: `${color}18`, color }}>
                         HSK {item.hsk_level}
                       </span>
                       <span className="text-xs text-gray-400">
@@ -1003,10 +821,7 @@ const StatsTab = ({ studentId }: StatsTabProps) => {
                       </span>
                     </div>
                     <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{ width: `${item.percentage}%`, background: color }}
-                      />
+                      <div className="h-full rounded-full transition-all" style={{ width: `${item.percentage}%`, background: color }} />
                     </div>
                   </div>
                 );
@@ -1019,7 +834,7 @@ const StatsTab = ({ studentId }: StatsTabProps) => {
 };
 
 // ----------------------------------------------------------------
-// Pagina principala
+// Pagina principala — View pur, nicio logica de fetch
 // ----------------------------------------------------------------
 const AnalysisPage = () => {
   const { userId } = useAuthStore();
@@ -1035,13 +850,8 @@ const AnalysisPage = () => {
 
   return (
     <div className="space-y-6 max-w-4xl">
-
-      {/* Header */}
       <div className="space-y-1">
-        <h1
-          className="text-3xl font-bold text-gray-900"
-          style={{ fontFamily: 'Outfit, sans-serif' }}
-        >
+        <h1 className="text-3xl font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
           Text Analysis
         </h1>
         <p className="text-gray-400 text-sm">
@@ -1049,11 +859,7 @@ const AnalysisPage = () => {
         </p>
       </div>
 
-      {/* Tab-uri */}
-      <div
-        className="flex gap-1 p-1 rounded-xl w-fit"
-        style={{ background: '#f3f4f6' }}
-      >
+      <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: '#f3f4f6' }}>
         {tabs.map((tab) => (
           <button
             key={tab.key}
@@ -1070,13 +876,11 @@ const AnalysisPage = () => {
         ))}
       </div>
 
-      {/* Continut tab activ */}
       <div>
-        {activeTab === 'analyze' && <AnalyzeTab />}
+        {activeTab === 'analyze' && <AnalyzeTab studentId={userId} />}
         {activeTab === 'history' && <HistoryTab studentId={userId} />}
         {activeTab === 'stats' && <StatsTab studentId={userId} />}
       </div>
-
     </div>
   );
 };

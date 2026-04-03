@@ -24,32 +24,37 @@ public class AuthorizationFilter extends OncePerRequestFilter {
             "/api/auth/login"
     );
 
-    // Servicii complet inaccesibile pentru TEACHER
     private static final List<String> STUDENT_ONLY_PREFIXES = List.of(
             "/api/flashcards/",
             "/api/analysis/",
             "/api/chatbot/"
     );
 
-    // Endpoint-uri ADMIN only
-    private static final List<RouteRule> ADMIN_ONLY_ROUTES = List.of(
-            new RouteRule(HttpMethod.POST,   "/api/users"),
-            new RouteRule(HttpMethod.GET,    "/api/users/search"),
-            new RouteRule(HttpMethod.DELETE, "/api/users/"),
-            new RouteRule(HttpMethod.GET,    "/api/progress/students/admin/all")
+    // Regex precis pentru a evita coliziuni intre rute cu prefix comun
+    // Ex: GET /api/users/students (ADMIN) vs GET /api/users/students/{id} (own)
+    private static final List<AdminRule> ADMIN_ONLY_ROUTES = List.of(
+            new AdminRule(HttpMethod.POST,   "^/api/users$"),
+            new AdminRule(HttpMethod.GET,    "^/api/users$"),
+            new AdminRule(HttpMethod.GET,    "^/api/users/\\d+$"),
+            new AdminRule(HttpMethod.GET,    "^/api/users/search.*$"),
+            new AdminRule(HttpMethod.PUT,    "^/api/users/\\d+/name.*$"),
+            new AdminRule(HttpMethod.PUT,    "^/api/users/\\d+/password/reset.*$"),
+            new AdminRule(HttpMethod.DELETE, "^/api/users/\\d+.*$"),
+            new AdminRule(HttpMethod.GET,    "^/api/users/students$"),
+            new AdminRule(HttpMethod.GET,    "^/api/users/teachers$"),
+            new AdminRule(HttpMethod.GET,    "^/api/progress/students/admin/all$")
     );
 
-    // Pattern-uri pentru verificarea "own" — {studentId} sau {userId} din path
     private static final List<Pattern> OWN_RESOURCE_PATTERNS = List.of(
             Pattern.compile("^/api/flashcards/sets/student/(\\d+).*$"),
             Pattern.compile("^/api/progress/students/(\\d+).*$"),
             Pattern.compile("^/api/progress/lessons/student/(\\d+).*$"),
             Pattern.compile("^/api/progress/attempts/student/(\\d+).*$"),
+            // unitId este primul grup, studentId este al doilea — capturam al doilea
+            Pattern.compile("^/api/progress/units/\\d+/student/(\\d+).*$"),
             Pattern.compile("^/api/analysis/student/(\\d+).*$"),
             Pattern.compile("^/api/users/students/(\\d+).*$"),
             Pattern.compile("^/api/users/teachers/(\\d+).*$"),
-            // Operatii de profil — utilizatorul isi poate modifica propriile date
-            Pattern.compile("^/api/users/(\\d+)/name.*$"),
             Pattern.compile("^/api/users/(\\d+)/email.*$"),
             Pattern.compile("^/api/users/(\\d+)/password$")
     );
@@ -77,13 +82,11 @@ public class AuthorizationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // ADMIN are acces la tot
         if ("ADMIN".equals(role)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Verifica daca TEACHER incearca sa acceseze servicii exclusive STUDENT
         if ("TEACHER".equals(role)) {
             boolean blockedForTeacher = STUDENT_ONLY_PREFIXES.stream()
                     .anyMatch(path::startsWith);
@@ -93,7 +96,6 @@ public class AuthorizationFilter extends OncePerRequestFilter {
             }
         }
 
-        // Verifica endpoint-urile ADMIN only
         boolean isAdminOnly = ADMIN_ONLY_ROUTES.stream()
                 .anyMatch(rule -> rule.matches(method, path));
         if (isAdminOnly) {
@@ -101,7 +103,6 @@ public class AuthorizationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Verifica "own" — studentul/userul poate accesa doar propriile resurse
         if ("STUDENT".equals(role) || "TEACHER".equals(role)) {
             for (Pattern pattern : OWN_RESOURCE_PATTERNS) {
                 Matcher matcher = pattern.matcher(path);
@@ -126,10 +127,9 @@ public class AuthorizationFilter extends OncePerRequestFilter {
         response.getWriter().write("{\"error\": \"" + message + "\"}");
     }
 
-    // Clasa interna pentru definirea regulilor de ruta
-    private record RouteRule(HttpMethod method, String pathPrefix) {
+    private record AdminRule(HttpMethod method, String pathPattern) {
         boolean matches(HttpMethod requestMethod, String requestPath) {
-            return this.method.equals(requestMethod) && requestPath.startsWith(this.pathPrefix);
+            return this.method.equals(requestMethod) && requestPath.matches(this.pathPattern);
         }
     }
 }

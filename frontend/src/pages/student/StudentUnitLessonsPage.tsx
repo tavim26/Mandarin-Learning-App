@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { getUnitFull, type CourseUnitDto, type LessonDto } from '@/api/contentApi';
-import { getAllLessonProgress, type StudentLessonProgressDto } from '@/api/progressApi';
+import { useUnitFull } from '@/hooks/useContent';
+import { useAllLessonProgress } from '@/hooks/useProgress';
 
 const STATUS_CONFIG = {
-  COMPLETED: { label: 'Completed', bg: '#f0fdf4', color: '#15803d' },
+  COMPLETED:   { label: 'Completed',   bg: '#f0fdf4', color: '#15803d' },
   IN_PROGRESS: { label: 'In Progress', bg: '#fff7f0', color: '#e85d04' },
   NOT_STARTED: { label: 'Not Started', bg: '#f9fafb', color: '#9ca3af' },
 };
@@ -16,42 +15,20 @@ const StudentUnitLessonsPage = () => {
   const { userId } = useAuthStore();
   const parsedUnitId = parseInt(unitId ?? '0');
 
-  const [unit, setUnit] = useState<CourseUnitDto | null>(null);
-  const [lessons, setLessons] = useState<LessonDto[]>([]);
-  const [progressMap, setProgressMap] = useState<Record<number, StudentLessonProgressDto>>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // useUnitFull include lectiile in raspuns — nu mai avem nevoie de getLessonsByUnit separat
+  const { unit, loading: unitLoading, error: unitError } = useUnitFull(parsedUnitId);
+  const { lessons: allProgress, loading: progressLoading } = useAllLessonProgress(userId!);
 
-  useEffect(() => {
-    if (!userId) return;
-    fetchData();
-  }, [parsedUnitId, userId]);
+  const loading = unitLoading || progressLoading;
+  const error = unitError;
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const [unitData, allProgress] = await Promise.all([
-        getUnitFull(parsedUnitId),
-        getAllLessonProgress(userId!).catch(() => []),
-      ]);
-      setUnit(unitData);
+  // Construieste map lessonId → progress din lista plata
+  const progressMap = allProgress.reduce<Record<number, typeof allProgress[0]>>(
+    (acc, p) => { acc[p.lessonId] = p; return acc; },
+    {}
+  );
 
-      // getLessonsByUnit returneaza LessonDto[], dar getUnitFull are lessons incluse
-      // Folosim endpoint separat pentru lista de lectii
-      const { getLessonsByUnit } = await import('@/api/contentApi');
-      const lessonsData = await getLessonsByUnit(parsedUnitId);
-      setLessons(lessonsData);
-
-      // Construieste map lessonId → progress
-      const map: Record<number, StudentLessonProgressDto> = {};
-      allProgress.forEach((p) => { map[p.lessonId] = p; });
-      setProgressMap(map);
-    } catch {
-      setError('Failed to load lessons.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const lessons = unit?.lessons ?? [];
 
   if (loading) {
     return (
@@ -72,7 +49,6 @@ const StudentUnitLessonsPage = () => {
   return (
     <div className="space-y-8">
 
-      {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm">
         <Link
           to="/lessons"
@@ -85,7 +61,6 @@ const StudentUnitLessonsPage = () => {
         <span className="text-gray-500 truncate">{unit.title}</span>
       </div>
 
-      {/* Header */}
       <div className="space-y-1">
         <div className="flex items-center gap-3 flex-wrap">
           <h1
@@ -108,7 +83,6 @@ const StudentUnitLessonsPage = () => {
         )}
       </div>
 
-      {/* Lista lectii */}
       {lessons.length === 0 ? (
         <div
           className="bg-white rounded-2xl p-12 text-center"
@@ -132,22 +106,17 @@ const StudentUnitLessonsPage = () => {
                 onClick={() => navigate(`/lessons/${lesson.id}`)}
               >
                 <div className="flex items-center justify-between gap-4">
-
                   <div className="flex items-center gap-4 min-w-0 flex-1">
-                    {/* Numar lectie */}
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
                       style={{
-                        background: status === 'COMPLETED'
-                          ? '#15803d'
-                          : status === 'IN_PROGRESS'
-                          ? '#e85d04'
-                          : '#d1d5db',
+                        background:
+                          status === 'COMPLETED' ? '#15803d' :
+                          status === 'IN_PROGRESS' ? '#e85d04' : '#d1d5db',
                       }}
                     >
                       {status === 'COMPLETED' ? '✓' : lesson.orderIndex}
                     </div>
-
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <p
@@ -168,8 +137,6 @@ const StudentUnitLessonsPage = () => {
                           {lesson.description}
                         </p>
                       )}
-
-                      {/* Progress bar — doar daca a inceput */}
                       {status !== 'NOT_STARTED' && (
                         <div className="flex items-center gap-3">
                           <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -188,8 +155,6 @@ const StudentUnitLessonsPage = () => {
                       )}
                     </div>
                   </div>
-
-                  {/* Badge status + arrow */}
                   <div className="flex items-center gap-3 flex-shrink-0">
                     <span
                       className="text-xs font-semibold px-2.5 py-1 rounded-md hidden sm:block"

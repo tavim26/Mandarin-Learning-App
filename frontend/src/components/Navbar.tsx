@@ -18,7 +18,6 @@ const NAV_LINKS: Record<string, NavLink[]> = {
     { label: 'Dashboard', path: '/student/dashboard' },
     { label: 'Lessons', path: '/lessons' },
     { label: 'Flashcards', path: '/flashcards' },
-    { label: 'Chatbot', path: '/chatbot' },
     { label: 'Analysis', path: '/analysis' },
   ],
   TEACHER: [

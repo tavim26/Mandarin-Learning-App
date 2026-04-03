@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import DeleteConfirmModal from '@/components/modals/DeleteConfirmModal';
+import useTTS from '@/hooks/useTTS';
 
 // ----------------------------------------------------------------
 // Tipuri view
@@ -184,11 +185,12 @@ interface FlipCardProps {
 }
 
 const FlipCard = ({ front, back, flipped, onClick }: FlipCardProps) => {
+  const { speak, isSpeaking, stop } = useTTS();
+
   return (
     <div
-      className="cursor-pointer mx-auto"
+      className="mx-auto"
       style={{ width: '100%', maxWidth: '480px', height: '240px', perspective: '1000px' }}
-      onClick={onClick}
     >
       <div
         style={{
@@ -202,7 +204,7 @@ const FlipCard = ({ front, back, flipped, onClick }: FlipCardProps) => {
       >
         {/* Fata */}
         <div
-          className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center p-8"
+          className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center p-8 cursor-pointer"
           style={{
             backfaceVisibility: 'hidden',
             WebkitBackfaceVisibility: 'hidden',
@@ -210,6 +212,7 @@ const FlipCard = ({ front, back, flipped, onClick }: FlipCardProps) => {
             boxShadow: '0 8px 32px rgba(0,0,0,0.10)',
             border: '2px solid #f3f4f6',
           }}
+          onClick={onClick}
         >
           <p
             className="text-5xl font-bold text-center"
@@ -217,12 +220,27 @@ const FlipCard = ({ front, back, flipped, onClick }: FlipCardProps) => {
           >
             {front}
           </p>
-          <p className="text-xs text-gray-300 mt-4">Click to reveal</p>
+          {/* Buton audio pe fata */}
+          <button
+            onClick={(e) => { e.stopPropagation(); if (isSpeaking) { stop(); } else { speak(front); } }}
+            className="mt-4 w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:opacity-80"
+            style={{
+              background: isSpeaking ? '#fff7f0' : '#f9fafb',
+              border: `1.5px solid ${isSpeaking ? '#e85d04' : '#e5e7eb'}`,
+              color: isSpeaking ? '#e85d04' : '#9ca3af',
+            }}
+          >
+            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+            </svg>
+          </button>
+          <p className="text-xs text-gray-300 mt-2">Click card to reveal</p>
         </div>
 
         {/* Spate */}
         <div
-          className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center p-8"
+          className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center p-8 cursor-pointer"
           style={{
             backfaceVisibility: 'hidden',
             WebkitBackfaceVisibility: 'hidden',
@@ -231,6 +249,7 @@ const FlipCard = ({ front, back, flipped, onClick }: FlipCardProps) => {
             boxShadow: '0 8px 32px rgba(232,93,4,0.12)',
             border: '2px solid #fde8d4',
           }}
+          onClick={onClick}
         >
           <p
             className="text-2xl font-semibold text-center"
@@ -238,6 +257,22 @@ const FlipCard = ({ front, back, flipped, onClick }: FlipCardProps) => {
           >
             {back}
           </p>
+          {/* Buton audio pe spate — pronunta frontText (chineza) */}
+          <button
+            onClick={(e) => { e.stopPropagation(); if (isSpeaking) { stop(); } else { speak(front); } }}
+            className="mt-4 w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:opacity-80"
+            style={{
+              background: isSpeaking ? 'rgba(232,93,4,0.15)' : 'rgba(232,93,4,0.08)',
+              border: `1.5px solid ${isSpeaking ? '#e85d04' : 'rgba(232,93,4,0.2)'}`,
+              color: '#e85d04',
+            }}
+          >
+            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+            </svg>
+          </button>
+          <p className="text-xs mt-1" style={{ color: 'rgba(232,93,4,0.5)' }}>Click card to flip back</p>
         </div>
       </div>
     </div>

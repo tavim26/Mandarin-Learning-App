@@ -1,9 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
-import {
-  getAllStudents, getAllTeachers, deleteUser, createUser,
-  updateUserName, updateUserEmail, resetUserPassword, updateTeacherTitle,
-  type StudentProfileDto, type TeacherProfileDto,
-} from '@/api/usersApi';
+import { useState } from 'react';
+import { useAdminUsers, type EditUserForm } from '@/hooks/useUsers';
+import type { StudentProfileDto, TeacherProfileDto, CreateUserRequest } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import EditUserModal, { type EditForm } from '@/components/modals/EditUserModal';
@@ -11,6 +8,9 @@ import CreateUserModal, { type CreateUserForm } from '@/components/modals/Create
 import ResetPasswordModal from '@/components/modals/ResetPasswordModal';
 import DeleteConfirmModal from '@/components/modals/DeleteConfirmModal';
 
+// ----------------------------------------------------------------
+// Componenta tabel — View pur, primeste date si callbacks
+// ----------------------------------------------------------------
 interface UserTableProps {
   title: string;
   count: number;
@@ -30,19 +30,10 @@ const UserTable = ({
   const avatarColor = role === 'TEACHER' ? '#0369a1' : '#e85d04';
 
   return (
-    <div
-      className="bg-white rounded-2xl overflow-hidden"
-      style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}
-    >
-      <div
-        className="flex items-center justify-between px-6 py-5"
-        style={{ borderBottom: '1px solid #f3f4f6' }}
-      >
+    <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}>
+      <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: '1px solid #f3f4f6' }}>
         <div>
-          <h2
-            className="text-xl font-bold text-gray-900"
-            style={{ fontFamily: 'Outfit, sans-serif' }}
-          >
+          <h2 className="text-xl font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
             {title}
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">{count} total</p>
@@ -74,11 +65,7 @@ const UserTable = ({
           </thead>
           <tbody>
             {rows.map((user) => (
-              <tr
-                key={user.userId}
-                className="transition-colors hover:bg-gray-50"
-                style={{ borderBottom: '1px solid #f9fafb' }}
-              >
+              <tr key={user.userId} className="transition-colors hover:bg-gray-50" style={{ borderBottom: '1px solid #f9fafb' }}>
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">
                     <div
@@ -143,40 +130,22 @@ const UserTable = ({
   );
 };
 
+// ----------------------------------------------------------------
+// Pagina principala
+// ----------------------------------------------------------------
 const AdminUsers = () => {
-  const [students, setStudents] = useState<StudentProfileDto[]>([]);
-  const [teachers, setTeachers] = useState<TeacherProfileDto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    students, teachers, loading, error,
+    editUser, addUser, removeUser, resetPassword,
+  } = useAdminUsers();
 
+  // Stare UI — filtre si modals raman in componenta
   const [studentSearch, setStudentSearch] = useState('');
   const [teacherSearch, setTeacherSearch] = useState('');
-
   const [editTarget, setEditTarget] = useState<EditForm | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; fullName: string } | null>(null);
   const [resetTarget, setResetTarget] = useState<{ userId: number; fullName: string } | null>(null);
-
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const [studentsData, teachersData] = await Promise.all([
-        getAllStudents(),
-        getAllTeachers(),
-      ]);
-      setStudents(studentsData);
-      setTeachers(teachersData);
-    } catch {
-      setError('Failed to load users.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   const filteredStudents = students.filter((s) =>
     s.fullName.toLowerCase().includes(studentSearch.toLowerCase()) ||
@@ -188,36 +157,33 @@ const AdminUsers = () => {
     t.email.toLowerCase().includes(teacherSearch.toLowerCase())
   );
 
+  // Adaptoare EditForm → EditUserForm (tipuri modale vs tipuri hook)
   const handleEdit = async (data: EditForm) => {
-    const original = data.type === 'STUDENT'
-      ? students.find((s) => s.userId === data.userId)
-      : teachers.find((t) => t.userId === data.userId);
-    if (original && data.fullName !== original.fullName) {
-      await updateUserName(data.userId, data.fullName);
-    }
-    if (original && data.email !== original.email) {
-      await updateUserEmail(data.userId, data.email);
-    }
-    if (data.type === 'TEACHER' && original && data.title !== (original as TeacherProfileDto).title) {
-      await updateTeacherTitle(data.userId, data.title);
-    }
-    await fetchData();
+    const hookData: EditUserForm = {
+      userId: data.userId,
+      fullName: data.fullName,
+      email: data.email,
+      type: data.type,
+      ...(data.type === 'TEACHER' ? { title: data.title } : {}),
+    };
+    await editUser(hookData);
+    setEditTarget(null);
   };
 
   const handleCreate = async (data: CreateUserForm) => {
-    await createUser(data);
-    await fetchData();
+    await addUser(data as CreateUserRequest);
+    setShowCreateModal(false);
   };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    await deleteUser(deleteTarget.id);
+    await removeUser(deleteTarget.id);
     setDeleteTarget(null);
-    await fetchData();
   };
 
   const handleResetPassword = async (userId: number, newPassword: string) => {
-    await resetUserPassword(userId, newPassword);
+    await resetPassword(userId, newPassword);
+    setResetTarget(null);
   };
 
   if (loading) {
@@ -240,17 +206,10 @@ const AdminUsers = () => {
     <div className="space-y-8">
 
       {editTarget && (
-        <EditUserModal
-          initial={editTarget}
-          onClose={() => setEditTarget(null)}
-          onSave={handleEdit}
-        />
+        <EditUserModal initial={editTarget} onClose={() => setEditTarget(null)} onSave={handleEdit} />
       )}
       {showCreateModal && (
-        <CreateUserModal
-          onClose={() => setShowCreateModal(false)}
-          onSave={handleCreate}
-        />
+        <CreateUserModal onClose={() => setShowCreateModal(false)} onSave={handleCreate} />
       )}
       {resetTarget && (
         <ResetPasswordModal
@@ -269,18 +228,12 @@ const AdminUsers = () => {
         />
       )}
 
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h1
-            className="text-3xl font-bold text-gray-900"
-            style={{ fontFamily: 'Outfit, sans-serif' }}
-          >
+          <h1 className="text-3xl font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
             User Management
           </h1>
-          <p className="text-gray-400 text-sm">
-            {students.length + teachers.length} total users
-          </p>
+          <p className="text-gray-400 text-sm">{students.length + teachers.length} total users</p>
         </div>
         <Button
           onClick={() => setShowCreateModal(true)}
@@ -291,7 +244,6 @@ const AdminUsers = () => {
         </Button>
       </div>
 
-      {/* Tabel studenti */}
       <UserTable
         title="Students"
         count={students.length}
@@ -304,7 +256,6 @@ const AdminUsers = () => {
         onResetPassword={(userId, fullName) => setResetTarget({ userId, fullName })}
       />
 
-      {/* Tabel profesori */}
       <UserTable
         title="Teachers"
         count={teachers.length}

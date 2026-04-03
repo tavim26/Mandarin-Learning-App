@@ -1,47 +1,11 @@
-import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { getAllUnits, type CourseUnitDto } from '@/api/contentApi';
-import { getUnitProgress, type StudentUnitProgressDto } from '@/api/progressApi';
+import { useUnitsWithProgress } from '@/hooks/useProgress';
 
 const StudentUnitsPage = () => {
   const navigate = useNavigate();
   const { userId } = useAuthStore();
-
-  const [units, setUnits] = useState<CourseUnitDto[]>([]);
-  const [progressMap, setProgressMap] = useState<Record<number, StudentUnitProgressDto>>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!userId) return;
-    fetchData();
-  }, [userId]);
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const unitsData = await getAllUnits();
-      setUnits(unitsData);
-
-      // Fetch progresul per unitate in paralel — ignora erorile individuale
-      const progressResults = await Promise.allSettled(
-        unitsData.map((u) => getUnitProgress(u.id, userId!))
-      );
-
-      const map: Record<number, StudentUnitProgressDto> = {};
-      progressResults.forEach((result, index) => {
-        if (result.status === 'fulfilled') {
-          map[unitsData[index].id] = result.value;
-        }
-      });
-      setProgressMap(map);
-    } catch {
-      setError('Failed to load course units.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { units, progressMap, loading, error } = useUnitsWithProgress(userId!);
 
   if (loading) {
     return (
@@ -61,8 +25,6 @@ const StudentUnitsPage = () => {
 
   return (
     <div className="space-y-8">
-
-      {/* Header */}
       <div className="space-y-1">
         <h1
           className="text-3xl font-bold text-gray-900"
@@ -75,7 +37,6 @@ const StudentUnitsPage = () => {
         </p>
       </div>
 
-      {/* Lista unitati */}
       {units.length === 0 ? (
         <div
           className="bg-white rounded-2xl p-12 text-center"
@@ -99,8 +60,6 @@ const StudentUnitsPage = () => {
                 onClick={() => navigate(`/lessons/units/${unit.id}`)}
               >
                 <div className="flex items-start justify-between gap-4">
-
-                  {/* Info unitate */}
                   <div className="flex items-start gap-4 min-w-0 flex-1">
                     <div
                       className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-lg font-bold flex-shrink-0"
@@ -128,8 +87,6 @@ const StudentUnitsPage = () => {
                       {unit.description && (
                         <p className="text-sm text-gray-400 mb-3">{unit.description}</p>
                       )}
-
-                      {/* Progress bar */}
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-gray-400">
@@ -154,8 +111,6 @@ const StudentUnitsPage = () => {
                       </div>
                     </div>
                   </div>
-
-                  {/* Badge status + arrow */}
                   <div className="flex items-center gap-3 flex-shrink-0">
                     {pct === 100 && (
                       <span
