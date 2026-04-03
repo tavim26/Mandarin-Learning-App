@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import type { LessonMaterialDto } from '@/api/contentApi';
+import type { LessonMaterialDto } from '@/types/content';
+
+const MATERIAL_TYPES: { value: string; label: string }[] = [
+  { value: 'VIDEO', label: 'Video' },
+  { value: 'PDF', label: 'PDF Document' },
+  { value: 'LINK', label: 'Web Link' },
+  { value: 'AUDIO', label: 'Audio Track' },
+];
 
 interface MaterialModalProps {
   lessonId: number;
@@ -11,7 +18,7 @@ interface MaterialModalProps {
 
 const MaterialModal = ({ lessonId, onClose, onSave }: MaterialModalProps) => {
   const [title, setTitle] = useState('');
-  const [type, setType] = useState('');
+  const [type, setType] = useState('LINK');
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,10 +61,26 @@ const MaterialModal = ({ lessonId, onClose, onSave }: MaterialModalProps) => {
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Title *</label>
             <Input className="h-11 rounded-xl border-gray-200 bg-gray-50" value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</label>
-            <Input className="h-11 rounded-xl border-gray-200 bg-gray-50" placeholder="e.g. VIDEO, PDF, LINK" value={type} onChange={(e) => setType(e.target.value)} />
-          </div>
+          <div className="space-y-2">
+  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Type *</label>
+  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+    {MATERIAL_TYPES.map((t) => (
+      <button
+        key={t.value}
+        onClick={() => setType(t.value)}
+        className="text-center p-2 rounded-xl border-2 transition-all"
+        style={{
+          borderColor: type === t.value ? '#e85d04' : '#e5e7eb',
+          background: type === t.value ? '#fff7f0' : '#ffffff',
+        }}
+      >
+        <span className="text-xs font-bold" style={{ color: type === t.value ? '#e85d04' : '#374151' }}>
+          {t.label}
+        </span>
+      </button>
+    ))}
+  </div>
+</div>
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">URL *</label>
             <Input className="h-11 rounded-xl border-gray-200 bg-gray-50" placeholder="https://..." value={url} onChange={(e) => setUrl(e.target.value)} />

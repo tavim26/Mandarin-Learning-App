@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import type { ExerciseDto } from '@/api/contentApi';
+import type { ExerciseDto, ExerciseContentData } from '@/types/content';
 
 type ExerciseType = 'MULTIPLE_CHOICE' | 'TRANSLATION' | 'FILL_BLANK' | 'MATCHING';
 
@@ -37,9 +37,10 @@ const ExerciseModal = ({ lessonId, initial, onClose, onSave }: ExerciseModalProp
   const [translationAnswers, setTranslationAnswers] = useState<string[]>(
     (initial?.contentData as { acceptedAnswers?: string[] })?.acceptedAnswers ?? ['']
   );
-  const [fillAnswers, setFillAnswers] = useState<string[]>(
-    (initial?.contentData as { answers?: string[] })?.answers ?? ['']
-  );
+  
+const [fillAnswers, setFillAnswers] = useState<string[]>(
+  (initial?.contentData as { correctAnswers?: string[] })?.correctAnswers ?? ['']
+);
   const [matchPairs, setMatchPairs] = useState<[string, string][]>(() => {
     const matches = (initial?.contentData as { matches?: Record<string, string> })?.matches;
     if (matches) return Object.entries(matches) as [string, string][];
@@ -67,17 +68,15 @@ const ExerciseModal = ({ lessonId, initial, onClose, onSave }: ExerciseModalProp
     setMatchPairs(updated);
   };
 
-const buildContentData = (): Record<string, unknown> => {
+const buildContentData = (): ExerciseContentData => {
   switch (selectedType) {
     case 'MULTIPLE_CHOICE':
       return { options: mcOptions, correctIndex: mcCorrectIndex };
     case 'TRANSLATION':
       return { acceptedAnswers: translationAnswers.filter((a) => a.trim() !== '') };
     case 'FILL_BLANK':
-      // EvaluationService asteapta cheia "correctAnswers", nu "answers"
       return { correctAnswers: fillAnswers.filter((a) => a.trim() !== '') };
     case 'MATCHING': {
-      // EvaluationService asteapta "pairs": [{ left: "水", right: "apă" }]
       const pairs = matchPairs
         .filter(([k]) => k.trim() !== '')
         .map(([k, v]) => ({ left: k.trim(), right: v.trim() }));

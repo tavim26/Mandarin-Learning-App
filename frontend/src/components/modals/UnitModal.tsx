@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import type { CourseUnitDto } from '@/api/contentApi';
+import type { CourseUnitDto } from '@/types/content';
 
 interface UnitModalProps {
   initial: Partial<CourseUnitDto> | null;

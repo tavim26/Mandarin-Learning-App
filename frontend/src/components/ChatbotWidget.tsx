@@ -1,14 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAuthStore } from '@/store/authStore';
-import {
-  getSessions,
-  createSession,
-  getMessages,
-  sendMessage,
-  deleteSession,
-  type ChatSessionDto,
-  type ChatMessageDto,
-} from '@/api/chatbotApi';
+
+
+import { getSessions, createSession, getMessages, sendMessage, deleteSession } from '@/api/chatbotApi';
+import type { ChatSessionDto, ChatMessageDto } from '@/types';
 
 // ----------------------------------------------------------------
 // Utilitare
@@ -140,7 +135,7 @@ const ChatbotWidget = () => {
     setMessages((prev) => [...prev, optimisticMsg]);
 
     try {
-      const response = await sendMessage(activeSession.id, content);
+      const response = await sendMessage(activeSession.id, { content });
 
       // Inlocuieste mesajul optimistic cu cel real + adauga raspunsul AI
       setMessages((prev) => [

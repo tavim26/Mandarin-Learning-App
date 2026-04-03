@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import type { LessonDto } from '@/api/contentApi';
+import type { LessonDto } from '@/types/content';
 
 interface LessonModalProps {
   unitId: number;

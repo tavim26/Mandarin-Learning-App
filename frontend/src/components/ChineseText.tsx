@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { previewText, type PreviewTokenDto } from '@/api/analysisApi';
+import { previewText } from '@/api/analysisApi';
+import { type PreviewTokenDto } from '@/types';
 import SpeakButton from '@/components/SpeakButton';
 
 interface TooltipData {
