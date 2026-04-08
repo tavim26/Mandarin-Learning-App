@@ -32,14 +32,41 @@ export interface LessonDto {
   exercises: ExerciseDto[] | null;
 }
 
-export interface ExerciseDto {
-  id: number;
-  lessonId: number;
-  type: ExerciseType;
-  prompt: string;
-  difficulty: number | null;
-  contentData: ExerciseContentData | null;
-}
+// ExerciseDto este un discriminated union complet.
+// Narrowing dupa `exercise.type` garanteaza tipul corect al `contentData`.
+export type ExerciseDto =
+  | {
+      id: number;
+      lessonId: number;
+      type: 'MULTIPLE_CHOICE';
+      prompt: string;
+      difficulty: number | null;
+      contentData: MultipleChoiceContentData | null;
+    }
+  | {
+      id: number;
+      lessonId: number;
+      type: 'TRANSLATION';
+      prompt: string;
+      difficulty: number | null;
+      contentData: TranslationContentData | null;
+    }
+  | {
+      id: number;
+      lessonId: number;
+      type: 'FILL_BLANK';
+      prompt: string;
+      difficulty: number | null;
+      contentData: FillBlankContentData | null;
+    }
+  | {
+      id: number;
+      lessonId: number;
+      type: 'MATCHING';
+      prompt: string;
+      difficulty: number | null;
+      contentData: MatchingContentData | null;
+    };
 
 export interface LessonMaterialDto {
   id: number;
@@ -50,28 +77,27 @@ export interface LessonMaterialDto {
 }
 
 // --- contentData variaza dupa tipul exercitiului ---
-
-export type ExerciseContentData =
-  | MultipleChoiceContentData
-  | TranslationContentData
-  | FillBlankContentData
-  | MatchingContentData;
+// Fiecare varianta poarta campul `type` ca literal — permite narrowing automat.
 
 export interface MultipleChoiceContentData {
+  type: 'MULTIPLE_CHOICE';
   options: string[];
   correctIndex: number;
 }
 
 export interface TranslationContentData {
+  type: 'TRANSLATION';
   acceptedAnswers: string[];
 }
 
 // Cheia este correctAnswers — nu answers (vezi EvaluationService.java)
 export interface FillBlankContentData {
+  type: 'FILL_BLANK';
   correctAnswers: string[];
 }
 
 export interface MatchingContentData {
+  type: 'MATCHING';
   pairs: MatchingPair[];
 }
 
@@ -79,6 +105,12 @@ export interface MatchingPair {
   left: string;
   right: string;
 }
+
+export type ExerciseContentData =
+  | MultipleChoiceContentData
+  | TranslationContentData
+  | FillBlankContentData
+  | MatchingContentData;
 
 // --- Request bodies ---
 
@@ -116,14 +148,16 @@ export interface CreateExerciseRequest {
   type: ExerciseType;
   prompt: string;
   difficulty?: number;
-  contentData?: ExerciseContentData;
+  // contentData trimis catre backend nu include campul `type` —
+  // backend-ul il are deja separat in coloana `type`.
+  contentData?: Omit<ExerciseContentData, 'type'>;
 }
 
 export interface UpdateExerciseRequest {
   type: ExerciseType;
   prompt: string;
   difficulty?: number;
-  contentData?: ExerciseContentData;
+  contentData?: Omit<ExerciseContentData, 'type'>;
 }
 
 export interface CreateMaterialRequest {
