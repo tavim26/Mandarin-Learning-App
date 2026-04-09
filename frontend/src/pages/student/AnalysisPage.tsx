@@ -1,13 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { createFlashcard } from '@/api/flashcardApi';
 import { useFlashcardSets } from '@/hooks/useFlashcards';
 import { useAnalysis } from '@/hooks/useAnalysis';
-import type {
-  TextAnalysisDto,
-  TranslationLanguage,
-  SourceType,
-} from '@/types';
+import type { GetAnalysesParams } from '@/api/analysisApi';
+import type { TextAnalysisDto } from '@/types/analysis';
+import type { SourceType } from '@/types/analysis';
+import type { TranslationLanguage } from '@/types/analysis';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
@@ -20,7 +19,7 @@ import useTTS from '@/hooks/useTTS';
 type Tab = 'analyze' | 'history' | 'stats';
 
 // ----------------------------------------------------------------
-// Constante vizuale
+// Constante vizuale — valori din tokens.ts
 // ----------------------------------------------------------------
 const HSK_COLORS: Record<number, string> = {
   1: '#15803d',
@@ -46,7 +45,6 @@ interface CreateFlashcardFromTokenModalProps {
 const CreateFlashcardFromTokenModal = ({
   hanzi, pinyin, translation, onClose,
 }: CreateFlashcardFromTokenModalProps) => {
-  // useFlashcardSets inlocuieste dynamic import + state manual
   const { sets, loading: loadingSets } = useFlashcardSets();
   const [selectedSetId, setSelectedSetId] = useState<number | null>(null);
   const [frontText, setFrontText] = useState(hanzi);
@@ -57,12 +55,11 @@ const CreateFlashcardFromTokenModal = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // Selecteaza primul set disponibil cand lista se incarca
   useEffect(() => {
     if (sets.length > 0 && !selectedSetId) {
       setSelectedSetId(sets[0].id);
     }
-  }, [sets]);
+  }, [sets, selectedSetId]);
 
   const handleSave = async () => {
     if (!selectedSetId) { setError('Please select a set.'); return; }
@@ -70,11 +67,10 @@ const CreateFlashcardFromTokenModal = ({
     setLoading(true);
     setError(null);
     try {
-      // createFlashcard este o actiune one-shot — import direct acceptabil
       await createFlashcard({ setId: selectedSetId, frontText: frontText.trim(), backText: backText.trim() });
       setSuccess(true);
       setTimeout(onClose, 1200);
-    } catch {
+    } catch (err) {
       setError('Failed to create flashcard.');
     } finally {
       setLoading(false);
@@ -92,14 +88,14 @@ const CreateFlashcardFromTokenModal = ({
         style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-xl font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
+        <h2 className="font-display text-xl font-bold text-gray-900">
           Add to Flashcards
         </h2>
 
         {success ? (
           <div className="text-center py-4 space-y-2">
             <p className="text-2xl">✓</p>
-            <p className="text-sm font-semibold" style={{ color: '#15803d' }}>Flashcard created!</p>
+            <p className="text-sm font-semibold text-student">Flashcard created!</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -162,8 +158,7 @@ const CreateFlashcardFromTokenModal = ({
               <button
                 onClick={handleSave}
                 disabled={loading || sets.length === 0}
-                className="flex-1 h-11 rounded-xl text-white font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
-                style={{ background: '#e85d04' }}
+                className="flex-1 h-11 rounded-xl bg-brand text-white font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {loading ? 'Saving...' : 'Add Card'}
               </button>
@@ -176,7 +171,7 @@ const CreateFlashcardFromTokenModal = ({
 };
 
 // ----------------------------------------------------------------
-// Componenta afisare rezultat analiza — neschimbata (View pur)
+// Componenta afisare rezultat analiza — View pur
 // ----------------------------------------------------------------
 interface AnalysisResultProps {
   result: TextAnalysisDto;
@@ -205,7 +200,7 @@ const AnalysisResult = ({ result }: AnalysisResultProps) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleTokenClick = (token: typeof sorted[0], e: React.MouseEvent) => {
+  const handleTokenClick = useCallback((token: typeof sorted[0], e: React.MouseEvent) => {
     e.stopPropagation();
     const rect = (e.target as HTMLElement).getBoundingClientRect();
     if (tooltipToken?.token.hanzi === token.hanzi) {
@@ -213,7 +208,7 @@ const AnalysisResult = ({ result }: AnalysisResultProps) => {
       return;
     }
     setTooltipToken({ token, x: rect.left + rect.width / 2, y: rect.top - 8 });
-  };
+  }, [tooltipToken]);
 
   return (
     <>
@@ -238,12 +233,11 @@ const AnalysisResult = ({ result }: AnalysisResultProps) => {
           >
             <div className="flex items-center justify-between gap-3">
               <span
-                className="text-2xl font-bold"
+                className="text-2xl font-bold font-display"
                 style={{
                   color: tooltipToken.token.hsk_level
                     ? HSK_COLORS[tooltipToken.token.hsk_level] ?? '#374151'
                     : '#374151',
-                  fontFamily: 'Outfit, sans-serif',
                 }}
               >
                 {tooltipToken.token.hanzi}
@@ -265,7 +259,7 @@ const AnalysisResult = ({ result }: AnalysisResultProps) => {
               </button>
             </div>
             {tooltipToken.token.pinyin && (
-              <p className="text-sm font-medium" style={{ color: '#e85d04' }}>{tooltipToken.token.pinyin}</p>
+              <p className="text-sm font-medium text-brand">{tooltipToken.token.pinyin}</p>
             )}
             {tooltipToken.token.translation && (
               <p className="text-sm text-gray-600">{tooltipToken.token.translation}</p>
@@ -283,8 +277,7 @@ const AnalysisResult = ({ result }: AnalysisResultProps) => {
             )}
             <button
               onClick={() => { setFlashcardToken(tooltipToken.token); setTooltipToken(null); }}
-              className="w-full h-9 rounded-xl text-xs font-semibold text-white transition-all hover:opacity-90"
-              style={{ background: '#e85d04' }}
+              className="w-full h-9 rounded-xl text-xs font-semibold text-white bg-brand transition-all hover:opacity-90"
             >
               + Add to Flashcards
             </button>
@@ -308,7 +301,7 @@ const AnalysisResult = ({ result }: AnalysisResultProps) => {
             {result.source_type}
           </span>
           {result.overall_hsk_level && (
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-md" style={{ background: '#fff7f0', color: '#e85d04' }}>
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-md bg-orange-50 text-brand">
               Overall HSK {result.overall_hsk_level}
             </span>
           )}
@@ -357,7 +350,7 @@ const AnalysisResult = ({ result }: AnalysisResultProps) => {
               HSK {level}
             </span>
           ))}
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-md" style={{ background: '#f3f4f6', color: '#6b7280' }}>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-hsk-unknown">
             No HSK
           </span>
         </div>
@@ -372,142 +365,121 @@ const AnalysisResult = ({ result }: AnalysisResultProps) => {
 const AnalyzeTab = ({ studentId }: { studentId: number }) => {
   const { analyze, analyzeImage, result, loading } = useAnalysis(studentId);
 
-  // Stare UI — ramane in componenta
   const [mode, setMode] = useState<'text' | 'ocr'>('text');
   const [textInput, setTextInput] = useState('');
   const [translationLanguage, setTranslationLanguage] = useState<TranslationLanguage>('ro');
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleImageChange = (file: File) => {
-    setImageFile(file);
-    const reader = new FileReader();
-    reader.onload = (e) => setImagePreview(e.target?.result as string);
-    reader.readAsDataURL(file);
+  const handleAnalyzeText = async () => {
+    if (!textInput.trim()) return;
+    await analyze(textInput.trim(), translationLanguage);
   };
 
-  const handleAnalyze = async () => {
-    setError(null);
-    try {
-      if (mode === 'text') {
-        if (!textInput.trim()) { setError('Please enter some text.'); return; }
-        await analyze(textInput.trim(), translationLanguage);
-      } else {
-        if (!imageFile) { setError('Please select an image.'); return; }
-        await analyzeImage(imageFile, translationLanguage);
-      }
-    } catch (err: unknown) {
-      if (err instanceof Error && err.message.includes('422')) {
-        setError('No Chinese text detected in the image.');
-      } else if (err instanceof Error && err.message.includes('503')) {
-        setError('Translation service unavailable. Try again.');
-      } else {
-        setError('Analysis failed. Please try again.');
-      }
-    }
+  const handleAnalyzeImage = async () => {
+    if (!imageFile) return;
+    await analyzeImage(imageFile, translationLanguage);
+  };
+
+  const handleFileDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) setImageFile(file);
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex gap-2">
+    <div className="space-y-5">
+      <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: '#f3f4f6' }}>
         {(['text', 'ocr'] as const).map((m) => (
           <button
             key={m}
-            onClick={() => { setMode(m); setError(null); }}
-            className="px-5 py-2 rounded-xl text-sm font-semibold transition-all border-2"
+            onClick={() => setMode(m)}
+            className="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all"
             style={{
-              borderColor: mode === m ? '#e85d04' : '#e5e7eb',
-              background: mode === m ? '#fff7f0' : '#ffffff',
+              background: mode === m ? '#ffffff' : 'transparent',
               color: mode === m ? '#e85d04' : '#6b7280',
+              boxShadow: mode === m ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
             }}
           >
-            {m === 'text' ? 'Text Input' : 'Image / OCR'}
+            {m === 'text' ? 'Text' : 'Image OCR'}
           </button>
         ))}
-        <div className="ml-auto flex items-center gap-2">
-          <span className="text-xs text-gray-400">Translate to:</span>
-          <div className="flex gap-1">
-            {(['ro', 'en'] as const).map((lang) => (
-              <button
-                key={lang}
-                onClick={() => setTranslationLanguage(lang)}
-                className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border-2"
-                style={{
-                  borderColor: translationLanguage === lang ? '#0369a1' : '#e5e7eb',
-                  background: translationLanguage === lang ? '#f0f9ff' : '#ffffff',
-                  color: translationLanguage === lang ? '#0369a1' : '#9ca3af',
-                }}
-              >
-                {lang.toUpperCase()}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
-      {mode === 'text' ? (
-        <textarea
-          value={textInput}
-          onChange={(e) => setTextInput(e.target.value)}
-          placeholder="Paste or type Chinese text here... e.g. 你好世界"
-          rows={5}
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-base resize-none outline-none transition-all"
-          style={{ fontFamily: 'inherit' }}
-          onFocus={(e) => { e.target.style.borderColor = '#e85d04'; e.target.style.background = '#ffffff'; }}
-          onBlur={(e) => { e.target.style.borderColor = '#e5e7eb'; e.target.style.background = '#f9fafb'; }}
-        />
-      ) : (
-        <div className="space-y-3">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => { if (e.target.files?.[0]) handleImageChange(e.target.files[0]); }}
-          />
-          {imagePreview ? (
-            <div className="relative">
-              <img src={imagePreview} alt="Selected" className="w-full max-h-48 object-contain rounded-xl" style={{ border: '2px solid #e85d04' }} />
-              <button
-                onClick={() => { setImageFile(null); setImagePreview(null); }}
-                className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white flex items-center justify-center shadow-md text-gray-500 hover:text-red-500 transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full h-36 rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all hover:border-orange-300 hover:bg-orange-50"
-              style={{ borderColor: '#d1d5db' }}
-            >
-              <svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5">
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <polyline points="21 15 16 10 5 21" />
-              </svg>
-              <p className="text-sm text-gray-400">Click to upload image</p>
-              <p className="text-xs text-gray-300">JPG, PNG, etc.</p>
-            </button>
-          )}
+      <div className="bg-white rounded-2xl p-6 space-y-4 shadow-card">
+        <div className="flex items-center gap-3">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            Translation language
+          </label>
+          <select
+            value={translationLanguage}
+            onChange={(e) => setTranslationLanguage(e.target.value as TranslationLanguage)}
+            className="h-8 px-3 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-600 outline-none"
+          >
+            <option value="ro">Romana</option>
+            <option value="en">English</option>
+          </select>
         </div>
-      )}
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
-
-      <button
-        onClick={handleAnalyze}
-        disabled={loading}
-        className="h-11 px-8 rounded-xl text-white font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
-        style={{ background: '#e85d04' }}
-      >
-        {loading ? 'Analyzing...' : 'Analyze'}
-      </button>
+        {mode === 'text' ? (
+          <>
+            <textarea
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              placeholder="Introdu text chinezesc..."
+              rows={4}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm outline-none resize-none"
+              style={{ fontFamily: 'DM Sans, sans-serif' }}
+            />
+            <button
+              onClick={handleAnalyzeText}
+              disabled={loading || !textInput.trim()}
+              className="h-11 px-6 rounded-xl bg-brand text-white font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {loading ? 'Analyzing...' : 'Analyze'}
+            </button>
+          </>
+        ) : (
+          <>
+            <div
+              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={handleFileDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all"
+              style={{
+                borderColor: dragOver ? '#e85d04' : '#e5e7eb',
+                background: dragOver ? '#fff7f0' : '#f9fafb',
+              }}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+              />
+              {imageFile ? (
+                <p className="text-sm font-semibold text-gray-700">{imageFile.name}</p>
+              ) : (
+                <p className="text-sm text-gray-400">Drop an image here or click to upload</p>
+              )}
+            </div>
+            <button
+              onClick={handleAnalyzeImage}
+              disabled={loading || !imageFile}
+              className="h-11 px-6 rounded-xl bg-brand text-white font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {loading ? 'Analyzing...' : 'Analyze Image'}
+            </button>
+          </>
+        )}
+      </div>
 
       {result && (
-        <div className="bg-white rounded-2xl p-6" style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}>
+        <div className="bg-white rounded-2xl p-6 shadow-card">
           <AnalysisResult result={result} />
         </div>
       )}
@@ -521,8 +493,8 @@ const AnalyzeTab = ({ studentId }: { studentId: number }) => {
 const HistoryTab = ({ studentId }: { studentId: number }) => {
   const { fetchHistory, history, historyLoading, fetchById, remove } = useAnalysis(studentId);
 
-  // Stare UI — ramane in componenta
-  const [page, setPage] = useState(1);
+  // page este base-0 intern — consistent cu GetAnalysesParams
+  const [page, setPage] = useState(0);
   const [sourceFilter, setSourceFilter] = useState<SourceType | ''>('');
   const [hskFilter, setHskFilter] = useState<string>('');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
@@ -531,18 +503,25 @@ const HistoryTab = ({ studentId }: { studentId: number }) => {
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
   useEffect(() => {
-    fetchHistory({
+    const params: GetAnalysesParams = {
       page,
       size: 10,
-      sort_order: sortOrder,
-      ...(sourceFilter ? { source_type: sourceFilter } : {}),
-      ...(hskFilter ? { hsk_level: parseInt(hskFilter) } : {}),
-    });
-  }, [page, sourceFilter, hskFilter, sortOrder]);
+      sortOrder,
+      ...(sourceFilter ? { sourceType: sourceFilter } : {}),
+      ...(hskFilter    ? { hskLevel: parseInt(hskFilter) } : {}),
+    };
+    fetchHistory(params);
+  }, [page, sourceFilter, hskFilter, sortOrder, fetchHistory]);
 
-  const items = history?.items ?? [];
-  const total = history?.total ?? 0;
-  const totalPages = history?.total_pages ?? 1;
+  const items      = history?.items      ?? [];
+  const total      = history?.total      ?? 0;
+  const totalPages = history?.totalPages ?? 1;
+
+  // Resetare la prima pagina la orice schimbare de filtru
+  const handleFilterChange = useCallback((fn: () => void) => {
+    fn();
+    setPage(0);
+  }, []);
 
   const handleExpand = async (id: number) => {
     if (expandedId === id) { setExpandedId(null); return; }
@@ -563,7 +542,7 @@ const HistoryTab = ({ studentId }: { studentId: number }) => {
       <div className="flex flex-wrap gap-3 items-center">
         <select
           value={sourceFilter}
-          onChange={(e) => { setSourceFilter(e.target.value as SourceType | ''); setPage(1); }}
+          onChange={(e) => handleFilterChange(() => setSourceFilter(e.target.value as SourceType | ''))}
           className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-600 outline-none"
         >
           <option value="">All sources</option>
@@ -572,7 +551,7 @@ const HistoryTab = ({ studentId }: { studentId: number }) => {
         </select>
         <select
           value={hskFilter}
-          onChange={(e) => { setHskFilter(e.target.value); setPage(1); }}
+          onChange={(e) => handleFilterChange(() => setHskFilter(e.target.value))}
           className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-600 outline-none"
         >
           <option value="">All HSK levels</option>
@@ -582,7 +561,7 @@ const HistoryTab = ({ studentId }: { studentId: number }) => {
         </select>
         <select
           value={sortOrder}
-          onChange={(e) => { setSortOrder(e.target.value as 'newest' | 'oldest'); setPage(1); }}
+          onChange={(e) => handleFilterChange(() => setSortOrder(e.target.value as 'newest' | 'oldest'))}
           className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-600 outline-none"
         >
           <option value="newest">Newest first</option>
@@ -596,13 +575,13 @@ const HistoryTab = ({ studentId }: { studentId: number }) => {
           <p className="text-gray-400 text-sm">Loading...</p>
         </div>
       ) : items.length === 0 ? (
-        <div className="bg-white rounded-2xl p-12 text-center" style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}>
+        <div className="bg-white rounded-2xl p-12 text-center shadow-card">
           <p className="text-gray-400 text-sm">No analyses yet.</p>
         </div>
       ) : (
         <div className="space-y-3">
           {items.map((item) => (
-            <div key={item.id} className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}>
+            <div key={item.id} className="bg-white rounded-2xl overflow-hidden shadow-card">
               <div
                 className="flex items-start justify-between gap-4 p-5 cursor-pointer hover:bg-gray-50 transition-colors"
                 onClick={() => handleExpand(item.id)}
@@ -622,7 +601,7 @@ const HistoryTab = ({ studentId }: { studentId: number }) => {
                       {item.source_type}
                     </span>
                     {item.overall_hsk_level && (
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-md" style={{ background: '#fff7f0', color: '#e85d04' }}>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-orange-50 text-brand">
                         HSK {item.overall_hsk_level}
                       </span>
                     )}
@@ -636,8 +615,7 @@ const HistoryTab = ({ studentId }: { studentId: number }) => {
                     <>
                       <button
                         onClick={() => handleDelete(item.id)}
-                        className="text-xs font-semibold px-2.5 py-1 rounded-lg"
-                        style={{ background: '#c1121f', color: 'white' }}
+                        className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-error text-white"
                       >
                         Confirm
                       </button>
@@ -651,8 +629,7 @@ const HistoryTab = ({ studentId }: { studentId: number }) => {
                   ) : (
                     <button
                       onClick={() => setDeleteTarget(item.id)}
-                      className="text-xs font-semibold px-2.5 py-1 rounded-lg hover:bg-red-50 transition-colors"
-                      style={{ color: '#c1121f' }}
+                      className="text-xs font-semibold px-2.5 py-1 rounded-lg hover:bg-red-50 transition-colors text-error"
                     >
                       Delete
                     </button>
@@ -687,16 +664,17 @@ const HistoryTab = ({ studentId }: { studentId: number }) => {
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
           <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0}
             className="h-9 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-40"
           >
             Prev
           </button>
-          <span className="text-sm text-gray-400">{page} / {totalPages}</span>
+          {/* Afisare base-1 pentru utilizator — intern page este base-0 */}
+          <span className="text-sm text-gray-400">{page + 1} / {totalPages}</span>
           <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={page === totalPages - 1}
             className="h-9 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-40"
           >
             Next
@@ -715,7 +693,7 @@ const StatsTab = ({ studentId }: { studentId: number }) => {
 
   useEffect(() => {
     fetchStats();
-  }, []);
+  }, [fetchStats]);
 
   if (statsLoading) return (
     <div className="flex items-center justify-center h-48">
@@ -725,7 +703,7 @@ const StatsTab = ({ studentId }: { studentId: number }) => {
 
   if (error || !stats) return (
     <div className="flex items-center justify-center h-48">
-      <p className="text-red-500 text-sm">{error ?? 'No stats available.'}</p>
+      <p className="text-sm text-error">{error ?? 'No stats available.'}</p>
     </div>
   );
 
@@ -745,9 +723,9 @@ const StatsTab = ({ studentId }: { studentId: number }) => {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl p-6 space-y-4" style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}>
+        <div className="bg-white rounded-2xl p-6 space-y-4 shadow-card">
           <div>
-            <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>Tokens by HSK Level</h3>
+            <h3 className="font-display text-base font-bold text-gray-900">Tokens by HSK Level</h3>
             <p className="text-xs text-gray-400 mt-0.5">How many tokens you've encountered per level</p>
           </div>
           {distributionData.length === 0 ? (
@@ -773,9 +751,9 @@ const StatsTab = ({ studentId }: { studentId: number }) => {
           )}
         </div>
 
-        <div className="bg-white rounded-2xl p-6 space-y-4" style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}>
+        <div className="bg-white rounded-2xl p-6 space-y-4 shadow-card">
           <div>
-            <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>Analysis Sources</h3>
+            <h3 className="font-display text-base font-bold text-gray-900">Analysis Sources</h3>
             <p className="text-xs text-gray-400 mt-0.5">Manual input vs OCR image analyses</p>
           </div>
           {donutData.length === 0 ? (
@@ -800,9 +778,9 @@ const StatsTab = ({ studentId }: { studentId: number }) => {
       </div>
 
       {stats.unique_chars_per_hsk_level.length > 0 && (
-        <div className="bg-white rounded-2xl p-6 space-y-5" style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}>
+        <div className="bg-white rounded-2xl p-6 space-y-5 shadow-card">
           <div>
-            <h3 className="text-base font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>HSK Vocabulary Coverage</h3>
+            <h3 className="font-display text-base font-bold text-gray-900">HSK Vocabulary Coverage</h3>
             <p className="text-xs text-gray-400 mt-0.5">Unique characters encountered from each HSK level's word list</p>
           </div>
           <div className="space-y-4">
@@ -821,7 +799,10 @@ const StatsTab = ({ studentId }: { studentId: number }) => {
                       </span>
                     </div>
                     <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all" style={{ width: `${item.percentage}%`, background: color }} />
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{ width: `${item.percentage}%`, background: color }}
+                      />
                     </div>
                   </div>
                 );
@@ -834,7 +815,7 @@ const StatsTab = ({ studentId }: { studentId: number }) => {
 };
 
 // ----------------------------------------------------------------
-// Pagina principala — View pur, nicio logica de fetch
+// Pagina principala — View pur
 // ----------------------------------------------------------------
 const AnalysisPage = () => {
   const { userId } = useAuthStore();
@@ -851,7 +832,7 @@ const AnalysisPage = () => {
   return (
     <div className="space-y-6 max-w-4xl">
       <div className="space-y-1">
-        <h1 className="text-3xl font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
+        <h1 className="font-display text-3xl font-bold text-gray-900">
           Text Analysis
         </h1>
         <p className="text-gray-400 text-sm">
@@ -879,7 +860,7 @@ const AnalysisPage = () => {
       <div>
         {activeTab === 'analyze' && <AnalyzeTab studentId={userId} />}
         {activeTab === 'history' && <HistoryTab studentId={userId} />}
-        {activeTab === 'stats' && <StatsTab studentId={userId} />}
+        {activeTab === 'stats'   && <StatsTab studentId={userId} />}
       </div>
     </div>
   );

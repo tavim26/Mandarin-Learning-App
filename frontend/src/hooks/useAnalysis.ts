@@ -1,123 +1,114 @@
-import { useState } from 'react';
-import {
-  analyzeText,
-  analyzeOcr,
-  previewText,
-  getAnalysisHistory,
-  getAnalysisById,
-  deleteAnalysis,
-  getStudentStats,
-} from '@/api/analysisApi';
+import { useState, useCallback } from 'react';
+import { analysisApi, type NormalizedPage, type GetAnalysesParams } from '@/api/analysisApi';
 import type {
   TextAnalysisDto,
   TextAnalysisSummaryDto,
   StudentStatsDto,
-  PageDto,
-  SourceType,
-  TranslationLanguage,
-} from '@/types';
+} from '@/types/analysis';
 
 export const useAnalysis = (studentId: number) => {
-  const [result, setResult] = useState<TextAnalysisDto | null>(null);
-  const [history, setHistory] = useState<PageDto<TextAnalysisSummaryDto> | null>(null);
-  const [stats, setStats] = useState<StudentStatsDto | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [result, setResult]               = useState<TextAnalysisDto | null>(null);
+  const [history, setHistory]             = useState<NormalizedPage<TextAnalysisSummaryDto> | null>(null);
+  const [stats, setStats]                 = useState<StudentStatsDto | null>(null);
+  const [loading, setLoading]             = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [statsLoading, setStatsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [statsLoading, setStatsLoading]   = useState(false);
+  const [error, setError]                 = useState<string | null>(null);
 
-  const analyze = async (
+  const analyze = useCallback(async (
     rawText: string,
-    language: TranslationLanguage = 'ro'
+    language: 'ro' | 'en' = 'ro'
   ): Promise<TextAnalysisDto> => {
     setLoading(true);
     setError(null);
     try {
-      const data = await analyzeText(rawText, language);
+      const data = await analysisApi.analyzeText({ raw_text: rawText, translation_language: language });
       setResult(data);
       return data;
-    } catch {
-      setError('Failed to analyze text.');
-      throw error;
+    } catch (err) {
+      setError('Analiza textului a esuat.');
+      throw err;
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const analyzeImage = async (
+  const analyzeImage = useCallback(async (
     image: File,
-    language: TranslationLanguage = 'ro'
+    language: 'ro' | 'en' = 'ro'
   ): Promise<TextAnalysisDto> => {
     setLoading(true);
     setError(null);
     try {
-      const data = await analyzeOcr(image, language);
+      const data = await analysisApi.analyzeOcr(image, language);
       setResult(data);
       return data;
-    } catch {
-      setError('Failed to analyze image.');
-      throw error;
+    } catch (err) {
+      setError('Analiza imaginii a esuat.');
+      throw err;
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const preview = async (text: string) => {
-    try {
-      return await previewText(text);
-    } catch {
-      return null;
-    }
-  };
-
-  const fetchHistory = async (params: {
-    page?: number;
-    size?: number;
-    source_type?: SourceType;
-    hsk_level?: number;
-    sort_order?: 'newest' | 'oldest';
-  } = {}) => {
+  const fetchHistory = useCallback(async (params: GetAnalysesParams = {}) => {
     setHistoryLoading(true);
+    setError(null);
     try {
-      const data = await getAnalysisHistory(studentId, params);
+      const data = await analysisApi.getStudentAnalyses(studentId, params);
       setHistory(data);
-    } catch {
-      setError('Failed to load history.');
+    } catch (err) {
+      setError('Incarcarea istoricului a esuat.');
+      throw err;
     } finally {
       setHistoryLoading(false);
     }
-  };
+  }, [studentId]);
 
-  const fetchById = async (analysisId: number): Promise<TextAnalysisDto | null> => {
+  const fetchById = useCallback(async (
+    analysisId: number
+  ): Promise<TextAnalysisDto | null> => {
     try {
-      return await getAnalysisById(analysisId);
+      return await analysisApi.getAnalysisById(analysisId);
     } catch {
       return null;
     }
-  };
+  }, []);
 
-  const remove = async (analysisId: number): Promise<void> => {
-    await deleteAnalysis(analysisId);
-    if (history) {
-      setHistory({
-        ...history,
-        items: history.items.filter((a) => a.id !== analysisId),
-        total: history.total - 1,
-      });
-    }
-  };
-
-  const fetchStats = async () => {
-    setStatsLoading(true);
+  const remove = useCallback(async (analysisId: number): Promise<void> => {
     try {
-      const data = await getStudentStats(studentId);
+      await analysisApi.deleteAnalysis(analysisId);
+      // Actualizeaza lista locala optimist dupa stergere reusita
+      setHistory((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          items: prev.items.filter((a) => a.id !== analysisId),
+          total: prev.total - 1,
+        };
+      });
+    } catch (err) {
+      setError('Stergerea analizei a esuat.');
+      throw err;
+    }
+  }, []);
+
+  const fetchStats = useCallback(async () => {
+    setStatsLoading(true);
+    setError(null);
+    try {
+      const data = await analysisApi.getStudentStats(studentId);
       setStats(data);
-    } catch {
-      setError('Failed to load stats.');
+    } catch (err) {
+      setError('Incarcarea statisticilor a esuat.');
+      throw err;
     } finally {
       setStatsLoading(false);
     }
-  };
+  }, [studentId]);
+
+  const clearResult = useCallback(() => setResult(null), []);
+  const clearError  = useCallback(() => setError(null), []);
 
   return {
     result,
@@ -129,10 +120,11 @@ export const useAnalysis = (studentId: number) => {
     error,
     analyze,
     analyzeImage,
-    preview,
     fetchHistory,
     fetchById,
     remove,
     fetchStats,
+    clearResult,
+    clearError,
   };
 };

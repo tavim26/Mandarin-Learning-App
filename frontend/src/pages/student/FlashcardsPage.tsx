@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import {
   getFlashcardSets,
@@ -10,11 +10,15 @@ import {
   deleteFlashcard,
   getDueCards,
   submitReview,
-  type FlashcardSetDto,
-  type FlashcardDto,
-  type FlashcardProgressDto,
-  type FlashcardSetStatsDto,
 } from '@/api/flashcardApi';
+// Tipurile importate din sursa lor corecta — nu din modulul API
+import type {
+  FlashcardSetDto,
+  FlashcardDto,
+  FlashcardProgressDto,
+  FlashcardSetStatsDto,
+  ReviewQuality,
+} from '@/types/flashcard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import DeleteConfirmModal from '@/components/modals/DeleteConfirmModal';
@@ -46,7 +50,7 @@ const CreateSetModal = ({ onClose, onSave }: CreateSetModalProps) => {
     try {
       await onSave(title.trim(), description.trim());
       onClose();
-    } catch {
+    } catch (err) {
       setError('Failed to create set.');
     } finally {
       setLoading(false);
@@ -64,9 +68,7 @@ const CreateSetModal = ({ onClose, onSave }: CreateSetModalProps) => {
         style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-xl font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-          New Flashcard Set
-        </h2>
+        <h2 className="font-display text-xl font-bold text-gray-900">New Flashcard Set</h2>
         <div className="space-y-3">
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Title *</label>
@@ -82,7 +84,7 @@ const CreateSetModal = ({ onClose, onSave }: CreateSetModalProps) => {
           <Button onClick={onClose} className="flex-1 h-11 rounded-xl font-semibold text-sm bg-gray-100 hover:bg-gray-200 text-gray-700">
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={loading} className="flex-1 h-11 rounded-xl text-white font-semibold text-sm hover:opacity-90" style={{ background: '#e85d04' }}>
+          <Button onClick={handleSave} disabled={loading} className="flex-1 h-11 rounded-xl bg-brand text-white font-semibold text-sm hover:opacity-90">
             {loading ? 'Creating...' : 'Create'}
           </Button>
         </div>
@@ -115,7 +117,7 @@ const AddCardModal = ({ onClose, onSave }: AddCardModalProps) => {
       await onSave(frontText.trim(), backText.trim());
       setFrontText('');
       setBackText('');
-    } catch {
+    } catch (err) {
       setError('Failed to add card.');
     } finally {
       setLoading(false);
@@ -133,9 +135,7 @@ const AddCardModal = ({ onClose, onSave }: AddCardModalProps) => {
         style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-xl font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-          Add Card
-        </h2>
+        <h2 className="font-display text-xl font-bold text-gray-900">Add Card</h2>
         <div className="space-y-3">
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -165,7 +165,7 @@ const AddCardModal = ({ onClose, onSave }: AddCardModalProps) => {
           <Button onClick={onClose} className="flex-1 h-11 rounded-xl font-semibold text-sm bg-gray-100 hover:bg-gray-200 text-gray-700">
             Done
           </Button>
-          <Button onClick={handleSave} disabled={loading} className="flex-1 h-11 rounded-xl text-white font-semibold text-sm hover:opacity-90" style={{ background: '#e85d04' }}>
+          <Button onClick={handleSave} disabled={loading} className="flex-1 h-11 rounded-xl bg-brand text-white font-semibold text-sm hover:opacity-90">
             {loading ? 'Adding...' : '+ Add Card'}
           </Button>
         </div>
@@ -214,13 +214,7 @@ const FlipCard = ({ front, back, flipped, onClick }: FlipCardProps) => {
           }}
           onClick={onClick}
         >
-          <p
-            className="text-5xl font-bold text-center"
-            style={{ color: '#1f2937', fontFamily: 'Outfit, sans-serif' }}
-          >
-            {front}
-          </p>
-          {/* Buton audio pe fata */}
+          <p className="text-5xl font-bold text-center font-display text-gray-800">{front}</p>
           <button
             onClick={(e) => { e.stopPropagation(); if (isSpeaking) { stop(); } else { speak(front); } }}
             className="mt-4 w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:opacity-80"
@@ -251,13 +245,7 @@ const FlipCard = ({ front, back, flipped, onClick }: FlipCardProps) => {
           }}
           onClick={onClick}
         >
-          <p
-            className="text-2xl font-semibold text-center"
-            style={{ color: '#e85d04', fontFamily: 'Outfit, sans-serif' }}
-          >
-            {back}
-          </p>
-          {/* Buton audio pe spate — pronunta frontText (chineza) */}
+          <p className="text-2xl font-semibold text-center font-display text-brand">{back}</p>
           <button
             onClick={(e) => { e.stopPropagation(); if (isSpeaking) { stop(); } else { speak(front); } }}
             className="mt-4 w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:opacity-80"
@@ -288,36 +276,30 @@ interface ReviewSessionProps {
   onFinish: () => void;
 }
 
-// Mapare butoane → quality SM-2
-const REVIEW_BUTTONS: { label: string; quality: number; color: string; bg: string }[] = [
+// quality este ReviewQuality — tipat strict pentru compatibilitate cu SubmitReviewRequest
+const REVIEW_BUTTONS: { label: string; quality: ReviewQuality; color: string; bg: string }[] = [
   { label: 'Again', quality: 0, color: '#c1121f', bg: '#fef2f2' },
-  { label: 'Hard', quality: 2, color: '#b45309', bg: '#fffbeb' },
-  { label: 'Good', quality: 3, color: '#0369a1', bg: '#f0f9ff' },
-  { label: 'Easy', quality: 5, color: '#15803d', bg: '#f0fdf4' },
+  { label: 'Hard',  quality: 2, color: '#b45309', bg: '#fffbeb' },
+  { label: 'Good',  quality: 3, color: '#0369a1', bg: '#f0f9ff' },
+  { label: 'Easy',  quality: 5, color: '#15803d', bg: '#f0fdf4' },
 ];
 
 const ReviewSession = ({ set, studentId, onFinish }: ReviewSessionProps) => {
-  const [dueCards, setDueCards] = useState<FlashcardProgressDto[]>([]);
+  const [dueCards, setDueCards]       = useState<FlashcardProgressDto[]>([]);
   const [cardDetails, setCardDetails] = useState<Record<number, FlashcardDto>>({});
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [flipped, setFlipped] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [results, setResults] = useState<{ quality: number; label: string }[]>([]);
-  const [finished, setFinished] = useState(false);
+  const [flipped, setFlipped]         = useState(false);
+  const [loading, setLoading]         = useState(true);
+  const [submitting, setSubmitting]   = useState(false);
+  const [results, setResults]         = useState<{ quality: ReviewQuality; label: string }[]>([]);
+  const [finished, setFinished]       = useState(false);
 
-  useEffect(() => {
-    fetchDueCards();
-  }, []);
-
-  const fetchDueCards = async () => {
+  const fetchDueCards = useCallback(async () => {
     try {
       setLoading(true);
       const due = await getDueCards(studentId, set.id);
       setDueCards(due);
 
-      // Fetch detalii card pentru fiecare card scadent
-      const { getCardsForSet } = await import('@/api/flashcardApi');
       const allCards = await getCardsForSet(set.id);
       const map: Record<number, FlashcardDto> = {};
       allCards.forEach((c) => { map[c.id] = c; });
@@ -327,9 +309,14 @@ const ReviewSession = ({ set, studentId, onFinish }: ReviewSessionProps) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [studentId, set.id]);
 
-  const handleReview = async (quality: number, label: string) => {
+  useEffect(() => {
+    fetchDueCards();
+  }, [fetchDueCards]);
+
+  // quality este ReviewQuality — garantat de REVIEW_BUTTONS
+  const handleReview = async (quality: ReviewQuality, label: string) => {
     if (submitting || !dueCards[currentIndex]) return;
     const card = dueCards[currentIndex];
     setSubmitting(true);
@@ -361,16 +348,11 @@ const ReviewSession = ({ set, studentId, onFinish }: ReviewSessionProps) => {
   if (dueCards.length === 0) {
     return (
       <div className="space-y-6 max-w-lg mx-auto text-center">
-        <div
-          className="bg-white rounded-2xl p-12 space-y-3"
-          style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}
-        >
+        <div className="bg-white rounded-2xl p-12 space-y-3 shadow-card">
           <p className="text-4xl">✓</p>
-          <p className="text-xl font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-            All caught up!
-          </p>
+          <p className="font-display text-xl font-bold text-gray-900">All caught up!</p>
           <p className="text-sm text-gray-400">No cards due for review in this set.</p>
-          <Button onClick={onFinish} className="h-11 px-8 rounded-xl text-white font-semibold text-sm hover:opacity-90 mt-2" style={{ background: '#e85d04' }}>
+          <Button onClick={onFinish} className="h-11 px-8 rounded-xl bg-brand text-white font-semibold text-sm hover:opacity-90 mt-2">
             Back to Sets
           </Button>
         </div>
@@ -380,54 +362,32 @@ const ReviewSession = ({ set, studentId, onFinish }: ReviewSessionProps) => {
 
   if (finished) {
     const againCount = results.filter((r) => r.quality === 0).length;
-    const hardCount = results.filter((r) => r.quality === 2).length;
-    const goodCount = results.filter((r) => r.quality === 3).length;
-    const easyCount = results.filter((r) => r.quality === 5).length;
+    const hardCount  = results.filter((r) => r.quality === 2).length;
+    const goodCount  = results.filter((r) => r.quality === 3).length;
+    const easyCount  = results.filter((r) => r.quality === 5).length;
 
     return (
       <div className="space-y-6 max-w-lg mx-auto">
-        <div
-          className="bg-white rounded-2xl p-8 space-y-6"
-          style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}
-        >
+        <div className="bg-white rounded-2xl p-8 space-y-6 shadow-card">
           <div className="text-center space-y-2">
             <p className="text-4xl">🎉</p>
-            <p className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-              Session Complete!
-            </p>
-            <p className="text-sm text-gray-400">
-              {results.length} cards reviewed from "{set.title}"
-            </p>
+            <p className="font-display text-2xl font-bold text-gray-900">Session Complete!</p>
+            <p className="text-sm text-gray-400">{results.length} cards reviewed from "{set.title}"</p>
           </div>
-
-          {/* Sumar butoane */}
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: 'Again', count: againCount, color: '#c1121f', bg: '#fef2f2' },
-              { label: 'Hard', count: hardCount, color: '#b45309', bg: '#fffbeb' },
-              { label: 'Good', count: goodCount, color: '#0369a1', bg: '#f0f9ff' },
-              { label: 'Easy', count: easyCount, color: '#15803d', bg: '#f0fdf4' },
+              { label: 'Hard',  count: hardCount,  color: '#b45309', bg: '#fffbeb' },
+              { label: 'Good',  count: goodCount,  color: '#0369a1', bg: '#f0f9ff' },
+              { label: 'Easy',  count: easyCount,  color: '#15803d', bg: '#f0fdf4' },
             ].map((item) => (
-              <div
-                key={item.label}
-                className="rounded-xl p-4 text-center"
-                style={{ background: item.bg }}
-              >
-                <p className="text-2xl font-bold" style={{ color: item.color, fontFamily: 'Outfit, sans-serif' }}>
-                  {item.count}
-                </p>
-                <p className="text-xs font-semibold" style={{ color: item.color }}>
-                  {item.label}
-                </p>
+              <div key={item.label} className="rounded-xl p-4 text-center" style={{ background: item.bg }}>
+                <p className="font-display text-2xl font-bold" style={{ color: item.color }}>{item.count}</p>
+                <p className="text-xs font-semibold" style={{ color: item.color }}>{item.label}</p>
               </div>
             ))}
           </div>
-
-          <Button
-            onClick={onFinish}
-            className="w-full h-11 rounded-xl text-white font-semibold text-sm hover:opacity-90"
-            style={{ background: '#e85d04' }}
-          >
+          <Button onClick={onFinish} className="w-full h-11 rounded-xl bg-brand text-white font-semibold text-sm hover:opacity-90">
             Back to Sets
           </Button>
         </div>
@@ -436,28 +396,21 @@ const ReviewSession = ({ set, studentId, onFinish }: ReviewSessionProps) => {
   }
 
   const currentProgress = dueCards[currentIndex];
-  const currentCard = cardDetails[currentProgress?.flashcardId];
+  const currentCard     = cardDetails[currentProgress?.flashcardId];
 
   return (
     <div className="space-y-6 max-w-lg mx-auto">
-
-      {/* Header progres */}
+      {/* Header sesiune */}
       <div className="flex items-center justify-between">
-        <button
-          onClick={onFinish}
-          className="text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          ← Back
-        </button>
+        <div className="space-y-0.5">
+          <p className="font-display text-lg font-bold text-gray-900">{set.title}</p>
+          <p className="text-xs text-gray-400">
+            {currentIndex + 1} / {dueCards.length} cards
+          </p>
+        </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-400">
-            {currentIndex + 1} / {dueCards.length}
-          </span>
           {currentProgress?.id === null && (
-            <span
-              className="text-xs font-semibold px-2 py-0.5 rounded-md"
-              style={{ background: '#f3f4f6', color: '#9ca3af' }}
-            >
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-hsk-unknown">
               New
             </span>
           )}
@@ -467,8 +420,8 @@ const ReviewSession = ({ set, studentId, onFinish }: ReviewSessionProps) => {
       {/* Progress bar sesiune */}
       <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
         <div
-          className="h-full rounded-full transition-all duration-300"
-          style={{ width: `${(currentIndex / dueCards.length) * 100}%`, background: '#e85d04' }}
+          className="h-full rounded-full bg-brand transition-all duration-300"
+          style={{ width: `${(currentIndex / dueCards.length) * 100}%` }}
         />
       </div>
 
@@ -486,12 +439,10 @@ const ReviewSession = ({ set, studentId, onFinish }: ReviewSessionProps) => {
         </div>
       )}
 
-      {/* Hint click */}
       {!flipped && (
         <p className="text-xs text-center text-gray-300">Click the card to reveal the answer</p>
       )}
 
-      {/* Butoane review — vizibile doar dupa flip */}
       {flipped && (
         <div className="grid grid-cols-4 gap-2">
           {REVIEW_BUTTONS.map((btn) => (
@@ -522,18 +473,13 @@ interface CardsViewProps {
 
 const CardsView = ({ set, onBack, onStartReview }: CardsViewProps) => {
   const { userId } = useAuthStore();
-  const [cards, setCards] = useState<FlashcardDto[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [cards, setCards]           = useState<FlashcardDto[]>([]);
+  const [loading, setLoading]       = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
-  const [stats, setStats] = useState<FlashcardSetStatsDto | null>(null);
+  const [stats, setStats]           = useState<FlashcardSetStatsDto | null>(null);
 
-  useEffect(() => {
-    fetchCards();
-    fetchStats();
-  }, []);
-
-  const fetchCards = async () => {
+  const fetchCards = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getCardsForSet(set.id);
@@ -543,16 +489,21 @@ const CardsView = ({ set, onBack, onStartReview }: CardsViewProps) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [set.id]);
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const data = await getSetStats(set.id);
       setStats(data);
     } catch {
       // Stats optionale
     }
-  };
+  }, [set.id]);
+
+  useEffect(() => {
+    fetchCards();
+    fetchStats();
+  }, [fetchCards, fetchStats]);
 
   const handleAddCard = async (frontText: string, backText: string) => {
     if (!userId) return;
@@ -588,14 +539,8 @@ const CardsView = ({ set, onBack, onStartReview }: CardsViewProps) => {
       )}
 
       <div className="space-y-6">
-
-        {/* Breadcrumb + header */}
         <div className="flex items-center gap-2 text-sm">
-          <button
-            onClick={onBack}
-            className="font-medium hover:opacity-70 transition-opacity"
-            style={{ color: '#e85d04' }}
-          >
+          <button onClick={onBack} className="font-medium text-brand hover:opacity-70 transition-opacity">
             Flashcards
           </button>
           <span className="text-gray-400">/</span>
@@ -604,9 +549,7 @@ const CardsView = ({ set, onBack, onStartReview }: CardsViewProps) => {
 
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <h2 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-              {set.title}
-            </h2>
+            <h2 className="font-display text-2xl font-bold text-gray-900">{set.title}</h2>
             {set.description && <p className="text-sm text-gray-400">{set.description}</p>}
           </div>
           <div className="flex gap-2 flex-shrink-0">
@@ -619,51 +562,39 @@ const CardsView = ({ set, onBack, onStartReview }: CardsViewProps) => {
             <Button
               onClick={onStartReview}
               disabled={!stats || stats.dueToday === 0}
-              className="h-10 px-4 rounded-xl text-white font-semibold text-sm hover:opacity-90 disabled:opacity-40"
-              style={{ background: '#e85d04' }}
+              className="h-10 px-4 rounded-xl bg-brand text-white font-semibold text-sm hover:opacity-90 disabled:opacity-40"
             >
               Review {stats ? `(${stats.dueToday})` : ''}
             </Button>
           </div>
         </div>
 
-        {/* Stats bar */}
         {stats && stats.totalCards > 0 && (
-          <div
-            className="bg-white rounded-2xl p-4 flex items-center gap-6"
-            style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}
-          >
+          <div className="bg-white rounded-2xl p-4 flex items-center gap-6 shadow-card">
             {[
-              { label: 'New', count: stats.newCards, color: '#9ca3af' },
-              { label: 'Learning', count: stats.learningCards, color: '#e85d04' },
-              { label: 'Mature', count: stats.matureCards, color: '#15803d' },
-              { label: 'Due today', count: stats.dueToday, color: '#c1121f' },
+              { label: 'New',       count: stats.newCards,      color: '#9ca3af' },
+              { label: 'Learning',  count: stats.learningCards, color: '#e85d04' },
+              { label: 'Mature',    count: stats.matureCards,   color: '#15803d' },
+              { label: 'Due today', count: stats.dueToday,      color: '#c1121f' },
             ].map((item) => (
               <div key={item.label} className="text-center">
-                <p className="text-xl font-bold" style={{ color: item.color, fontFamily: 'Outfit, sans-serif' }}>
-                  {item.count}
-                </p>
+                <p className="font-display text-xl font-bold" style={{ color: item.color }}>{item.count}</p>
                 <p className="text-xs text-gray-400">{item.label}</p>
               </div>
             ))}
           </div>
         )}
 
-        {/* Lista carduri */}
         {loading ? (
           <div className="flex items-center justify-center h-32">
             <p className="text-gray-400 text-sm">Loading cards...</p>
           </div>
         ) : cards.length === 0 ? (
-          <div
-            className="bg-white rounded-2xl p-12 text-center space-y-3"
-            style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}
-          >
+          <div className="bg-white rounded-2xl p-12 text-center space-y-3 shadow-card">
             <p className="text-gray-400 text-sm">No cards yet.</p>
             <button
               onClick={() => setShowAddModal(true)}
-              className="text-sm font-semibold px-4 py-2 rounded-xl text-white hover:opacity-90"
-              style={{ background: '#e85d04' }}
+              className="text-sm font-semibold px-4 py-2 rounded-xl bg-brand text-white hover:opacity-90"
             >
               Add your first card
             </button>
@@ -673,8 +604,7 @@ const CardsView = ({ set, onBack, onStartReview }: CardsViewProps) => {
             {cards.map((card) => (
               <div
                 key={card.id}
-                className="bg-white rounded-2xl px-5 py-4 flex items-center justify-between"
-                style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}
+                className="bg-white rounded-2xl px-5 py-4 flex items-center justify-between shadow-card"
               >
                 <div className="flex items-center gap-6 min-w-0">
                   <span className="text-xl font-bold text-gray-800 flex-shrink-0">{card.frontText}</span>
@@ -682,8 +612,7 @@ const CardsView = ({ set, onBack, onStartReview }: CardsViewProps) => {
                 </div>
                 <button
                   onClick={() => setDeleteTarget(card.id)}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-red-50 flex-shrink-0 ml-4 transition-all"
-                  style={{ color: '#c1121f' }}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-red-50 flex-shrink-0 ml-4 transition-all text-error"
                 >
                   Delete
                 </button>
@@ -701,33 +630,34 @@ const CardsView = ({ set, onBack, onStartReview }: CardsViewProps) => {
 // ----------------------------------------------------------------
 const FlashcardsPage = () => {
   const { userId } = useAuthStore();
-  const [sets, setSets] = useState<FlashcardSetDto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [sets, setSets]             = useState<FlashcardSetDto[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<FlashcardSetDto | null>(null);
-  const [activeSet, setActiveSet] = useState<FlashcardSetDto | null>(null);
-  const [view, setView] = useState<View>('list');
+  const [deleteTarget, setDeleteTarget]       = useState<FlashcardSetDto | null>(null);
+  const [activeSet, setActiveSet]   = useState<FlashcardSetDto | null>(null);
+  const [view, setView]             = useState<View>('list');
 
-  useEffect(() => {
+  const fetchSets = useCallback(async () => {
     if (!userId) return;
-    fetchSets();
-  }, [userId]);
-
-  const fetchSets = async () => {
     try {
       setLoading(true);
-      const data = await getFlashcardSets(userId!);
+      const data = await getFlashcardSets(userId);
       setSets(data);
     } catch {
       setError('Failed to load flashcard sets.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    fetchSets();
+  }, [fetchSets]);
 
   const handleCreateSet = async (title: string, description: string) => {
-    const newSet = await createFlashcardSet({ title, description: description || null });
+    // description este string | undefined — null nu este acceptat de CreateFlashcardSetRequest
+    const newSet = await createFlashcardSet({ title, description: description || undefined });
     setSets((prev) => [newSet, ...prev]);
   };
 
@@ -743,9 +673,7 @@ const FlashcardsPage = () => {
     setView('cards');
   };
 
-  const handleStartReview = () => {
-    setView('review');
-  };
+  const handleStartReview = () => setView('review');
 
   const handleBackToList = () => {
     setActiveSet(null);
@@ -753,15 +681,8 @@ const FlashcardsPage = () => {
     fetchSets();
   };
 
-  // Render view-uri
   if (view === 'cards' && activeSet) {
-    return (
-      <CardsView
-        set={activeSet}
-        onBack={handleBackToList}
-        onStartReview={handleStartReview}
-      />
-    );
+    return <CardsView set={activeSet} onBack={handleBackToList} onStartReview={handleStartReview} />;
   }
 
   if (view === 'review' && activeSet) {
@@ -769,14 +690,11 @@ const FlashcardsPage = () => {
       <ReviewSession
         set={activeSet}
         studentId={userId!}
-        onFinish={() => {
-          setView('cards');
-        }}
+        onFinish={() => setView('cards')}
       />
     );
   }
 
-  // View: lista seturi
   return (
     <>
       {showCreateModal && (
@@ -795,45 +713,33 @@ const FlashcardsPage = () => {
       )}
 
       <div className="space-y-8">
-
-        {/* Header */}
         <div className="flex items-start justify-between">
           <div className="space-y-1">
-            <h1 className="text-3xl font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-              Flashcards
-            </h1>
-            <p className="text-gray-400 text-sm">
-              Spaced repetition review — SM-2 algorithm
-            </p>
+            <h1 className="font-display text-3xl font-bold text-gray-900">Flashcards</h1>
+            <p className="text-gray-400 text-sm">Spaced repetition review — SM-2 algorithm</p>
           </div>
           <Button
             onClick={() => setShowCreateModal(true)}
-            className="h-11 px-6 rounded-xl text-white font-semibold text-sm hover:opacity-90 flex-shrink-0"
-            style={{ background: '#e85d04' }}
+            className="h-11 px-6 rounded-xl bg-brand text-white font-semibold text-sm hover:opacity-90 flex-shrink-0"
           >
             + New Set
           </Button>
         </div>
 
-        {/* Lista seturi */}
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <p className="text-gray-400 text-sm">Loading...</p>
           </div>
         ) : error ? (
           <div className="flex items-center justify-center h-64">
-            <p className="text-red-500 text-sm">{error}</p>
+            <p className="text-sm text-error">{error}</p>
           </div>
         ) : sets.length === 0 ? (
-          <div
-            className="bg-white rounded-2xl p-16 text-center space-y-4"
-            style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}
-          >
+          <div className="bg-white rounded-2xl p-16 text-center space-y-4 shadow-card">
             <p className="text-gray-400 text-sm">No flashcard sets yet.</p>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="text-sm font-semibold px-6 py-2.5 rounded-xl text-white hover:opacity-90 transition-opacity"
-              style={{ background: '#e85d04' }}
+              className="text-sm font-semibold px-6 py-2.5 rounded-xl bg-brand text-white hover:opacity-90 transition-opacity"
             >
               Create your first set
             </button>
@@ -843,45 +749,27 @@ const FlashcardsPage = () => {
             {sets.map((set) => (
               <div
                 key={set.id}
-                className="bg-white rounded-2xl p-6 space-y-4 cursor-pointer transition-all hover:shadow-md group"
-                style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}
+                className="bg-white rounded-2xl p-6 space-y-4 cursor-pointer transition-all hover:shadow-md group shadow-card"
                 onClick={() => handleOpenSet(set)}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <p
-                      className="text-base font-bold text-gray-900 truncate"
-                      style={{ fontFamily: 'Outfit, sans-serif' }}
-                    >
-                      {set.title}
-                    </p>
+                    <p className="font-display text-base font-bold text-gray-900 truncate">{set.title}</p>
                     {set.description && (
                       <p className="text-xs text-gray-400 mt-0.5 truncate">{set.description}</p>
                     )}
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); setDeleteTarget(set); }}
-                    className="opacity-0 group-hover:opacity-100 text-xs font-semibold px-2 py-1 rounded-lg hover:bg-red-50 flex-shrink-0 transition-all"
-                    style={{ color: '#c1121f' }}
+                    className="opacity-0 group-hover:opacity-100 text-xs font-semibold px-2 py-1 rounded-lg hover:bg-red-50 flex-shrink-0 transition-all text-error"
                   >
                     Delete
                   </button>
                 </div>
-
                 <div className="flex items-center justify-between">
-                  <span
-                    className="text-3xl font-bold"
-                    style={{ color: '#e85d04', fontFamily: 'Outfit, sans-serif' }}
-                  >
-                    {set.cardCount}
-                  </span>
+                  <span className="font-display text-3xl font-bold text-brand">{set.cardCount}</span>
                   <span className="text-xs text-gray-400">cards</span>
-                  <span
-                    className="text-sm font-thin transition-transform group-hover:translate-x-0.5 ml-auto"
-                    style={{ color: '#e85d04' }}
-                  >
-                    →
-                  </span>
+                  <span className="text-sm font-thin transition-transform group-hover:translate-x-0.5 ml-auto text-brand">→</span>
                 </div>
               </div>
             ))}
