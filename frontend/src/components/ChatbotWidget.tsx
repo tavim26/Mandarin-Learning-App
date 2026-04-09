@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAuthStore } from '@/store/authStore';
-
-
 import { getSessions, createSession, getMessages, sendMessage, deleteSession } from '@/api/chatbotApi';
 import type { ChatSessionDto, ChatMessageDto } from '@/types';
 

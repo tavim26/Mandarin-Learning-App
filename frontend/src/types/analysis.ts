@@ -57,7 +57,7 @@ export interface StudentStatsDto {
   unique_chars_per_hsk_level: UniqueCharsPerHskLevel[];
 }
 
-export interface AnalyzeTextRequest {
+export interface AnalyzeTextRequestDto {
   raw_text: string;
   translation_language?: TranslationLanguage;
 }

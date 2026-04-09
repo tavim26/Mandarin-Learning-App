@@ -4,6 +4,7 @@ import type {
   TextAnalysisSummaryDto,
   StudentStatsDto,
   AnalyzeTextRequestDto,
+  PreviewResponse,
 } from '@/types/analysis';
 
 // PageDto cu items de tip T — reflecta raspunsul paginat al analysis-service
@@ -114,5 +115,14 @@ export const analysisApi = {
 
   deleteAnalysis: async (analysisId: number): Promise<void> => {
     await apiClient.delete(`/api/analysis/${analysisId}`);
+  },
+
+  // Nu persista in DB — folosit exclusiv pentru tooltip-uri in ChineseText
+  previewText: async (text: string): Promise<PreviewResponse> => {
+    const { data } = await apiClient.post<PreviewResponse>(
+      '/api/analysis/preview',
+      { text }
+    );
+    return data;
   },
 };

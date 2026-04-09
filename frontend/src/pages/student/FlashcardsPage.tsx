@@ -50,7 +50,7 @@ const CreateSetModal = ({ onClose, onSave }: CreateSetModalProps) => {
     try {
       await onSave(title.trim(), description.trim());
       onClose();
-    } catch (err) {
+    } catch {
       setError('Failed to create set.');
     } finally {
       setLoading(false);
@@ -117,7 +117,7 @@ const AddCardModal = ({ onClose, onSave }: AddCardModalProps) => {
       await onSave(frontText.trim(), backText.trim());
       setFrontText('');
       setBackText('');
-    } catch (err) {
+    } catch {
       setError('Failed to add card.');
     } finally {
       setLoading(false);

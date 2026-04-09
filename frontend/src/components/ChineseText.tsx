@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { analysisApi } from '@/api/analysisApi';
-import { type PreviewTokenDto } from '@/types';
+import type { PreviewTokenDto } from '@/types/analysis';
 import SpeakButton from '@/components/SpeakButton';
 
 interface TooltipData {
@@ -77,7 +77,7 @@ const ChineseText = ({ text, className = '' }: ChineseTextProps) => {
     setTooltip({ data: null, loading: true, x, y, visible: true });
 
     try {
-      const result = await analysisApi.analyzeText({ raw_text: word, translation_language: 'en' });
+      const result = await analysisApi.previewText(word);
       const data: TooltipData = { tokens: result.tokens, word };
       previewCache.set(word, data);
       setTooltip({ data, loading: false, x, y, visible: true });

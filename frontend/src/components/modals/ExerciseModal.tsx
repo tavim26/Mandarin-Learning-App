@@ -71,16 +71,16 @@ const [fillAnswers, setFillAnswers] = useState<string[]>(
 const buildContentData = (): ExerciseContentData => {
   switch (selectedType) {
     case 'MULTIPLE_CHOICE':
-      return { options: mcOptions, correctIndex: mcCorrectIndex };
+      return { type: 'MULTIPLE_CHOICE', options: mcOptions, correctIndex: mcCorrectIndex };
     case 'TRANSLATION':
-      return { acceptedAnswers: translationAnswers.filter((a) => a.trim() !== '') };
+      return { type: 'TRANSLATION', acceptedAnswers: translationAnswers.filter((a) => a.trim() !== '') };
     case 'FILL_BLANK':
-      return { correctAnswers: fillAnswers.filter((a) => a.trim() !== '') };
+      return { type: 'FILL_BLANK', correctAnswers: fillAnswers.filter((a) => a.trim() !== '') };
     case 'MATCHING': {
       const pairs = matchPairs
         .filter(([k]) => k.trim() !== '')
         .map(([k, v]) => ({ left: k.trim(), right: v.trim() }));
-      return { pairs };
+      return { type: 'MATCHING', pairs };
     }
   }
 };
