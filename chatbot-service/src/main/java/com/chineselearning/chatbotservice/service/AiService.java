@@ -37,22 +37,22 @@ public class AiService
 
 
     // Construieste request-ul catre Gemini cu system prompt + fereastra de context + mesajul curent
-    public String chat(String userMessage, List<ContextMessage> contextHistory)
+    public String chat(String userMessage, List<ContextMessage> contextHistory, String customInstructions)
     {
         List<Map<String, Object>> contents = new ArrayList<>();
 
-        // System prompt-ul este trimis ca primul mesaj de tip "user", urmat de un ack din partea modelului
-        contents.add(buildContent("user", SYSTEM_PROMPT));
+        // construim system prompt-ul dinamic
+        String effectiveSystemPrompt = buildSystemPrompt(customInstructions);
+
+        contents.add(buildContent("user", effectiveSystemPrompt));
         contents.add(buildContent("model", "Understood. I will act as your Mandarin Chinese tutor."));
 
-        // Adaugam fereastra de context in ordinea cronologica corecta
         for (ContextMessage ctx : contextHistory)
         {
             String role = "STUDENT".equals(ctx.sender()) ? "user" : "model";
             contents.add(buildContent(role, ctx.content()));
         }
 
-        // Mesajul curent al studentului
         contents.add(buildContent("user", userMessage));
 
         Map<String, Object> requestBody = new HashMap<>();
@@ -78,6 +78,22 @@ public class AiService
         } catch (Exception e) {
             throw new RuntimeException("Gemini API temporarily unavailable: " + e.getMessage());
         }
+    }
+
+
+    private String buildSystemPrompt(String customInstructions)
+    {
+        StringBuilder prompt = new StringBuilder(SYSTEM_PROMPT);
+
+        if (customInstructions != null && !customInstructions.isBlank())
+        {
+            prompt.append("\n\n---\n");
+            prompt.append("The following are additional instructions set by the student for this session. ");
+            prompt.append("Follow them as long as they do not contradict the core rules above:\n");
+            prompt.append(customInstructions);
+        }
+
+        return prompt.toString();
     }
 
 

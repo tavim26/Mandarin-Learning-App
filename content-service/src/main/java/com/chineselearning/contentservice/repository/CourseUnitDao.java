@@ -62,6 +62,13 @@ public class CourseUnitDao implements ICourseUnitDao
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public List<CourseUnit> findByCreatedByTeacherId(Long teacherId) {
+        return jpaRepository.findByCreatedByTeacherIdOrderByOrderIndexAsc(teacherId).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
 
 
 
@@ -72,6 +79,7 @@ public class CourseUnitDao implements ICourseUnitDao
         unit.setDescription(entity.getDescription());
         unit.setHskLevel(entity.getHskLevel());
         unit.setOrderIndex(entity.getOrderIndex());
+        unit.setCreatedByTeacherId(entity.getCreatedByTeacherId());
         return unit;
     }
 
@@ -82,6 +90,7 @@ public class CourseUnitDao implements ICourseUnitDao
         entity.setDescription(unit.getDescription());
         entity.setHskLevel(unit.getHskLevel());
         entity.setOrderIndex(unit.getOrderIndex());
+        entity.setCreatedByTeacherId(unit.getCreatedByTeacherId());
         return entity;
     }
 }

@@ -70,6 +70,13 @@ public class CredentialDao implements ICredentialDao
     }
 
 
+    @Override
+    public Optional<Credential> findByEmailAndIsActiveTrue(String email)
+    {
+        return jpaRepository.findByEmailAndIsActiveTrue(email).map(this::toDomain);
+    }
+
+
 
 
     // Conversie domain -> entity (pentru scriere in DB)
@@ -118,6 +125,7 @@ public class CredentialDao implements ICredentialDao
         credential.setPasswordHash(entity.getPasswordHash());
         credential.setRole(entity.getRole());
         credential.setCreatedAt(entity.getCreatedAt());
+        credential.setActive(entity.isActive());
 
         if (entity.getUser() != null)
         {

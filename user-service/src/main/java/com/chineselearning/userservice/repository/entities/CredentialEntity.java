@@ -23,6 +23,9 @@ public class CredentialEntity
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "is_active", nullable = false)
+    private boolean isActive = true;
+
     @OneToOne(mappedBy = "credential", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private UserEntity user;
 
@@ -42,6 +45,9 @@ public class CredentialEntity
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public boolean isActive() { return isActive; }
+    public void setActive(boolean isActive) { this.isActive = isActive; }
 
     public UserEntity getUser() { return user; }
     public void setUser(UserEntity user) { this.user = user; }

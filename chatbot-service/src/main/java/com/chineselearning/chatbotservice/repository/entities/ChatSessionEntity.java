@@ -25,6 +25,9 @@ public class ChatSessionEntity
     @Column(name = "ended_at")
     private LocalDateTime endedAt;
 
+    @Column(name = "custom_instructions", columnDefinition = "TEXT")
+    private String customInstructions;
+
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ChatMessageEntity> messages = new ArrayList<>();
 
@@ -44,6 +47,9 @@ public class ChatSessionEntity
 
     public LocalDateTime getEndedAt() { return endedAt; }
     public void setEndedAt(LocalDateTime endedAt) { this.endedAt = endedAt; }
+
+    public String getCustomInstructions() { return customInstructions; }
+    public void setCustomInstructions(String customInstructions) { this.customInstructions = customInstructions; }
 
     public List<ChatMessageEntity> getMessages() { return messages; }
     public void setMessages(List<ChatMessageEntity> messages) { this.messages = messages; }

@@ -209,4 +209,53 @@ public class UserController
     {
         return ResponseEntity.ok(userService.getAllTeachers());
     }
+
+
+    @GetMapping("/me")
+    @Operation(summary = "Get current user", description = "Returns the profile of the authenticated user based on JWT email header")
+    public ResponseEntity<?> getMe(@RequestHeader("X-User-Email") String email)
+    {
+        try {
+            UserDto user = userService.getUserByEmail(email);
+            return ResponseEntity.ok(user);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/students/search")
+    @Operation(summary = "Search students by nickname", description = "Returns students whose nickname contains the search fragment")
+    public ResponseEntity<List<StudentDto>> searchStudentsByNickname(@RequestParam String nickname)
+    {
+        return ResponseEntity.ok(userService.searchStudentsByNickname(nickname));
+    }
+
+
+
+    @PutMapping("/{id}/ban")
+    @Operation(summary = "Ban user", description = "Deactivates a user account without deleting it")
+    public ResponseEntity<?> banUser(@PathVariable Long id)
+    {
+        try {
+            userService.banUser(id);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/{id}/unban")
+    @Operation(summary = "Unban user", description = "Reactivates a previously banned user account")
+    public ResponseEntity<?> unbanUser(@PathVariable Long id)
+    {
+        try {
+            userService.unbanUser(id);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+
+
 }

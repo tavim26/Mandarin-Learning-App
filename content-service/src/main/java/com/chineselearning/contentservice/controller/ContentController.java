@@ -4,11 +4,14 @@ import com.chineselearning.contentservice.domain.dto.*;
 
 import com.chineselearning.contentservice.service.ContentService;
 
+import com.chineselearning.contentservice.service.StorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 // http://localhost:8081/swagger-ui/index.html
@@ -19,9 +22,11 @@ import java.util.List;
 public class ContentController {
 
     private final ContentService contentService;
+    private final StorageService storageService;
 
-    public ContentController(ContentService contentService) {
+    public ContentController(ContentService contentService, StorageService storageService) {
         this.contentService = contentService;
+        this.storageService = storageService;
     }
 
 
@@ -56,14 +61,16 @@ public class ContentController {
 
     @Operation(summary = "Creeaza o unitate noua", description = "Adauga un nou modul/capitol in structura cursului.")
     @PostMapping("/units")
-    public ResponseEntity<CourseUnitDto> createUnit(@RequestBody CourseUnitDto dto) {
+    public ResponseEntity<CourseUnitDto> createUnit(
+            @RequestBody CourseUnitDto dto,
+            @RequestHeader("X-User-Id") Long teacherId) {
         if (dto.getTitle() == null || dto.getTitle().isBlank()) {
             return ResponseEntity.badRequest().build();
         }
         if (dto.getOrderIndex() == null) {
             return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.status(201).body(contentService.createCourseUnit(dto));
+        return ResponseEntity.status(201).body(contentService.createCourseUnit(dto, teacherId));
     }
 
     @Operation(summary = "Actualizeaza o unitate", description = "Modifica detaliile unei unitati existente.")
@@ -89,6 +96,15 @@ public class ContentController {
             return ResponseEntity.notFound().build();
         }
     }
+
+
+    @Operation(summary = "Unitatile unui profesor", description = "Returneaza unitatile create de un profesor specific.")
+    @GetMapping("/units/teacher/{teacherId}")
+    public ResponseEntity<List<CourseUnitDto>> getUnitsByTeacher(@PathVariable Long teacherId) {
+        return ResponseEntity.ok(contentService.getCourseUnitsByTeacher(teacherId));
+    }
+
+
 
 
     // 2. LESSONS
@@ -192,6 +208,18 @@ public class ContentController {
     }
 
 
+    @Operation(summary = "Incarca un fisier", description = "Incarca un fisier in MinIO si returneaza URL-ul.")
+    @PostMapping("/materials/upload")
+    public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
+        try {
+            String url = storageService.upload(file);
+            return ResponseEntity.status(201).body(url);
+        } catch (IOException e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+
     // 4. EXERCISES
 
     @Operation(summary = "Gaseste un exercitiu", description = "Returneaza detaliile unui exercitiu pe baza ID-ului.")
@@ -251,6 +279,38 @@ public class ContentController {
         try {
             contentService.deleteExercise(id);
             return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+
+
+    @Operation(summary = "XP total al unei unitati", description = "Returneaza suma XP din toate lectiile unitatii.")
+    @GetMapping("/units/{id}/stats/xp")
+    public ResponseEntity<UnitXpStatsDto> getUnitXpStats(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(contentService.getUnitXpStats(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @Operation(summary = "Numarul de lectii al unei unitati", description = "Returneaza numarul total de lectii din unitate.")
+    @GetMapping("/units/{id}/stats/lessons")
+    public ResponseEntity<UnitLessonCountDto> getUnitLessonCount(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(contentService.getUnitLessonCount(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @Operation(summary = "Tipuri de exercitii dintr-o lectie", description = "Returneaza numarul de exercitii grupate pe tip, util pentru piechart.")
+    @GetMapping("/lessons/{id}/stats/exercise-types")
+    public ResponseEntity<LessonExerciseTypesDto> getLessonExerciseTypes(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(contentService.getLessonExerciseTypes(id));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }

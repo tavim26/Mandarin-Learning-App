@@ -151,6 +151,11 @@ public class UserService
     @Transactional
     public StudentDto updateStudentNickname(Long userId, String newNickname)
     {
+        if (studentDao.existsByNickname(newNickname))
+        {
+            throw new IllegalArgumentException("Nickname already in use");
+        }
+
         Student student = studentDao.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Student not found with id: " + userId));
 
@@ -243,6 +248,69 @@ public class UserService
                 .map(this::mapToTeacherProfileDto)
                 .collect(Collectors.toList());
     }
+
+    public UserDto getUserByEmail(String email)
+    {
+        User user = userDao.findById(
+                credentialDao.findByEmailAndIsActiveTrue(email)
+                        .orElseThrow(() -> new IllegalArgumentException("User not found"))
+                        .getId()
+        ).orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        return mapToUserDto(user);
+    }
+
+    public List<StudentDto> searchStudentsByNickname(String nicknameFragment)
+    {
+        return studentDao.findByNicknameContaining(nicknameFragment).stream()
+                .map(this::mapToStudentDto)
+                .collect(Collectors.toList());
+    }
+
+
+
+    @Transactional
+    public void banUser(Long id)
+    {
+        Credential credential = credentialDao.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
+
+        if (!credential.isActive())
+        {
+            throw new IllegalArgumentException("User is already banned");
+        }
+
+        credential.setActive(false);
+        credentialDao.save(credential);
+    }
+
+    @Transactional
+    public void unbanUser(Long id)
+    {
+        Credential credential = credentialDao.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + id));
+
+        if (credential.isActive())
+        {
+            throw new IllegalArgumentException("User is not banned");
+        }
+
+        credential.setActive(true);
+        credentialDao.save(credential);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     private StudentProfileDto mapToStudentProfileDto(User user)
     {

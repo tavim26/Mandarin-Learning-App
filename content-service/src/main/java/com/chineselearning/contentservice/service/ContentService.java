@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,13 +29,17 @@ public class ContentService
     private final ILessonMaterialDao lessonMaterialDao;
     private final IExerciseDao exerciseDao;
 
-    public ContentService(ICourseUnitDao courseUnitDao, ILessonDao lessonDao, ILessonMaterialDao lessonMaterialDao, IExerciseDao exerciseDao) {
+    private final StorageService storageService;
+
+    public ContentService(ICourseUnitDao courseUnitDao, ILessonDao lessonDao,
+                          ILessonMaterialDao lessonMaterialDao, IExerciseDao exerciseDao,
+                          StorageService storageService) {
         this.courseUnitDao = courseUnitDao;
         this.lessonDao = lessonDao;
         this.lessonMaterialDao = lessonMaterialDao;
         this.exerciseDao = exerciseDao;
+        this.storageService = storageService;
     }
-
     // COURSE UNITS
 
     public List<CourseUnitDto> getAllCourseUnits(Integer hskLevel) {
@@ -72,13 +77,13 @@ public class ContentService
         );
     }
 
-    public CourseUnitDto createCourseUnit(CourseUnitDto dto)
-    {
+    public CourseUnitDto createCourseUnit(CourseUnitDto dto, Long teacherId) {
         CourseUnit unit = new CourseUnit();
         unit.setTitle(dto.getTitle());
         unit.setDescription(dto.getDescription());
         unit.setHskLevel(dto.getHskLevel());
         unit.setOrderIndex(dto.getOrderIndex());
+        unit.setCreatedByTeacherId(teacherId);
 
         CourseUnit savedUnit = courseUnitDao.save(unit);
         return mapUnitToDto(savedUnit);
@@ -105,6 +110,12 @@ public class ContentService
             throw new RuntimeException("Cannot delete. CourseUnit not found with id: " + id);
         }
         courseUnitDao.deleteById(id);
+    }
+
+    public List<CourseUnitDto> getCourseUnitsByTeacher(Long teacherId) {
+        return courseUnitDao.findByCreatedByTeacherId(teacherId).stream()
+                .map(this::mapUnitToDto)
+                .collect(Collectors.toList());
     }
 
 
@@ -212,11 +223,14 @@ public class ContentService
 
     public void deleteLessonMaterial(Long id)
     {
+        LessonMaterial material = lessonMaterialDao.findById(id)
+                .orElseThrow(() -> new RuntimeException("LessonMaterial not found: " + id));
 
-        if (!lessonMaterialDao.existsById(id))
-        {
-            throw new RuntimeException("LessonMaterial not found: " + id);
+        // Sterge fisierul din MinIO doar daca URL-ul apartine storage-ului intern
+        if (material.getUrl() != null && material.getUrl().contains("localhost:9000")) {
+            storageService.delete(material.getUrl());
         }
+
         lessonMaterialDao.deleteById(id);
     }
 
@@ -283,16 +297,56 @@ public class ContentService
 
 
 
+
+    public UnitXpStatsDto getUnitXpStats(Long unitId) {
+        if (!courseUnitDao.existsById(unitId)) {
+            throw new RuntimeException("CourseUnit not found with id: " + unitId);
+        }
+
+        Integer totalXp = lessonDao.findByUnitIdOrderByOrderIndexAsc(unitId).stream()
+                .filter(lesson -> lesson.getXpReward() != null)
+                .mapToInt(Lesson::getXpReward)
+                .sum();
+
+        return new UnitXpStatsDto(unitId, totalXp);
+    }
+
+    public UnitLessonCountDto getUnitLessonCount(Long unitId) {
+        if (!courseUnitDao.existsById(unitId)) {
+            throw new RuntimeException("CourseUnit not found with id: " + unitId);
+        }
+
+        int totalLessons = lessonDao.findByUnitIdOrderByOrderIndexAsc(unitId).size();
+
+        return new UnitLessonCountDto(unitId, totalLessons);
+    }
+
+    public LessonExerciseTypesDto getLessonExerciseTypes(Long lessonId) {
+        if (!lessonDao.existsById(lessonId)) {
+            throw new RuntimeException("Lesson not found with id: " + lessonId);
+        }
+
+        Map<String, Long> exerciseTypes = exerciseDao.findByLessonId(lessonId).stream()
+                .collect(Collectors.groupingBy(Exercise::getType, Collectors.counting()));
+
+        return new LessonExerciseTypesDto(lessonId, exerciseTypes);
+    }
+
+
+
+
     // Helpers
 
     private CourseUnitDto mapUnitToDto(CourseUnit unit) {
-        return new CourseUnitDto(
+        CourseUnitDto dto = new CourseUnitDto(
                 unit.getId(),
                 unit.getTitle(),
                 unit.getDescription(),
                 unit.getHskLevel(),
                 unit.getOrderIndex()
         );
+        dto.setCreatedByTeacherId(unit.getCreatedByTeacherId());
+        return dto;
     }
 
     private LessonDto mapLessonToDto(Lesson lesson) {

@@ -10,6 +10,8 @@ public class CourseUnit {
     private String description;
     private Integer hskLevel;
     private Integer orderIndex;
+    private Long createdByTeacherId;
+
     private List<Lesson> lessons = new ArrayList<>();
 
     public CourseUnit() {}
@@ -28,6 +30,9 @@ public class CourseUnit {
 
     public Integer getOrderIndex() { return orderIndex; }
     public void setOrderIndex(Integer orderIndex) { this.orderIndex = orderIndex; }
+
+    public Long getCreatedByTeacherId() { return createdByTeacherId; }
+    public void setCreatedByTeacherId(Long createdByTeacherId) { this.createdByTeacherId = createdByTeacherId; }
 
     public List<Lesson> getLessons() { return lessons; }
     public void setLessons(List<Lesson> lessons) { this.lessons = lessons; }

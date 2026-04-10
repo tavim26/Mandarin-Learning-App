@@ -11,6 +11,7 @@ public class ChatSessionDto
     private LocalDateTime startedAt;
     private LocalDateTime endedAt;
     private String lastMessagePreview;
+    private String customInstructions;
     private int messageCount;
 
     public ChatSessionDto() {}
@@ -32,6 +33,9 @@ public class ChatSessionDto
 
     public String getLastMessagePreview() { return lastMessagePreview; }
     public void setLastMessagePreview(String lastMessagePreview) { this.lastMessagePreview = lastMessagePreview; }
+
+    public String getCustomInstructions() { return customInstructions; }
+    public void setCustomInstructions(String customInstructions) { this.customInstructions = customInstructions; }
 
     public int getMessageCount() { return messageCount; }
     public void setMessageCount(int messageCount) { this.messageCount = messageCount; }

@@ -5,7 +5,10 @@ import com.chineselearning.userservice.domain.dao.IStudentDao;
 import com.chineselearning.userservice.repository.entities.StudentEntity;
 import com.chineselearning.userservice.repository.jpa.IStudentJpaRepository;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Component
 public class StudentDao implements IStudentDao
@@ -30,6 +33,23 @@ public class StudentDao implements IStudentDao
     {
         return jpaRepository.findById(userId).map(this::toDomain);
     }
+
+    @Override
+    public List<Student> findByNicknameContaining(String fragment)
+    {
+        return jpaRepository.findByNicknameContaining(fragment).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public boolean existsByNickname(String nickname)
+    {
+        return jpaRepository.existsByNickname(nickname);
+    }
+
+
+
 
     private StudentEntity toEntity(Student student)
     {

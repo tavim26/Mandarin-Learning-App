@@ -107,7 +107,7 @@ public class AuthService
         );
 
         // Incarcam Credential din DB pentru a extrage datele necesare token-ului
-        Credential credential = credentialDao.findByEmail(request.getEmail())
+        Credential credential = credentialDao.findByEmailAndIsActiveTrue(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(credential.getEmail());

@@ -10,4 +10,5 @@ public interface ICredentialJpaRepository extends JpaRepository<CredentialEntity
 {
     Optional<CredentialEntity> findByEmail(String email);
     boolean existsByEmail(String email);
+    Optional<CredentialEntity> findByEmailAndIsActiveTrue(String email);
 }

@@ -47,6 +47,7 @@ public class ChatService
         ChatSession session = new ChatSession();
         session.setStudentId(studentId);
         session.setTitle(request.getTitle());
+        session.setCustomInstructions(request.getCustomInstructions());
         session.setStartedAt(LocalDateTime.now());
 
         return mapSessionToDto(chatSessionDao.save(session));
@@ -117,7 +118,7 @@ public class ChatService
 
         List<AiService.ContextMessage> context = buildContextWindow(sessionId, userMessage.getId());
 
-        String aiResponse = aiService.chat(request.getContent(), context);
+        String aiResponse = aiService.chat(request.getContent(), context, session.getCustomInstructions());
 
         ChatMessage aiMessage = new ChatMessage();
         aiMessage.setSession(session);

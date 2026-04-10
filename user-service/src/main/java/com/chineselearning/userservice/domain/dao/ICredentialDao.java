@@ -12,4 +12,5 @@ public interface ICredentialDao
     Optional<Credential> findById(Long id);
 
     void deleteById(Long id);
+    Optional<Credential> findByEmailAndIsActiveTrue(String email);
 }

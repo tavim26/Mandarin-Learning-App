@@ -3,6 +3,7 @@ package com.chineselearning.contentservice.domain.dao;
 import com.chineselearning.contentservice.domain.LessonMaterial;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ILessonMaterialDao {
 
@@ -13,4 +14,6 @@ public interface ILessonMaterialDao {
     void deleteById(Long id);
 
     boolean existsById(Long id);
+
+    Optional<LessonMaterial> findById(Long id);
 }

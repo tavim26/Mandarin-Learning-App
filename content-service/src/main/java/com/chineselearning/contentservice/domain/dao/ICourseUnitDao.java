@@ -18,4 +18,7 @@ public interface ICourseUnitDao {
     boolean existsById(Long id);
 
     List<CourseUnit> findByHskLevel(Integer hskLevel);
+
+    List<CourseUnit> findByCreatedByTeacherId(Long teacherId);
+
 }

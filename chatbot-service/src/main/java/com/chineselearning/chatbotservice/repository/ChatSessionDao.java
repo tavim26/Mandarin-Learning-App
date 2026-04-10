@@ -90,6 +90,8 @@ public class ChatSessionDao implements IChatSessionDao
         entity.setTitle(session.getTitle());
         entity.setStartedAt(session.getStartedAt());
         entity.setEndedAt(session.getEndedAt());
+        entity.setCustomInstructions(session.getCustomInstructions());
+
         return entity;
     }
 
@@ -101,6 +103,7 @@ public class ChatSessionDao implements IChatSessionDao
         session.setTitle(entity.getTitle());
         session.setStartedAt(entity.getStartedAt());
         session.setEndedAt(entity.getEndedAt());
+        session.setCustomInstructions(entity.getCustomInstructions());
         return session;
     }
 }

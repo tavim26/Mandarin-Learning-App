@@ -12,6 +12,7 @@ import com.chineselearning.contentservice.repository.jpa.LessonMaterialJpaReposi
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Repository
@@ -52,6 +53,11 @@ public class LessonMaterialDao implements ILessonMaterialDao
     public boolean existsById(Long id)
     {
         return lessonMaterialJpaRepository.existsById(id);
+    }
+
+    @Override
+    public Optional<LessonMaterial> findById(Long id) {
+        return lessonMaterialJpaRepository.findById(id).map(this::toDomain);
     }
 
 

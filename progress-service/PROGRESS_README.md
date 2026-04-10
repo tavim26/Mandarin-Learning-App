@@ -129,7 +129,7 @@ exercise_attempts
   "submittedAnswer": {},
   "isCorrect": true,
   "score": 100.00,
-  "feedbackText": "Corect!"
+  "feedbackText": "Correct!"
 }
 ```
 
@@ -152,6 +152,7 @@ exercise_attempts
 | `TRANSLATION` | `{ "translation": "string" }` |
 | `FILL_BLANK` | `{ "answers": ["raspuns1", "raspuns2"] }` |
 | `MATCHING` | `{ "matches": { "stanga1": "dreapta1", "stanga2": "dreapta2" } }` |
+| `ORDERING` | `{ "order": ["今", "天", "会", "下", "雨"] }` |
 
 ---
 

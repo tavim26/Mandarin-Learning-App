@@ -9,6 +9,7 @@ public class Credential
     private String passwordHash;
     private String role;
     private LocalDateTime createdAt;
+    private boolean isActive = true;
     private User user;
 
     public Credential() {}
@@ -27,6 +28,9 @@ public class Credential
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public boolean isActive() { return isActive; }
+    public void setActive(boolean isActive) { this.isActive = isActive; }
 
     public User getUser() { return user; }
     public void setUser(User user)

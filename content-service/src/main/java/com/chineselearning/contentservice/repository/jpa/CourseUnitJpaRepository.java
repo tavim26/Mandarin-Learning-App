@@ -10,4 +10,7 @@ public interface CourseUnitJpaRepository extends JpaRepository<CourseUnitEntity,
     List<CourseUnitEntity> findAllByOrderByOrderIndexAsc();
 
     List<CourseUnitEntity> findByHskLevelOrderByOrderIndexAsc(Integer hskLevel);
+
+    List<CourseUnitEntity> findByCreatedByTeacherIdOrderByOrderIndexAsc(Long teacherId);
+
 }

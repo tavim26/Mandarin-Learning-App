@@ -24,6 +24,9 @@ public class CourseUnitEntity {
     @Column(name = "order_index", nullable = false)
     private Integer orderIndex;
 
+    @Column(name = "created_by_teacher_id")
+    private Long createdByTeacherId;
+
     @OneToMany(mappedBy = "unit", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LessonEntity> lessons = new ArrayList<>();
 
@@ -43,6 +46,9 @@ public class CourseUnitEntity {
 
     public Integer getOrderIndex() { return orderIndex; }
     public void setOrderIndex(Integer orderIndex) { this.orderIndex = orderIndex; }
+
+    public Long getCreatedByTeacherId() { return createdByTeacherId; }
+    public void setCreatedByTeacherId(Long createdByTeacherId) { this.createdByTeacherId = createdByTeacherId; }
 
     public List<LessonEntity> getLessons() { return lessons; }
     public void setLessons(List<LessonEntity> lessons) { this.lessons = lessons; }

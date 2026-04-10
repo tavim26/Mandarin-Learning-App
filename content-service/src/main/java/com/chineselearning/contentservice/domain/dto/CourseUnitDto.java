@@ -7,7 +7,7 @@ public class CourseUnitDto {
     private String description;
     private Integer hskLevel;
     private Integer orderIndex;
-
+    private Long createdByTeacherId;
 
     public CourseUnitDto() {}
 
@@ -33,4 +33,7 @@ public class CourseUnitDto {
 
     public Integer getOrderIndex() { return orderIndex; }
     public void setOrderIndex(Integer orderIndex) { this.orderIndex = orderIndex; }
+
+    public Long getCreatedByTeacherId() { return createdByTeacherId; }
+    public void setCreatedByTeacherId(Long createdByTeacherId) { this.createdByTeacherId = createdByTeacherId; }
 }
