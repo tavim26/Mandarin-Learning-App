@@ -1,8 +1,6 @@
-// --- Enumerari ---
+import type { SubmittedAnswer } from './content';
 
 export type LessonStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
-
-// --- DTOs primite de la backend ---
 
 export interface StudentReplicaDto {
   studentId: number;
@@ -34,10 +32,10 @@ export interface StudentLessonProgressDto {
   lessonId: number;
   status: LessonStatus;
   completionPct: number;
-  xpAwarded: number | null;
+  xpAwarded: number | null;       // null pana la COMPLETED
   startedAt: string | null;
   lastAccessedAt: string | null;
-  completedAt: string | null;
+  completedAt: string | null;     // null pana la COMPLETED
 }
 
 export interface ExerciseAttemptDto {
@@ -52,33 +50,8 @@ export interface ExerciseAttemptDto {
   feedbackText: string | null;
 }
 
-// --- Tipuri pentru raspunsuri la exercitii ---
-
-export type SubmittedAnswer =
-  | MultipleChoiceAnswer
-  | TranslationAnswer
-  | FillBlankAnswer
-  | MatchingAnswer;
-
-export interface MultipleChoiceAnswer {
-  selectedIndex: number;
-}
-
-export interface TranslationAnswer {
-  translation: string;
-}
-
-export interface FillBlankAnswer {
-  answers: string[];
-}
-
-export interface MatchingAnswer {
-  matches: Record<string, string>;
-}
-
-// --- Request bodies ---
-
 export interface SubmitAttemptRequest {
   exerciseId: number;
   submittedAnswer: SubmittedAnswer;
+  // studentId absent — vine din X-User-Id header
 }

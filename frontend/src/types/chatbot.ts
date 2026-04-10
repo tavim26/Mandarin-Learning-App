@@ -1,17 +1,14 @@
-// --- Enumerari ---
-
 export type MessageSender = 'STUDENT' | 'AI';
-
-// --- DTOs primite de la backend ---
 
 export interface ChatSessionDto {
   id: number;
   studentId: number;
-  title: string | null;
+  title: string;
   startedAt: string;
-  endedAt: string | null;
-  lastMessagePreview: string | null;
+  endedAt: string | null;          // null = sesiune activa
+  lastMessagePreview: string | null; // null daca nu are mesaje; trunchiat la 60 chars
   messageCount: number;
+  customInstructions: string | null;
 }
 
 export interface ChatMessageDto {
@@ -22,18 +19,25 @@ export interface ChatMessageDto {
   createdAt: string;
 }
 
-// Returnat la POST .../messages — contine mesajul studentului SI raspunsul AI
 export interface SendMessageResponse {
   userMessage: ChatMessageDto;
   aiMessage: ChatMessageDto;
 }
 
-// --- Request bodies ---
-
 export interface CreateSessionRequest {
   title?: string;
+  customInstructions?: string;
 }
 
 export interface SendMessageRequest {
   content: string;
+}
+
+export interface PagedResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
 }

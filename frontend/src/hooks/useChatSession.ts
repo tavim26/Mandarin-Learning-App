@@ -1,172 +1,179 @@
-import { useState, useCallback } from 'react';
-import {
-  getSessions,
-  createSession,
-  getMessages,
-  sendMessage,
-  deleteSession,
-} from '@/api/chatbotApi';
-import type { ChatSessionDto, ChatMessageDto, SendMessageRequest } from '@/types';
+import { useState, useCallback, useRef } from 'react';
+import { chatbotApi } from '@/api/chatbotApi';
+import type {
+  ChatSessionDto,
+  ChatMessageDto,
+  CreateSessionRequest,
+} from '@/types';
 
-interface ChatSessionState {
-  sessions: ChatSessionDto[];
-  activeSession: ChatSessionDto | null;
-  messages: ChatMessageDto[];
-  input: string;
-  loadingSessions: boolean;
-  loadingMessages: boolean;
-  sending: boolean;
-  sendError: string | null;
-  isClosed: boolean;
-  setInput: (value: string) => void;
-  fetchSessions: () => Promise<void>;
-  selectSession: (session: ChatSessionDto) => Promise<void>;
-  newSession: () => Promise<void>;
-  send: () => Promise<void>;
-  removeSession: (sessionId: number) => Promise<void>;
-  clearError: () => void;
-}
-
-export const useChatSession = (): ChatSessionState => {
+export const useChatSession = () => {
   const [sessions, setSessions] = useState<ChatSessionDto[]>([]);
-  const [activeSession, setActiveSession] = useState<ChatSessionDto | null>(null);
+  const [activeSession, setActiveSession] = useState<ChatSessionDto | null>(
+    null
+  );
   const [messages, setMessages] = useState<ChatMessageDto[]>([]);
-  const [input, setInput] = useState('');
-  const [loadingSessions, setLoadingSessions] = useState(false);
-  const [loadingMessages, setLoadingMessages] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [sendError, setSendError] = useState<string | null>(null);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  // isSending separat — inputul trebuie blocat 2-5s cat raspunde Gemini
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Ref pentru scroll automat la ultimul mesaj
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
 
   const fetchSessions = useCallback(async () => {
+    setIsLoadingSessions(true);
+    setError(null);
     try {
-      setLoadingSessions(true);
-      const data = await getSessions();
+      const data = await chatbotApi.getSessions();
       setSessions(data);
     } catch {
-      // Sesiunile nu se incarca — UI ramane gol
+      setError('Nu s-au putut incarca sesiunile.');
     } finally {
-      setLoadingSessions(false);
+      setIsLoadingSessions(false);
     }
   }, []);
 
-  const selectSession = async (session: ChatSessionDto) => {
-    if (activeSession?.id === session.id) return;
+  const openSession = useCallback(async (session: ChatSessionDto) => {
     setActiveSession(session);
-    setMessages([]);
-    setSendError(null);
-    setLoadingMessages(true);
+    setIsLoadingMessages(true);
+    setError(null);
     try {
-      const msgs = await getMessages(session.id);
-      setMessages(msgs);
+      const data = await chatbotApi.getMessages(session.id);
+      setMessages(data);
     } catch {
-      // Mesajele nu se incarca
+      setError('Nu s-au putut incarca mesajele.');
     } finally {
-      setLoadingMessages(false);
+      setIsLoadingMessages(false);
     }
-  };
+  }, []);
 
-  const newSession = async () => {
+  const createSession = async (
+    data: CreateSessionRequest
+  ): Promise<ChatSessionDto | null> => {
     try {
-      const session = await createSession({});
-      setSessions((prev) => [session, ...prev]);
-      setActiveSession(session);
+      const created = await chatbotApi.createSession(data);
+      setSessions((prev) => [created, ...prev]);
+      setActiveSession(created);
       setMessages([]);
-      setSendError(null);
+      return created;
     } catch {
-      // Nu s-a putut crea sesiunea
+      setError('Crearea sesiunii a esuat.');
+      return null;
     }
   };
 
-  const send = async () => {
-    if (!input.trim() || !activeSession || sending) return;
-    if (activeSession.endedAt !== null) return;
+  const sendMessage = async (content: string): Promise<boolean> => {
+    if (!activeSession || activeSession.endedAt !== null) return false;
 
-    const content = input.trim();
-    setInput('');
-    setSendError(null);
-    setSending(true);
-
-    // Optimistic update — mesajul studentului apare imediat
-    const optimisticMsg: ChatMessageDto = {
-      id: -1,
-      sessionId: activeSession.id,
-      sender: 'STUDENT',
-      content,
-      createdAt: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, optimisticMsg]);
-
+    setIsSending(true);
+    setError(null);
     try {
-      const data: SendMessageRequest = { content };
-      const response = await sendMessage(activeSession.id, data);
+      const res = await chatbotApi.sendMessage(activeSession.id, { content });
+      setMessages((prev) => [...prev, res.userMessage, res.aiMessage]);
 
-      // Inlocuieste mesajul optimistic cu cel real + adauga raspunsul AI
-      setMessages((prev) => [
-        ...prev.filter((m) => m.id !== -1),
-        response.userMessage,
-        response.aiMessage,
-      ]);
-
-      // Actualizeaza preview-ul sesiunii in lista
+      // Actualizeaza preview-ul sesiunii in sidebar
       setSessions((prev) =>
         prev.map((s) =>
           s.id === activeSession.id
             ? {
                 ...s,
-                title: s.title ?? content.slice(0, 40),
-                lastMessagePreview: response.aiMessage.content.slice(0, 60),
+                lastMessagePreview: res.aiMessage.content.slice(0, 60),
+                messageCount: s.messageCount + 2,
               }
             : s
         )
       );
-    } catch (err: unknown) {
-      // Rollback optimistic update
-      setMessages((prev) => prev.filter((m) => m.id !== -1));
-      setInput(content);
 
-      if (err instanceof Error && err.message.includes('503')) {
-        setSendError('503');
-      } else if (err instanceof Error && err.message.includes('409')) {
-        setSendError('409');
+      setTimeout(scrollToBottom, 50);
+      return true;
+    } catch (err: unknown) {
+      const status =
+        (err as { response?: { status?: number } })?.response?.status;
+      if (status === 409) {
+        setError('Sesiunea este inchisa. Nu mai pot fi trimise mesaje.');
+      } else if (status === 503) {
+        setError('Serviciul AI este momentan indisponibil. Incearca din nou.');
       } else {
-        setSendError('unknown');
+        setError('Trimiterea mesajului a esuat.');
       }
+      return false;
     } finally {
-      setSending(false);
+      setIsSending(false);
     }
   };
 
-  const removeSession = async (sessionId: number) => {
+  const endSession = async (): Promise<boolean> => {
+    if (!activeSession) return false;
     try {
-      await deleteSession(sessionId);
+      const updated = await chatbotApi.endSession(activeSession.id);
+      setActiveSession(updated);
+      setSessions((prev) =>
+        prev.map((s) => (s.id === updated.id ? updated : s))
+      );
+      return true;
+    } catch {
+      setError('Inchiderea sesiunii a esuat.');
+      return false;
+    }
+  };
+
+  const renameSession = async (
+    sessionId: number,
+    newTitle: string
+  ): Promise<boolean> => {
+    try {
+      const updated = await chatbotApi.renameSession(sessionId, newTitle);
+      setSessions((prev) =>
+        prev.map((s) => (s.id === sessionId ? updated : s))
+      );
+      if (activeSession?.id === sessionId) {
+        setActiveSession(updated);
+      }
+      return true;
+    } catch {
+      setError('Redenumirea sesiunii a esuat.');
+      return false;
+    }
+  };
+
+  const deleteSession = async (sessionId: number): Promise<boolean> => {
+    try {
+      await chatbotApi.deleteSession(sessionId);
       setSessions((prev) => prev.filter((s) => s.id !== sessionId));
       if (activeSession?.id === sessionId) {
         setActiveSession(null);
         setMessages([]);
       }
+      return true;
     } catch {
-      // Stergerea a esuat — UI ramane neschimbat
+      setError('Stergerea sesiunii a esuat.');
+      return false;
     }
   };
 
-  const clearError = () => setSendError(null);
+  const isSessionClosed = activeSession?.endedAt !== null;
 
   return {
     sessions,
     activeSession,
     messages,
-    input,
-    loadingSessions,
-    loadingMessages,
-    sending,
-    sendError,
-    isClosed: activeSession?.endedAt !== null,
-    setInput,
+    isLoadingSessions,
+    isLoadingMessages,
+    isSending,
+    isSessionClosed,
+    error,
+    messagesEndRef,
     fetchSessions,
-    selectSession,
-    newSession,
-    send,
-    removeSession,
-    clearError,
+    openSession,
+    createSession,
+    sendMessage,
+    endSession,
+    renameSession,
+    deleteSession,
   };
-}; 
+};

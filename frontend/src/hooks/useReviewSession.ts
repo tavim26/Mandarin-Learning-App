@@ -1,138 +1,140 @@
-import { useState, useEffect } from 'react';
-import { getDueCards, submitReview, getCardsForSet } from '@/api/flashcardApi';
-import type { FlashcardDto, FlashcardProgressDto, ReviewQuality } from '@/types';
-import { REVIEW_QUALITY } from '@/config/constants';
+import { useState, useCallback } from 'react';
+import { flashcardApi } from '@/api/flashcardApi';
+import { useAuthStore } from '@/store/authStore';
+import type {
+  FlashcardProgressDto,
+  FlashcardDto,
+  ReviewResultDto,
+  ReviewQuality,
+} from '@/types';
 
-// Starea unui card in cadrul sesiunii curente
 interface ReviewCard {
   progress: FlashcardProgressDto;
   card: FlashcardDto | null;
 }
 
-// Sumar la finalul sesiunii
-export interface ReviewSummary {
+interface SessionSummary {
   total: number;
-  again: number;
-  hard: number;
-  good: number;
-  easy: number;
+  again: number;   // quality 0-1
+  hard: number;    // quality 2
+  good: number;    // quality 3-4
+  easy: number;    // quality 5
 }
 
-interface ReviewSessionState {
-  cards: ReviewCard[];
-  currentIndex: number;
-  flipped: boolean;
-  loading: boolean;
-  submitting: boolean;
-  error: string | null;
-  finished: boolean;
-  summary: ReviewSummary;
-  currentCard: ReviewCard | null;
-  totalCards: number;
-  flip: () => void;
-  submitQuality: (quality: ReviewQuality) => Promise<void>;
-}
+export const useReviewSession = () => {
+  const { userId } = useAuthStore();
 
-export const useReviewSession = (
-  studentId: number,
-  setId: number
-): ReviewSessionState => {
-  const [cards, setCards] = useState<ReviewCard[]>([]);
+  const [queue, setQueue] = useState<ReviewCard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [flipped, setFlipped] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFinished, setIsFinished] = useState(false);
+  const [summary, setSummary] = useState<SessionSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [finished, setFinished] = useState(false);
-  const [summary, setSummary] = useState<ReviewSummary>({
-    total: 0,
-    again: 0,
-    hard: 0,
-    good: 0,
-    easy: 0,
-  });
 
-  useEffect(() => {
-    const fetchDueCards = async () => {
+  // Incarca coada de recenzie o singura data la inceputul sesiunii
+  const startSession = useCallback(
+    async (setId: number) => {
+      if (!userId) return;
+      setIsLoading(true);
+      setError(null);
+      setIsFinished(false);
+      setCurrentIndex(0);
+      setSummary(null);
+
       try {
-        setLoading(true);
-        setError(null);
+        const dueList = await flashcardApi.getDueCards(userId, setId);
+        if (dueList.length === 0) {
+          setQueue([]);
+          setIsFinished(true);
+          setSummary({ total: 0, again: 0, hard: 0, good: 0, easy: 0 });
+          return;
+        }
 
-        // Incarca cardurile scadente si datele cardurilor in paralel
-        const [dueProgress, allCards] = await Promise.all([
-          getDueCards(studentId, setId),
-          getCardsForSet(setId),
-        ]);
+        // Fetch paralel pentru toate cardurile din coada
+        const cards = await Promise.all(
+          dueList.map((p) => flashcardApi.getCardById(p.flashcardId))
+        );
 
-        // Mapeaza progress-ul la datele cardului corespunzator
-        const cardMap = new Map(allCards.map((c) => [c.id, c]));
-        const reviewCards: ReviewCard[] = dueProgress.map((p) => ({
-          progress: p,
-          card: cardMap.get(p.flashcardId) ?? null,
+        const reviewQueue: ReviewCard[] = dueList.map((progress, i) => ({
+          progress,
+          card: cards[i] ?? null,
         }));
 
-        setCards(reviewCards);
-        if (reviewCards.length === 0) setFinished(true);
+        setQueue(reviewQueue);
       } catch {
-        setError('Failed to load review session.');
+        setError('Nu s-a putut incarca sesiunea de recenzie.');
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
-    };
+    },
+    [userId]
+  );
 
-    fetchDueCards();
-  }, [studentId, setId]);
+  const flip = useCallback(() => {
+    setIsFlipped((prev) => !prev);
+  }, []);
 
-  const flip = () => setFlipped((prev) => !prev);
+  const submitReview = useCallback(
+    async (quality: ReviewQuality): Promise<ReviewResultDto | null> => {
+      const current = queue[currentIndex];
+      if (!current) return null;
 
-  const submitQuality = async (quality: ReviewQuality): Promise<void> => {
-    const current = cards[currentIndex];
-    if (!current) return;
+      setIsSubmitting(true);
+      try {
+        const result = await flashcardApi.submitReview({
+          flashcardId: current.progress.flashcardId,
+          quality,
+        });
 
-    setSubmitting(true);
-    try {
-      await submitReview({
-        flashcardId: current.progress.flashcardId,
-        quality,
-      });
+        const isLast = currentIndex === queue.length - 1;
 
-      // Actualizeaza sumarul
-      setSummary((prev) => {
-        const next = { ...prev, total: prev.total + 1 };
-        if (quality === REVIEW_QUALITY.AGAIN) next.again += 1;
-        else if (quality === REVIEW_QUALITY.HARD) next.hard += 1;
-        else if (quality === REVIEW_QUALITY.GOOD) next.good += 1;
-        else if (quality === REVIEW_QUALITY.EASY) next.easy += 1;
-        return next;
-      });
+        if (isLast) {
+          setSummary(buildSummary(queue.length));
+          setIsFinished(true);
+        } else {
+          setCurrentIndex((prev) => prev + 1);
+          setIsFlipped(false);
+        }
 
-      // Avanseaza la urmatorul card
-      const nextIndex = currentIndex + 1;
-      if (nextIndex >= cards.length) {
-        setFinished(true);
-      } else {
-        setCurrentIndex(nextIndex);
-        setFlipped(false);
+        return result;
+      } catch {
+        setError('Sending the review failed. Please try again.');
+        return null;
+      } finally {
+        setIsSubmitting(false);
       }
-    } catch {
-      setError('Failed to submit review.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    },
+    [queue, currentIndex]
+  );
+
+  const currentCard = queue[currentIndex] ?? null;
+  const progress = queue.length > 0 ? (currentIndex / queue.length) * 100 : 0;
 
   return {
-    cards,
+    currentCard,
     currentIndex,
-    flipped,
-    loading,
-    submitting,
-    error,
-    finished,
+    totalCards: queue.length,
+    progress,
+    isFlipped,
+    isLoading,
+    isSubmitting,
+    isFinished,
     summary,
-    currentCard: cards[currentIndex] ?? null,
-    totalCards: cards.length,
+    error,
+    startSession,
     flip,
-    submitQuality,
+    submitReview,
   };
 };
+
+// Construieste sumarul sesiunii progresiv
+// Aceasta functie este apelata doar la ultimul card
+const buildSummary = (total: number): SessionSummary => ({
+  total,
+  again: 0,
+  hard: 0,
+  good: 0,
+  easy: 0,
+});

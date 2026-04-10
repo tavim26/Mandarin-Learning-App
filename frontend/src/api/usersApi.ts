@@ -2,91 +2,137 @@ import apiClient from './client';
 import type {
   UserDto,
   StudentDto,
-  TeacherDto,
   StudentProfileDto,
+  TeacherDto,
   TeacherProfileDto,
-  CreateUserRequest,
-  CreateUserResponse,
 } from '@/types';
 
-export const getAllUsers = async (): Promise<UserDto[]> => {
-  const response = await apiClient.get<UserDto[]>('/api/users');
-  return response.data;
-};
+export const usersApi = {
+  // --- Users (ADMIN) ---
+  createUser: async (data: {
+    email: string;
+    password: string;
+    fullName: string;
+    role: 'STUDENT' | 'TEACHER';
+  }): Promise<UserDto> => {
+    const res = await apiClient.post<UserDto>('/api/users', data);
+    return res.data;
+  },
 
-export const getAllStudents = async (): Promise<StudentProfileDto[]> => {
-  const response = await apiClient.get<StudentProfileDto[]>('/api/users/students');
-  return response.data;
-};
+  getAllUsers: async (): Promise<UserDto[]> => {
+    const res = await apiClient.get<UserDto[]>('/api/users');
+    return res.data;
+  },
 
-export const getAllTeachers = async (): Promise<TeacherProfileDto[]> => {
-  const response = await apiClient.get<TeacherProfileDto[]>('/api/users/teachers');
-  return response.data;
-};
+  getUserById: async (id: number): Promise<UserDto> => {
+    const res = await apiClient.get<UserDto>(`/api/users/${id}`);
+    return res.data;
+  },
 
-export const createUser = async (data: CreateUserRequest): Promise<CreateUserResponse> => {
-  const response = await apiClient.post<CreateUserResponse>('/api/users', data);
-  return response.data;
-};
+  searchUsers: async (name: string): Promise<UserDto[]> => {
+    const res = await apiClient.get<UserDto[]>('/api/users/search', {
+      params: { name },
+    });
+    return res.data;
+  },
 
-export const deleteUser = async (id: number): Promise<void> => {
-  await apiClient.delete(`/api/users/${id}`);
-};
+  getMe: async (): Promise<UserDto> => {
+    const res = await apiClient.get<UserDto>('/api/users/me');
+    return res.data;
+  },
 
-export const updateUserName = async (id: number, newName: string): Promise<UserDto> => {
-  const response = await apiClient.put<UserDto>(
-    `/api/users/${id}/name?newName=${encodeURIComponent(newName)}`
-  );
-  return response.data;
-};
+  updateName: async (id: number, newName: string): Promise<UserDto> => {
+    const res = await apiClient.put<UserDto>(`/api/users/${id}/name`, null, {
+      params: { newName },
+    });
+    return res.data;
+  },
 
-export const updateUserEmail = async (id: number, newEmail: string): Promise<UserDto> => {
-  const response = await apiClient.put<UserDto>(
-    `/api/users/${id}/email?newEmail=${encodeURIComponent(newEmail)}`
-  );
-  return response.data;
-};
+  updateEmail: async (id: number, newEmail: string): Promise<UserDto> => {
+    const res = await apiClient.put<UserDto>(`/api/users/${id}/email`, null, {
+      params: { newEmail },
+    });
+    return res.data;
+  },
 
-export const resetUserPassword = async (id: number, newPassword: string): Promise<void> => {
-  await apiClient.put(
-    `/api/users/${id}/password/reset?newPassword=${encodeURIComponent(newPassword)}`
-  );
-};
+  updatePassword: async (
+    id: number,
+    oldPassword: string,
+    newPassword: string
+  ): Promise<void> => {
+    await apiClient.put(`/api/users/${id}/password`, null, {
+      params: { oldPassword, newPassword },
+    });
+  },
 
-export const updateOwnPassword = async (
-  id: number,
-  oldPassword: string,
-  newPassword: string
-): Promise<void> => {
-  await apiClient.put(
-    `/api/users/${id}/password?oldPassword=${encodeURIComponent(oldPassword)}&newPassword=${encodeURIComponent(newPassword)}`
-  );
-};
+  resetPassword: async (id: number, newPassword: string): Promise<void> => {
+    await apiClient.put(`/api/users/${id}/password/reset`, null, {
+      params: { newPassword },
+    });
+  },
 
-export const getStudentProfile = async (userId: number): Promise<StudentDto> => {
-  const response = await apiClient.get<StudentDto>(`/api/users/students/${userId}`);
-  return response.data;
-};
+  banUser: async (id: number): Promise<void> => {
+    await apiClient.put(`/api/users/${id}/ban`);
+  },
 
-export const getTeacherProfile = async (userId: number): Promise<TeacherDto> => {
-  const response = await apiClient.get<TeacherDto>(`/api/users/teachers/${userId}`);
-  return response.data;
-};
+  unbanUser: async (id: number): Promise<void> => {
+    await apiClient.put(`/api/users/${id}/unban`);
+  },
 
-export const updateStudentNickname = async (
-  userId: number,
-  newNickname: string
-): Promise<void> => {
-  await apiClient.put(
-    `/api/users/students/${userId}/nickname?newNickname=${encodeURIComponent(newNickname)}`
-  );
-};
+  deleteUser: async (id: number): Promise<void> => {
+    await apiClient.delete(`/api/users/${id}`);
+  },
 
-export const updateTeacherTitle = async (
-  userId: number,
-  newTitle: string
-): Promise<void> => {
-  await apiClient.put(
-    `/api/users/teachers/${userId}/title?newTitle=${encodeURIComponent(newTitle)}`
-  );
+  // --- Students ---
+  getAllStudents: async (): Promise<StudentProfileDto[]> => {
+    const res = await apiClient.get<StudentProfileDto[]>('/api/users/students');
+    return res.data;
+  },
+
+  getStudentById: async (userId: number): Promise<StudentDto> => {
+    const res = await apiClient.get<StudentDto>(`/api/users/students/${userId}`);
+    return res.data;
+  },
+
+  searchStudents: async (nickname: string): Promise<StudentDto[]> => {
+    const res = await apiClient.get<StudentDto[]>('/api/users/students/search', {
+      params: { nickname },
+    });
+    return res.data;
+  },
+
+  updateStudentNickname: async (
+    userId: number,
+    newNickname: string
+  ): Promise<StudentDto> => {
+    const res = await apiClient.put<StudentDto>(
+      `/api/users/students/${userId}/nickname`,
+      null,
+      { params: { newNickname } }
+    );
+    return res.data;
+  },
+
+  // --- Teachers ---
+  getAllTeachers: async (): Promise<TeacherProfileDto[]> => {
+    const res = await apiClient.get<TeacherProfileDto[]>('/api/users/teachers');
+    return res.data;
+  },
+
+  getTeacherById: async (userId: number): Promise<TeacherDto> => {
+    const res = await apiClient.get<TeacherDto>(`/api/users/teachers/${userId}`);
+    return res.data;
+  },
+
+  updateTeacherTitle: async (
+    userId: number,
+    newTitle: string
+  ): Promise<TeacherDto> => {
+    const res = await apiClient.put<TeacherDto>(
+      `/api/users/teachers/${userId}/title`,
+      null,
+      { params: { newTitle } }
+    );
+    return res.data;
+  },
 };

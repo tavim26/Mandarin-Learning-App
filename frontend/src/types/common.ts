@@ -1,4 +1,11 @@
-// Paginare folosita de serviciile Java
+// Tipuri utilitare partajate intre servicii
+
+export interface ApiError {
+  status: number;
+  message: string;
+}
+
+// Folosit de progress-service si chatbot-service
 export interface PagedResponse<T> {
   content: T[];
   page: number;
@@ -6,13 +13,4 @@ export interface PagedResponse<T> {
   totalElements: number;
   totalPages: number;
   last: boolean;
-}
-
-// Paginare folosita de serviciul Python (snake_case)
-export interface PageDto<T> {
-  items: T[];
-  total: number;
-  page: number;
-  size: number;
-  total_pages: number;
 }

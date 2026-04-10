@@ -3,9 +3,10 @@ import type {
   FlashcardSetDto,
   FlashcardDto,
   FlashcardProgressDto,
+  FlashcardReviewDto,
+  ReviewResultDto,
   FlashcardSetStatsDto,
   TotalDueStatsDto,
-  ReviewResultDto,
   CreateFlashcardSetRequest,
   UpdateFlashcardSetRequest,
   CreateFlashcardRequest,
@@ -13,92 +14,136 @@ import type {
   SubmitReviewRequest,
 } from '@/types';
 
-// --- Seturi ---
+export const flashcardApi = {
+  // --- Seturi ---
+  createSet: async (
+    data: CreateFlashcardSetRequest
+  ): Promise<FlashcardSetDto> => {
+    const res = await apiClient.post<FlashcardSetDto>(
+      '/api/flashcards/sets',
+      data
+    );
+    return res.data;
+  },
 
-export const getFlashcardSets = async (studentId: number): Promise<FlashcardSetDto[]> => {
-  const response = await apiClient.get<FlashcardSetDto[]>(
-    `/api/flashcards/sets/student/${studentId}`
-  );
-  return response.data;
-};
+  getSetsByStudent: async (studentId: number): Promise<FlashcardSetDto[]> => {
+    const res = await apiClient.get<FlashcardSetDto[]>(
+      `/api/flashcards/sets/student/${studentId}`
+    );
+    return res.data;
+  },
 
-export const getFlashcardSet = async (setId: number): Promise<FlashcardSetDto> => {
-  const response = await apiClient.get<FlashcardSetDto>(`/api/flashcards/sets/${setId}`);
-  return response.data;
-};
+  getSetById: async (setId: number): Promise<FlashcardSetDto> => {
+    const res = await apiClient.get<FlashcardSetDto>(
+      `/api/flashcards/sets/${setId}`
+    );
+    return res.data;
+  },
 
-export const getSetStats = async (setId: number): Promise<FlashcardSetStatsDto> => {
-  const response = await apiClient.get<FlashcardSetStatsDto>(
-    `/api/flashcards/sets/${setId}/stats`
-  );
-  return response.data;
-};
+  updateSet: async (
+    setId: number,
+    data: UpdateFlashcardSetRequest
+  ): Promise<FlashcardSetDto> => {
+    const res = await apiClient.put<FlashcardSetDto>(
+      `/api/flashcards/sets/${setId}`,
+      data
+    );
+    return res.data;
+  },
 
-export const createFlashcardSet = async (
-  data: CreateFlashcardSetRequest
-): Promise<FlashcardSetDto> => {
-  const response = await apiClient.post<FlashcardSetDto>('/api/flashcards/sets', data);
-  return response.data;
-};
+  deleteSet: async (setId: number): Promise<void> => {
+    await apiClient.delete(`/api/flashcards/sets/${setId}`);
+  },
 
-export const updateFlashcardSet = async (
-  setId: number,
-  data: UpdateFlashcardSetRequest
-): Promise<FlashcardSetDto> => {
-  const response = await apiClient.put<FlashcardSetDto>(`/api/flashcards/sets/${setId}`, data);
-  return response.data;
-};
+  getSetStats: async (setId: number): Promise<FlashcardSetStatsDto> => {
+    const res = await apiClient.get<FlashcardSetStatsDto>(
+      `/api/flashcards/sets/${setId}/stats`
+    );
+    return res.data;
+  },
 
-export const deleteFlashcardSet = async (setId: number): Promise<void> => {
-  await apiClient.delete(`/api/flashcards/sets/${setId}`);
-};
+  // --- Carduri ---
+  createCard: async (data: CreateFlashcardRequest): Promise<FlashcardDto> => {
+    const res = await apiClient.post<FlashcardDto>(
+      '/api/flashcards/cards',
+      data
+    );
+    return res.data;
+  },
 
-// --- Carduri individuale ---
+  getCardsBySet: async (setId: number): Promise<FlashcardDto[]> => {
+    const res = await apiClient.get<FlashcardDto[]>(
+      `/api/flashcards/sets/${setId}/cards`
+    );
+    return res.data;
+  },
 
-export const getCardsForSet = async (setId: number): Promise<FlashcardDto[]> => {
-  const response = await apiClient.get<FlashcardDto[]>(`/api/flashcards/sets/${setId}/cards`);
-  return response.data;
-};
+  getCardById: async (flashcardId: number): Promise<FlashcardDto> => {
+    const res = await apiClient.get<FlashcardDto>(
+      `/api/flashcards/cards/${flashcardId}`
+    );
+    return res.data;
+  },
 
-export const createFlashcard = async (data: CreateFlashcardRequest): Promise<FlashcardDto> => {
-  const response = await apiClient.post<FlashcardDto>('/api/flashcards/cards', data);
-  return response.data;
-};
+  updateCard: async (
+    flashcardId: number,
+    data: UpdateFlashcardRequest
+  ): Promise<FlashcardDto> => {
+    const res = await apiClient.put<FlashcardDto>(
+      `/api/flashcards/cards/${flashcardId}`,
+      data
+    );
+    return res.data;
+  },
 
-export const updateFlashcard = async (
-  flashcardId: number,
-  data: UpdateFlashcardRequest
-): Promise<FlashcardDto> => {
-  const response = await apiClient.put<FlashcardDto>(
-    `/api/flashcards/cards/${flashcardId}`,
-    data
-  );
-  return response.data;
-};
+  deleteCard: async (flashcardId: number): Promise<void> => {
+    await apiClient.delete(`/api/flashcards/cards/${flashcardId}`);
+  },
 
-export const deleteFlashcard = async (flashcardId: number): Promise<void> => {
-  await apiClient.delete(`/api/flashcards/cards/${flashcardId}`);
-};
+  // --- Recenzii SM-2 ---
+  submitReview: async (data: SubmitReviewRequest): Promise<ReviewResultDto> => {
+    const res = await apiClient.post<ReviewResultDto>(
+      '/api/flashcards/reviews',
+      data
+    );
+    return res.data;
+  },
 
-// --- Recenzii si progres SM-2 ---
+  getDueCards: async (
+    studentId: number,
+    setId: number
+  ): Promise<FlashcardProgressDto[]> => {
+    const res = await apiClient.get<FlashcardProgressDto[]>(
+      `/api/flashcards/reviews/due/${studentId}`,
+      { params: { setId } }
+    );
+    return res.data;
+  },
 
-export const getDueAll = async (): Promise<TotalDueStatsDto> => {
-  const response = await apiClient.get<TotalDueStatsDto>('/api/flashcards/reviews/due/all');
-  return response.data;
-};
+  getTotalDue: async (): Promise<TotalDueStatsDto> => {
+    const res = await apiClient.get<TotalDueStatsDto>(
+      '/api/flashcards/reviews/due/all'
+    );
+    return res.data;
+  },
 
-export const getDueCards = async (
-  studentId: number,
-  setId: number
-): Promise<FlashcardProgressDto[]> => {
-  const response = await apiClient.get<FlashcardProgressDto[]>(
-    `/api/flashcards/reviews/due/${studentId}`,
-    { params: { setId } }
-  );
-  return response.data;
-};
+  getReviewHistory: async (
+    studentId: number,
+    flashcardId: number
+  ): Promise<FlashcardReviewDto[]> => {
+    const res = await apiClient.get<FlashcardReviewDto[]>(
+      `/api/flashcards/reviews/history/${studentId}/${flashcardId}`
+    );
+    return res.data;
+  },
 
-export const submitReview = async (data: SubmitReviewRequest): Promise<ReviewResultDto> => {
-  const response = await apiClient.post<ReviewResultDto>('/api/flashcards/reviews', data);
-  return response.data;
+  getCardProgress: async (
+    studentId: number,
+    flashcardId: number
+  ): Promise<FlashcardProgressDto> => {
+    const res = await apiClient.get<FlashcardProgressDto>(
+      `/api/flashcards/reviews/progress/${studentId}/${flashcardId}`
+    );
+    return res.data;
+  },
 };

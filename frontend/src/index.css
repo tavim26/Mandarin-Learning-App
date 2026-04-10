@@ -2,29 +2,305 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Fonturi globale */
-body {
-  font-family: 'DM Sans', sans-serif;
-  -webkit-font-smoothing: antialiased;
+/* ============================================================
+   IMPORT FONTURI
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+/* ============================================================
+   DESIGN TOKENS — SURSA UNICA DE ADEVAR
+   Toate valorile sunt HSL fara wrapper hsl().
+   tailwind.config.js le consuma prin hsl(var(--...)).
+   tokens.ts oglindeste valorile JS pentru contexte non-CSS.
+   ============================================================ */
+@layer base {
+  :root {
+    /* --- Fundal si suprafete --- */
+    --background:       36 25% 97%;      /* #f8f7f5 — fundal aplicatie */
+    --foreground:       220 13% 13%;     /* #1c1f26 — text principal */
+
+    --card:             0 0% 100%;       /* #ffffff */
+    --card-foreground:  220 13% 13%;
+
+    --popover:          0 0% 100%;
+    --popover-foreground: 220 13% 13%;
+
+    /* --- Brand — portocaliu principal --- */
+    --primary:          23 97% 46%;      /* #e85d04 */
+    --primary-foreground: 0 0% 100%;    /* text alb pe fundal primary */
+
+    /* --- Secundar — gri neutru --- */
+    --secondary:        36 15% 93%;      /* #ede9e3 */
+    --secondary-foreground: 220 13% 20%;
+
+    /* --- Muted — suprafete subtile --- */
+    --muted:            36 12% 91%;      /* #e8e4de */
+    --muted-foreground: 220 8% 46%;      /* #6b7280 — text secundar */
+
+    /* --- Accent — portocaliu pal pentru hover/highlight --- */
+    --accent:           23 97% 96%;      /* #fef3ec */
+    --accent-foreground: 23 97% 38%;     /* #be4c03 */
+
+    /* --- Destructiv --- */
+    --destructive:      355 82% 41%;     /* #c1121f */
+    --destructive-foreground: 0 0% 100%;
+
+    /* --- Borduri si input --- */
+    --border:           36 15% 87%;      /* #ddd8d0 */
+    --input:            36 15% 87%;
+    --ring:             23 97% 46%;      /* identic cu primary — focus ring */
+
+    /* --- Border radius global shadcn --- */
+    --radius:           0.625rem;        /* 10px — echivalent cu borderRadius.md din tokens */
+
+    /* --- Culori semantice aplicatie (non-shadcn) --- */
+    --teacher-accent:   201 94% 32%;     /* #0369a1 */
+    --student-accent:   143 71% 29%;     /* #15803d */
+    --brand-hover:      22 96% 39%;      /* #c94f03 */
+
+    /* --- HSK levels --- */
+    --hsk-1:            143 68% 29%;     /* #15803d */
+    --hsk-2:            201 94% 32%;     /* #0369a1 */
+    --hsk-3:            262 64% 38%;     /* #7c3aed — aproximat */
+    --hsk-4:            18 91% 41%;      /* #c2410c */
+    --hsk-5:            32 60% 36%;      /* #b45309 */
+    --hsk-6:            344 85% 39%;     /* #be123c */
+    --hsk-unknown:      220 9% 46%;      /* #6b7280 */
+
+    /* --- SM-2 categorii --- */
+    --sm2-new:          220 9% 46%;      /* #6b7280 */
+    --sm2-learning:     32 88% 46%;      /* #d97706 */
+    --sm2-mature:       143 68% 29%;     /* #15803d */
+    --sm2-due:          355 82% 41%;     /* #c1121f */
+
+    /* --- Shadows definite ca variabile pentru consistenta --- */
+    --shadow-card:      0 4px 6px -1px rgba(0,0,0,0.07);
+    --shadow-card-hover: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -2px rgba(0,0,0,0.04);
+    --shadow-modal:     0 20px 60px rgba(0,0,0,0.15);
+    --shadow-focus:     0 0 0 3px rgba(232, 93, 4, 0.12);
+  }
+
+  /* ============================================================
+     DARK MODE — schelet pregatit, neactivat inca
+     Decomentati cand implementati tema intunecata.
+     ============================================================ */
+  /*
+  .dark {
+    --background:         220 20% 9%;
+    --foreground:         36 15% 93%;
+    --card:               220 18% 12%;
+    --card-foreground:    36 15% 93%;
+    --popover:            220 18% 12%;
+    --popover-foreground: 36 15% 93%;
+    --primary:            23 97% 56%;
+    --primary-foreground: 0 0% 100%;
+    --secondary:          220 15% 18%;
+    --secondary-foreground: 36 15% 80%;
+    --muted:              220 12% 16%;
+    --muted-foreground:   220 8% 55%;
+    --accent:             23 60% 18%;
+    --accent-foreground:  23 97% 70%;
+    --destructive:        355 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border:             220 15% 20%;
+    --input:              220 15% 20%;
+    --ring:               23 97% 56%;
+  }
+  */
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Outfit', sans-serif;
+/* ============================================================
+   RESET SI BAZA GLOBALA
+   ============================================================ */
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'DM Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', sans-serif;
+    @apply font-semibold tracking-tight;
+  }
+
+  /* Eliminare outline implicit — folosim ring din design system */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Scrollbar subtila — pentru sidebar-uri si liste lungi */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/40;
+  }
 }
 
-/* Input — stilizare globala peste shadcn */
-input {
-  font-family: 'DM Sans', sans-serif !important;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+/* ============================================================
+   COMPONENTE REUTILIZABILE — clase compuse cu @apply
+   Folosite in JSX ca className="card-base" etc.
+   ============================================================ */
+@layer components {
+
+  /* Card standard */
+  .card-base {
+    @apply bg-card rounded-lg border border-border shadow-card;
+  }
+
+  .card-interactive {
+    @apply card-base transition-shadow duration-200 hover:shadow-card-hover cursor-pointer;
+  }
+
+  /* Input — override shadcn cu brandingul propriu */
+  .input-branded {
+    @apply transition-[border-color,box-shadow] duration-200;
+  }
+
+  .input-branded:focus {
+    border-color: hsl(var(--primary)) !important;
+    box-shadow: var(--shadow-focus) !important;
+    outline: none !important;
+  }
+
+  /* Badge nivel HSK */
+  .hsk-badge {
+    @apply inline-flex items-center justify-center
+           px-1.5 py-0.5 rounded text-[11px] font-semibold
+           text-white leading-none;
+  }
+
+  /* Badge categorie SM-2 */
+  .sm2-badge {
+    @apply inline-flex items-center gap-1 px-2 py-1
+           rounded-full text-xs font-medium;
+  }
+
+  /* Sectiune de pagina — padding consistent */
+  .page-section {
+    @apply px-4 py-6 md:px-6 md:py-8;
+  }
+
+  /* Container maxim centrat */
+  .page-container {
+    @apply mx-auto w-full max-w-7xl px-4 md:px-6;
+  }
+
+  /* Titlu de pagina */
+  .page-title {
+    @apply font-display text-2xl font-bold text-foreground md:text-3xl;
+  }
+
+  /* Buton primar brand — extinde shadcn Button variant="default" */
+  .btn-brand {
+    @apply bg-primary text-primary-foreground hover:bg-[hsl(var(--brand-hover))]
+           transition-colors duration-200 font-medium;
+  }
+
+  /* Separator vizual subtle */
+  .divider {
+    @apply border-t border-border;
+  }
+
+  /* Loading skeleton pulse */
+  .skeleton {
+    @apply animate-pulse bg-muted rounded;
+  }
+
+  /* Stare goala — empty state centralizat */
+  .empty-state {
+    @apply flex flex-col items-center justify-center
+           gap-3 py-16 text-center text-muted-foreground;
+  }
 }
 
-input:focus {
-  border-color: #e85d04 !important;
-  box-shadow: 0 0 0 3px rgba(232, 93, 4, 0.12) !important;
-  outline: none !important;
+/* ============================================================
+   UTILITARE SPECIFICE APLICATIEI
+   ============================================================ */
+@layer utilities {
+
+  /* Text gradient brand */
+  .text-gradient-brand {
+    @apply bg-gradient-to-r from-primary to-orange-400
+           bg-clip-text text-transparent;
+  }
+
+  /* Culori dinamice HSK — folosite de ChineseText.tsx */
+  .text-hsk-1 { color: hsl(var(--hsk-1)); }
+  .text-hsk-2 { color: hsl(var(--hsk-2)); }
+  .text-hsk-3 { color: hsl(var(--hsk-3)); }
+  .text-hsk-4 { color: hsl(var(--hsk-4)); }
+  .text-hsk-5 { color: hsl(var(--hsk-5)); }
+  .text-hsk-6 { color: hsl(var(--hsk-6)); }
+  .text-hsk-unknown { color: hsl(var(--hsk-unknown)); }
+
+  .bg-hsk-1 { background-color: hsl(var(--hsk-1)); }
+  .bg-hsk-2 { background-color: hsl(var(--hsk-2)); }
+  .bg-hsk-3 { background-color: hsl(var(--hsk-3)); }
+  .bg-hsk-4 { background-color: hsl(var(--hsk-4)); }
+  .bg-hsk-5 { background-color: hsl(var(--hsk-5)); }
+  .bg-hsk-6 { background-color: hsl(var(--hsk-6)); }
+  .bg-hsk-unknown { background-color: hsl(var(--hsk-unknown)); }
+
+  /* Culori SM-2 */
+  .text-sm2-new      { color: hsl(var(--sm2-new)); }
+  .text-sm2-learning { color: hsl(var(--sm2-learning)); }
+  .text-sm2-mature   { color: hsl(var(--sm2-mature)); }
+  .text-sm2-due      { color: hsl(var(--sm2-due)); }
+
+  .bg-sm2-new      { background-color: hsl(var(--sm2-new)); }
+  .bg-sm2-learning { background-color: hsl(var(--sm2-learning)); }
+  .bg-sm2-mature   { background-color: hsl(var(--sm2-mature)); }
+  .bg-sm2-due      { background-color: hsl(var(--sm2-due)); }
+
+  /* Animatii custom */
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.25s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.15s ease-out;
+  }
 }
 
-/* Buton — tranzitie hover */
-button {
-  transition: all 0.2s ease !important;
+/* ============================================================
+   KEYFRAMES
+   ============================================================ */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
 }

@@ -3,87 +3,90 @@ import type {
   ChatSessionDto,
   ChatMessageDto,
   SendMessageResponse,
-  PagedResponse,
   CreateSessionRequest,
   SendMessageRequest,
+  PagedResponse,
 } from '@/types';
 
-// --- Sesiuni ---
+export const chatbotApi = {
+  // --- Sesiuni ---
+  createSession: async (
+    data: CreateSessionRequest
+  ): Promise<ChatSessionDto> => {
+    const res = await apiClient.post<ChatSessionDto>(
+      '/api/chatbot/sessions',
+      data
+    );
+    return res.data;
+  },
 
-export const getSessions = async (): Promise<ChatSessionDto[]> => {
-  const response = await apiClient.get<ChatSessionDto[]>('/api/chatbot/sessions');
-  return response.data;
-};
+  getSessions: async (): Promise<ChatSessionDto[]> => {
+    const res = await apiClient.get<ChatSessionDto[]>('/api/chatbot/sessions');
+    return res.data;
+  },
 
-export const getSessionsPaged = async (
-  page = 0,
-  size = 10
-): Promise<PagedResponse<ChatSessionDto>> => {
-  const response = await apiClient.get<PagedResponse<ChatSessionDto>>(
-    '/api/chatbot/sessions/paged',
-    { params: { page, size } }
-  );
-  return response.data;
-};
+  getSessionsPaged: async (
+    page = 0,
+    size = 10
+  ): Promise<PagedResponse<ChatSessionDto>> => {
+    const res = await apiClient.get<PagedResponse<ChatSessionDto>>(
+      '/api/chatbot/sessions/paged',
+      { params: { page, size } }
+    );
+    return res.data;
+  },
 
-export const createSession = async (
-  data: CreateSessionRequest = {}
-): Promise<ChatSessionDto> => {
-  const response = await apiClient.post<ChatSessionDto>('/api/chatbot/sessions', data);
-  return response.data;
-};
+  endSession: async (sessionId: number): Promise<ChatSessionDto> => {
+    const res = await apiClient.patch<ChatSessionDto>(
+      `/api/chatbot/sessions/${sessionId}/end`
+    );
+    return res.data;
+  },
 
-export const endSession = async (sessionId: number): Promise<ChatSessionDto> => {
-  const response = await apiClient.patch<ChatSessionDto>(
-    `/api/chatbot/sessions/${sessionId}/end`
-  );
-  return response.data;
-};
+  renameSession: async (
+    sessionId: number,
+    newTitle: string
+  ): Promise<ChatSessionDto> => {
+    const res = await apiClient.patch<ChatSessionDto>(
+      `/api/chatbot/sessions/${sessionId}/rename`,
+      null,
+      { params: { newTitle } }
+    );
+    return res.data;
+  },
 
-export const renameSession = async (
-  sessionId: number,
-  newTitle: string
-): Promise<ChatSessionDto> => {
-  const response = await apiClient.patch<ChatSessionDto>(
-    `/api/chatbot/sessions/${sessionId}/rename`,
-    null,
-    { params: { newTitle } }
-  );
-  return response.data;
-};
+  deleteSession: async (sessionId: number): Promise<void> => {
+    await apiClient.delete(`/api/chatbot/sessions/${sessionId}`);
+  },
 
-export const deleteSession = async (sessionId: number): Promise<void> => {
-  await apiClient.delete(`/api/chatbot/sessions/${sessionId}`);
-};
+  // --- Mesaje ---
+  sendMessage: async (
+    sessionId: number,
+    data: SendMessageRequest
+  ): Promise<SendMessageResponse> => {
+    const res = await apiClient.post<SendMessageResponse>(
+      `/api/chatbot/sessions/${sessionId}/messages`,
+      data
+    );
+    return res.data;
+  },
 
-// --- Mesaje ---
+  getMessages: async (sessionId: number): Promise<ChatMessageDto[]> => {
+    const res = await apiClient.get<ChatMessageDto[]>(
+      `/api/chatbot/sessions/${sessionId}/messages`
+    );
+    return res.data;
+  },
 
-export const getMessages = async (sessionId: number): Promise<ChatMessageDto[]> => {
-  const response = await apiClient.get<ChatMessageDto[]>(
-    `/api/chatbot/sessions/${sessionId}/messages`
-  );
-  return response.data;
-};
-
-export const getMessagesPaged = async (
-  sessionId: number,
-  page = 0,
-  size = 20
-): Promise<PagedResponse<ChatMessageDto>> => {
-  const response = await apiClient.get<PagedResponse<ChatMessageDto>>(
-    `/api/chatbot/sessions/${sessionId}/messages/paged`,
-    { params: { page, size } }
-  );
-  return response.data;
-};
-
-export const sendMessage = async (
-  sessionId: number,
-  data: SendMessageRequest
-): Promise<SendMessageResponse> => {
-  const response = await apiClient.post<SendMessageResponse>(
-    `/api/chatbot/sessions/${sessionId}/messages`,
-    data
-  );
-  return response.data;
+  getMessagesPaged: async (
+    sessionId: number,
+    page = 0,
+    size = 20
+  ): Promise<PagedResponse<ChatMessageDto>> => {
+    const res = await apiClient.get<PagedResponse<ChatMessageDto>>(
+      `/api/chatbot/sessions/${sessionId}/messages/paged`,
+      { params: { page, size } }
+    );
+    return res.data;
+  },
 };

@@ -1,240 +1,317 @@
-import { useState, useEffect } from 'react';
-import {
-  getAllUnits,
-  getUnitFull,
-  getLessonsByUnit,
-  getLesson,
-  getExercisesByLesson,
-  getMaterialsByLesson,
-  createUnit, updateUnit, deleteUnit,
-  createLesson, updateLesson, deleteLesson,
-  createExercise, updateExercise, deleteExercise,
-  createMaterial, deleteMaterial,
-} from '@/api/contentApi';
+import { useState, useCallback } from 'react';
+import { contentApi } from '@/api/contentApi';
 import type {
   CourseUnitDto,
   CourseUnitFullDto,
   LessonDto,
   ExerciseDto,
   LessonMaterialDto,
-  CreateCourseUnitRequest,
-  UpdateCourseUnitRequest,
-  CreateLessonRequest,
-  UpdateLessonRequest,
-  CreateExerciseRequest,
-  UpdateExerciseRequest,
-  CreateMaterialRequest,
+  LessonExerciseTypesDto,
 } from '@/types';
 
-// --- Hook unitati ---
-
-export const useUnits = (hskLevel?: number) => {
+export const useContent = () => {
   const [units, setUnits] = useState<CourseUnitDto[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [currentUnit, setCurrentUnit] = useState<CourseUnitFullDto | null>(null);
+  const [currentLesson, setCurrentLesson] = useState<LessonDto | null>(null);
+  const [exerciseTypes, setExerciseTypes] =
+    useState<LessonExerciseTypesDto | null>(null);
+  const [materials, setMaterials] = useState<LessonMaterialDto[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchUnits = async () => {
+  const fetchUnits = useCallback(async (hskLevel?: number) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-      const data = await getAllUnits(hskLevel);
+      const data = await contentApi.getUnits(hskLevel);
       setUnits(data);
     } catch {
-      setError('Failed to load units.');
+      setError('Nu s-au putut incarca unitatile.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
+    }
+  }, []);
+
+  const fetchUnitFull = useCallback(async (unitId: number) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await contentApi.getUnitFull(unitId);
+      setCurrentUnit(data);
+    } catch {
+      setError('Nu s-a putut incarca unitatea.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const fetchLesson = useCallback(async (lessonId: number) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [lesson, types, mats] = await Promise.all([
+        contentApi.getLessonById(lessonId),
+        contentApi.getLessonExerciseTypes(lessonId),
+        contentApi.getMaterialsByLesson(lessonId),
+      ]);
+      setCurrentLesson(lesson);
+      setExerciseTypes(types);
+      setMaterials(mats);
+    } catch {
+      setError('Nu s-a putut incarca lectia.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // --- CRUD Unit ---
+  const createUnit = async (
+    data: Omit<CourseUnitDto, 'id' | 'createdByTeacherId'>
+  ): Promise<boolean> => {
+    setIsSaving(true);
+    try {
+      const created = await contentApi.createUnit(data);
+      setUnits((prev) => [...prev, created]);
+      return true;
+    } catch {
+      setError('Crearea unitatii a esuat.');
+      return false;
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  useEffect(() => { fetchUnits(); }, [hskLevel]);
-
-  const addUnit = async (data: CreateCourseUnitRequest): Promise<CourseUnitDto> => {
-    const created = await createUnit(data);
-    setUnits((prev) => [...prev, created]);
-    return created;
-  };
-
-  const editUnit = async (id: number, data: UpdateCourseUnitRequest): Promise<CourseUnitDto> => {
-    const updated = await updateUnit(id, data);
-    setUnits((prev) => prev.map((u) => (u.id === id ? updated : u)));
-    return updated;
-  };
-
-  const removeUnit = async (id: number): Promise<void> => {
-    await deleteUnit(id);
-    setUnits((prev) => prev.filter((u) => u.id !== id));
-  };
-
-  return { units, loading, error, refetch: fetchUnits, addUnit, editUnit, removeUnit };
-};
-
-// --- Hook unitate cu lectii ---
-
-export const useUnitFull = (unitId: number) => {
-  const [unit, setUnit] = useState<CourseUnitFullDto | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetch = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await getUnitFull(unitId);
-        setUnit(data);
-      } catch {
-        setError('Failed to load unit.');
-      } finally {
-        setLoading(false);
+  const updateUnit = async (
+    id: number,
+    data: Omit<CourseUnitDto, 'id' | 'createdByTeacherId'>
+  ): Promise<boolean> => {
+    setIsSaving(true);
+    try {
+      const updated = await contentApi.updateUnit(id, data);
+      setUnits((prev) => prev.map((u) => (u.id === id ? updated : u)));
+      if (currentUnit?.id === id) {
+        setCurrentUnit((prev) => (prev ? { ...prev, ...updated } : prev));
       }
-    };
-    fetch();
-  }, [unitId]);
-
-  return { unit, loading, error };
-};
-
-// --- Hook lectii dintr-o unitate ---
-
-export const useLessons = (unitId: number) => {
-  const [lessons, setLessons] = useState<LessonDto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchLessons = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getLessonsByUnit(unitId);
-      setLessons(data);
+      return true;
     } catch {
-      setError('Failed to load lessons.');
+      setError('Actualizarea unitatii a esuat.');
+      return false;
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
 
-  useEffect(() => { fetchLessons(); }, [unitId]);
-
-  const addLesson = async (data: CreateLessonRequest): Promise<LessonDto> => {
-    const created = await createLesson(data);
-    setLessons((prev) => [...prev, created]);
-    return created;
-  };
-
-  const editLesson = async (id: number, data: UpdateLessonRequest): Promise<LessonDto> => {
-    const updated = await updateLesson(id, data);
-    setLessons((prev) => prev.map((l) => (l.id === id ? updated : l)));
-    return updated;
-  };
-
-  const removeLesson = async (id: number): Promise<void> => {
-    await deleteLesson(id);
-    setLessons((prev) => prev.filter((l) => l.id !== id));
-  };
-
-  return { lessons, loading, error, refetch: fetchLessons, addLesson, editLesson, removeLesson };
-};
-
-// --- Hook detaliu lectie (cu exercitii) ---
-
-export const useLesson = (lessonId: number) => {
-  const [lesson, setLesson] = useState<LessonDto | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchLesson = async () => {
+  const deleteUnit = async (id: number): Promise<boolean> => {
     try {
-      setLoading(true);
-      setError(null);
-      const data = await getLesson(lessonId);
-      setLesson(data);
+      await contentApi.deleteUnit(id);
+      setUnits((prev) => prev.filter((u) => u.id !== id));
+      return true;
     } catch {
-      setError('Failed to load lesson.');
-    } finally {
-      setLoading(false);
+      setError('Stergerea unitatii a esuat.');
+      return false;
     }
   };
 
-  useEffect(() => { fetchLesson(); }, [lessonId]);
-
-  return { lesson, loading, error, refetch: fetchLesson };
-};
-
-// --- Hook exercitii ---
-
-export const useExercises = (lessonId: number) => {
-  const [exercises, setExercises] = useState<ExerciseDto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchExercises = async () => {
+  // --- CRUD Lesson ---
+  const createLesson = async (
+    data: Omit<LessonDto, 'id' | 'exercises'>
+  ): Promise<boolean> => {
+    setIsSaving(true);
     try {
-      setLoading(true);
-      setError(null);
-      const data = await getExercisesByLesson(lessonId);
-      setExercises(data);
+      const created = await contentApi.createLesson(data);
+      // Actualizeaza lectiile din unitatea curenta in memorie
+      if (currentUnit?.id === created.unitId) {
+        setCurrentUnit((prev) =>
+          prev
+            ? { ...prev, lessons: [...prev.lessons, { ...created, exercises: null }] }
+            : prev
+        );
+      }
+      return true;
     } catch {
-      setError('Failed to load exercises.');
+      setError('Crearea lectiei a esuat.');
+      return false;
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
 
-  useEffect(() => { fetchExercises(); }, [lessonId]);
-
-  const addExercise = async (data: CreateExerciseRequest): Promise<ExerciseDto> => {
-    const created = await createExercise(data);
-    setExercises((prev) => [...prev, created]);
-    return created;
-  };
-
-  const editExercise = async (id: number, data: UpdateExerciseRequest): Promise<ExerciseDto> => {
-    const updated = await updateExercise(id, data);
-    setExercises((prev) => prev.map((e) => (e.id === id ? updated : e)));
-    return updated;
-  };
-
-  const removeExercise = async (id: number): Promise<void> => {
-    await deleteExercise(id);
-    setExercises((prev) => prev.filter((e) => e.id !== id));
-  };
-
-  return { exercises, loading, error, refetch: fetchExercises, addExercise, editExercise, removeExercise };
-};
-
-// --- Hook materiale ---
-
-export const useMaterials = (lessonId: number) => {
-  const [materials, setMaterials] = useState<LessonMaterialDto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchMaterials = async () => {
+  const updateLesson = async (
+    id: number,
+    data: Omit<LessonDto, 'id' | 'exercises'>
+  ): Promise<boolean> => {
+    setIsSaving(true);
     try {
-      setLoading(true);
-      setError(null);
-      const data = await getMaterialsByLesson(lessonId);
-      setMaterials(data);
+      const updated = await contentApi.updateLesson(id, data);
+      if (currentUnit) {
+        setCurrentUnit((prev) =>
+          prev
+            ? {
+                ...prev,
+                lessons: prev.lessons.map((l) =>
+                  l.id === id ? { ...l, ...updated } : l
+                ),
+              }
+            : prev
+        );
+      }
+      if (currentLesson?.id === id) {
+        setCurrentLesson((prev) => (prev ? { ...prev, ...updated } : prev));
+      }
+      return true;
     } catch {
-      setError('Failed to load materials.');
+      setError('Actualizarea lectiei a esuat.');
+      return false;
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
 
-  useEffect(() => { fetchMaterials(); }, [lessonId]);
-
-  const addMaterial = async (data: CreateMaterialRequest): Promise<LessonMaterialDto> => {
-    const created = await createMaterial(data);
-    setMaterials((prev) => [...prev, created]);
-    return created;
+  const deleteLesson = async (id: number): Promise<boolean> => {
+    try {
+      await contentApi.deleteLesson(id);
+      if (currentUnit) {
+        setCurrentUnit((prev) =>
+          prev
+            ? { ...prev, lessons: prev.lessons.filter((l) => l.id !== id) }
+            : prev
+        );
+      }
+      return true;
+    } catch {
+      setError('Stergerea lectiei a esuat.');
+      return false;
+    }
   };
 
-  const removeMaterial = async (id: number): Promise<void> => {
-    await deleteMaterial(id);
-    setMaterials((prev) => prev.filter((m) => m.id !== id));
+  // --- CRUD Exercise ---
+  const createExercise = async (
+    data: Omit<ExerciseDto, 'id'>
+  ): Promise<boolean> => {
+    setIsSaving(true);
+    try {
+      const created = await contentApi.createExercise(data);
+      if (currentLesson?.id === created.lessonId) {
+        setCurrentLesson((prev) =>
+          prev
+            ? { ...prev, exercises: [...(prev.exercises ?? []), created] }
+            : prev
+        );
+      }
+      return true;
+    } catch {
+      setError('Crearea exercitiului a esuat.');
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  return { materials, loading, error, refetch: fetchMaterials, addMaterial, removeMaterial };
+  const updateExercise = async (
+    id: number,
+    data: Omit<ExerciseDto, 'id' | 'lessonId'>
+  ): Promise<boolean> => {
+    setIsSaving(true);
+    try {
+      const updated = await contentApi.updateExercise(id, data);
+      if (currentLesson) {
+        setCurrentLesson((prev) =>
+          prev
+            ? {
+                ...prev,
+                exercises: (prev.exercises ?? []).map((e) =>
+                  e.id === id ? updated : e
+                ),
+              }
+            : prev
+        );
+      }
+      return true;
+    } catch {
+      setError('Actualizarea exercitiului a esuat.');
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const deleteExercise = async (id: number): Promise<boolean> => {
+    try {
+      await contentApi.deleteExercise(id);
+      if (currentLesson) {
+        setCurrentLesson((prev) =>
+          prev
+            ? {
+                ...prev,
+                exercises: (prev.exercises ?? []).filter((e) => e.id !== id),
+              }
+            : prev
+        );
+      }
+      return true;
+    } catch {
+      setError('Stergerea exercitiului a esuat.');
+      return false;
+    }
+  };
+
+  // --- Materials ---
+  const uploadAndCreateMaterial = async (
+    lessonId: number,
+    title: string,
+    type: string,
+    file: File
+  ): Promise<boolean> => {
+    setIsSaving(true);
+    try {
+      // Pasul 1: upload fisier → URL MinIO
+      const url = await contentApi.uploadMaterialFile(file);
+      // Pasul 2: salveaza materialul in DB cu URL-ul primit
+      const created = await contentApi.createMaterial({ lessonId, title, type, url });
+      setMaterials((prev) => [...prev, created]);
+      return true;
+    } catch {
+      setError('Incarcarea materialului a esuat.');
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const deleteMaterial = async (id: number): Promise<boolean> => {
+    try {
+      await contentApi.deleteMaterial(id);
+      setMaterials((prev) => prev.filter((m) => m.id !== id));
+      return true;
+    } catch {
+      setError('Stergerea materialului a esuat.');
+      return false;
+    }
+  };
+
+  return {
+    units,
+    currentUnit,
+    currentLesson,
+    exerciseTypes,
+    materials,
+    isLoading,
+    isSaving,
+    error,
+    fetchUnits,
+    fetchUnitFull,
+    fetchLesson,
+    createUnit,
+    updateUnit,
+    deleteUnit,
+    createLesson,
+    updateLesson,
+    deleteLesson,
+    createExercise,
+    updateExercise,
+    deleteExercise,
+    uploadAndCreateMaterial,
+    deleteMaterial,
+  };
 };

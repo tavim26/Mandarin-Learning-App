@@ -1,31 +1,34 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
-interface UseTTSReturn {
-  speak: (text: string) => void;
-  stop: () => void;
-  isSpeaking: boolean;
-  isSupported: boolean;
-}
-
-const useTTS = (lang = 'zh-CN'): UseTTSReturn => {
+// Text-to-Speech pentru pronuntia caracterelor chinezesti.
+// Foloseste Web Speech API nativa — fara dependente externe.
+export const useTTS = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const isSupported = typeof window !== 'undefined' && 'speechSynthesis' in window;
+  const [isSupported] = useState(() => 'speechSynthesis' in window);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  useEffect(() => {
-    return () => { if (isSupported) window.speechSynthesis.cancel(); };
-  }, [isSupported]);
+  const speak = useCallback(
+    (text: string, lang = 'zh-CN') => {
+      if (!isSupported) return;
 
-  const speak = useCallback((text: string) => {
-    if (!isSupported || !text.trim()) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = lang;
-    utterance.rate = 0.85;
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-    window.speechSynthesis.speak(utterance);
-  }, [isSupported, lang]);
+      // Opreste orice redare in curs
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = lang;
+      utterance.rate = 0.85;   // usor incetinit pentru claritate pedagogica
+      utterance.pitch = 1;
+      utterance.volume = 1;
+
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+
+      utteranceRef.current = utterance;
+      window.speechSynthesis.speak(utterance);
+    },
+    [isSupported]
+  );
 
   const stop = useCallback(() => {
     if (!isSupported) return;
@@ -33,7 +36,10 @@ const useTTS = (lang = 'zh-CN'): UseTTSReturn => {
     setIsSpeaking(false);
   }, [isSupported]);
 
-  return { speak, stop, isSpeaking, isSupported };
+  return {
+    speak,
+    stop,
+    isSpeaking,
+    isSupported,
+  };
 };
-
-export default useTTS;

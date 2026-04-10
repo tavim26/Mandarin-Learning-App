@@ -1,218 +1,113 @@
 import { useState, useEffect } from 'react';
+import { usersApi } from '@/api/usersApi';
 import { useAuthStore } from '@/store/authStore';
-import {
-  updateUserName,
-  updateUserEmail,
-  updateOwnPassword,
-  updateStudentNickname,
-  updateTeacherTitle,
-  getTeacherProfile,
-} from '@/api/usersApi';
-import { getStudentReplica } from '@/api/progressApi';
+import type { StudentDto, TeacherDto, UserDto } from '@/types';
 
-// --- Hook comun pentru toate profilurile ---
+export const useProfile = () => {
+  const { userId, role } = useAuthStore();
 
-export const useProfilePassword = (userId: number) => {
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showOldPassword, setShowOldPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [userInfo, setUserInfo] = useState<UserDto | null>(null);
+  const [studentProfile, setStudentProfile] = useState<StudentDto | null>(null);
+  const [teacherProfile, setTeacherProfile] = useState<TeacherDto | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-
-  const submit = async () => {
-    if (newPassword !== confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-    if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters.');
-      return;
-    }
-    try {
-      setLoading(true);
-      setError(null);
-      setSuccess(false);
-      await updateOwnPassword(userId, oldPassword, newPassword);
-      setSuccess(true);
-      setOldPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-    } catch {
-      setError('Current password is incorrect.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return {
-    oldPassword, setOldPassword,
-    newPassword, setNewPassword,
-    confirmPassword, setConfirmPassword,
-    showOldPassword, setShowOldPassword,
-    loading, error, success,
-    submit,
-  };
-};
-
-// --- Hook profil student ---
-
-export const useStudentProfile = () => {
-  const { userId, fullName, role, email, token, setAuth } = useAuthStore();
-
-  const [nameValue, setNameValue] = useState(fullName ?? '');
-  const [emailValue, setEmailValue] = useState('');
-  const [nicknameValue, setNicknameValue] = useState('');
-  const [studentStats, setStudentStats] = useState<{ xpTotal: number; level: number } | null>(null);
-  const [infoLoading, setInfoLoading] = useState(false);
-  const [infoError, setInfoError] = useState<string | null>(null);
-  const [infoSuccess, setInfoSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!userId) return;
-    const fetch = async () => {
+    const load = async () => {
+      setIsLoading(true);
       try {
-        const data = await getStudentReplica(userId);
-        setStudentStats({ xpTotal: data.xpTotal, level: data.level });
+        const me = await usersApi.getMe();
+        setUserInfo(me);
+        if (role === 'STUDENT') {
+          const sp = await usersApi.getStudentById(userId);
+          setStudentProfile(sp);
+        } else if (role === 'TEACHER') {
+          const tp = await usersApi.getTeacherById(userId);
+          setTeacherProfile(tp);
+        }
       } catch {
-        // 404 — student fara activitate
-        setStudentStats({ xpTotal: 0, level: 1 });
+        setError('Nu s-au putut incarca datele profilului.');
+      } finally {
+        setIsLoading(false);
       }
     };
-    fetch();
-  }, [userId]);
+    load();
+  }, [userId, role]);
 
-  const saveInfo = async () => {
-    if (!userId || !token || !role) return;
+  const updateEmail = async (newEmail: string): Promise<boolean> => {
+    if (!userId) return false;
+    setError(null);
+    setSuccessMessage(null);
     try {
-      setInfoLoading(true);
-      setInfoError(null);
-      setInfoSuccess(false);
-      if (nameValue !== fullName) await updateUserName(userId, nameValue);
-      if (emailValue.trim() !== '') await updateUserEmail(userId, emailValue);
-      await updateStudentNickname(userId, nicknameValue);
-      setAuth({
-        token, userId, role,
-        fullName: nameValue,
-        email: emailValue.trim() !== '' ? emailValue : (email ?? ''),
-      });
-      setInfoSuccess(true);
-      setEmailValue('');
+      const updated = await usersApi.updateEmail(userId, newEmail);
+      setUserInfo(updated);
+      setSuccessMessage('Email actualizat cu succes.');
+      return true;
     } catch {
-      setInfoError('Failed to update profile.');
-    } finally {
-      setInfoLoading(false);
+      setError('Actualizarea email-ului a esuat.');
+      return false;
+    }
+  };
+
+  const updatePassword = async (
+    oldPassword: string,
+    newPassword: string
+  ): Promise<boolean> => {
+    if (!userId) return false;
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      await usersApi.updatePassword(userId, oldPassword, newPassword);
+      setSuccessMessage('Parola actualizata cu succes.');
+      return true;
+    } catch {
+      setError('Parola veche este incorecta.');
+      return false;
+    }
+  };
+
+  const updateNickname = async (newNickname: string): Promise<boolean> => {
+    if (!userId) return false;
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const updated = await usersApi.updateStudentNickname(userId, newNickname);
+      setStudentProfile(updated);
+      setSuccessMessage('Nickname actualizat cu succes.');
+      return true;
+    } catch {
+      setError('Nickname-ul este deja folosit.');
+      return false;
+    }
+  };
+
+  const updateTitle = async (newTitle: string): Promise<boolean> => {
+    if (!userId) return false;
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const updated = await usersApi.updateTeacherTitle(userId, newTitle);
+      setTeacherProfile(updated);
+      setSuccessMessage('Titlul academic actualizat cu succes.');
+      return true;
+    } catch {
+      setError('Actualizarea titlului a esuat.');
+      return false;
     }
   };
 
   return {
-    nameValue, setNameValue,
-    emailValue, setEmailValue,
-    nicknameValue, setNicknameValue,
-    studentStats,
-    infoLoading, infoError, infoSuccess,
-    saveInfo,
-    fullName, role, email, userId: userId!,
-  };
-};
-
-// --- Hook profil profesor ---
-
-export const useTeacherProfile = () => {
-  const { userId, fullName, role, email, token, setAuth } = useAuthStore();
-
-  const [nameValue, setNameValue] = useState(fullName ?? '');
-  const [emailValue, setEmailValue] = useState('');
-  const [titleValue, setTitleValue] = useState('');
-  const [infoLoading, setInfoLoading] = useState(false);
-  const [infoError, setInfoError] = useState<string | null>(null);
-  const [infoSuccess, setInfoSuccess] = useState(false);
-
-  useEffect(() => {
-    if (!userId) return;
-    const fetch = async () => {
-      try {
-        const profile = await getTeacherProfile(userId);
-        setTitleValue(profile.title ?? '');
-      } catch {
-        // Titlul ramane gol
-      }
-    };
-    fetch();
-  }, [userId]);
-
-  const saveInfo = async () => {
-    if (!userId || !token || !role) return;
-    try {
-      setInfoLoading(true);
-      setInfoError(null);
-      setInfoSuccess(false);
-      if (nameValue !== fullName) await updateUserName(userId, nameValue);
-      if (emailValue.trim() !== '') await updateUserEmail(userId, emailValue);
-      await updateTeacherTitle(userId, titleValue);
-      setAuth({
-        token, userId, role,
-        fullName: nameValue,
-        email: emailValue.trim() !== '' ? emailValue : (email ?? ''),
-      });
-      setInfoSuccess(true);
-      setEmailValue('');
-    } catch {
-      setInfoError('Failed to update profile.');
-    } finally {
-      setInfoLoading(false);
-    }
-  };
-
-  return {
-    nameValue, setNameValue,
-    emailValue, setEmailValue,
-    titleValue, setTitleValue,
-    infoLoading, infoError, infoSuccess,
-    saveInfo,
-    fullName, role, email, userId: userId!,
-  };
-};
-
-// --- Hook profil admin ---
-
-export const useAdminProfile = () => {
-  const { userId, fullName, role, email, token, setAuth } = useAuthStore();
-
-  const [nameValue, setNameValue] = useState(fullName ?? '');
-  const [emailValue, setEmailValue] = useState('');
-  const [infoLoading, setInfoLoading] = useState(false);
-  const [infoError, setInfoError] = useState<string | null>(null);
-  const [infoSuccess, setInfoSuccess] = useState(false);
-
-  const saveInfo = async () => {
-    if (!userId || !token || !role) return;
-    try {
-      setInfoLoading(true);
-      setInfoError(null);
-      setInfoSuccess(false);
-      if (nameValue !== fullName) await updateUserName(userId, nameValue);
-      if (emailValue.trim() !== '') await updateUserEmail(userId, emailValue);
-      setAuth({
-        token, userId, role,
-        fullName: nameValue,
-        email: emailValue.trim() !== '' ? emailValue : (email ?? ''),
-      });
-      setInfoSuccess(true);
-      setEmailValue('');
-    } catch {
-      setInfoError('Failed to update profile.');
-    } finally {
-      setInfoLoading(false);
-    }
-  };
-
-  return {
-    nameValue, setNameValue,
-    emailValue, setEmailValue,
-    infoLoading, infoError, infoSuccess,
-    saveInfo,
-    fullName, role, email, userId: userId!,
+    userInfo,
+    studentProfile,
+    teacherProfile,
+    isLoading,
+    error,
+    successMessage,
+    updateEmail,
+    updatePassword,
+    updateNickname,
+    updateTitle,
   };
 };

@@ -1,73 +1,76 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginApi, registerApi } from '@/api/authApi';
+import { authApi } from '@/api/authApi';
 import { useAuthStore } from '@/store/authStore';
-
-// Tipurile sunt re-exportate din hook — paginile nu importa din types/ sau api/
-export interface LoginFormData {
-  email: string;
-  password: string;
-}
-
-export interface RegisterFormData {
-  fullName: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  role: 'STUDENT' | 'TEACHER' | 'ADMIN';
-}
+import type { AuthRequestDto, RegisterRequestDto } from '@/types';
 
 export const useAuth = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const { setAuth, clearAuth, isAuthenticated, role, userId, fullName } =
+    useAuthStore();
   const navigate = useNavigate();
-  const setAuth = useAuthStore((state) => state.setAuth);
 
-  const [loginError, setLoginError]     = useState<string | null>(null);
-  const [registerError, setRegisterError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const login = async (data: LoginFormData): Promise<void> => {
-    setIsSubmitting(true);
-    setLoginError(null);
+  const login = async (data: AuthRequestDto) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      const response = await loginApi(data);
-      setAuth({
-        token:    response.token,
-        userId:   response.userId,
-        role:     response.role,
-        fullName: response.fullName,
-        email:    data.email,
-      });
-      navigate('/dashboard');
-    } catch {
-      setLoginError('Invalid email or password.');
+      const res = await authApi.login(data);
+      setAuth({ ...res });
+      // Redirectioneaza pe baza rolului
+      if (res.role === 'ADMIN') navigate('/admin/dashboard');
+      else if (res.role === 'TEACHER') navigate('/teacher/dashboard');
+      else navigate('/dashboard');
+    } catch (err: unknown) {
+      setError(extractErrorMessage(err, 'Email sau parola incorecte.'));
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
-  const register = async (data: RegisterFormData): Promise<void> => {
-    setIsSubmitting(true);
-    setRegisterError(null);
+  const register = async (data: RegisterRequestDto) => {
+    setIsLoading(true);
+    setError(null);
     try {
-      await registerApi({
-        fullName: data.fullName,
-        email:    data.email,
-        password: data.password,
-        role:     data.role,
-      });
+      await authApi.register(data);
       navigate('/login');
-    } catch (err) {
-      setRegisterError(err instanceof Error ? err.message : 'Registration failed.');
+    } catch (err: unknown) {
+      setError(extractErrorMessage(err, 'Inregistrarea a esuat.'));
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
+  };
+
+  const logout = () => {
+    clearAuth();
+    navigate('/login');
   };
 
   return {
+    isLoading,
+    error,
+    isAuthenticated,
+    role,
+    userId,
+    fullName,
     login,
     register,
-    loginError,
-    registerError,
-    isSubmitting,
+    logout,
   };
+};
+
+// Helper intern — nu se exporta
+const extractErrorMessage = (err: unknown, fallback: string): string => {
+  if (
+    typeof err === 'object' &&
+    err !== null &&
+    'response' in err &&
+    typeof (err as { response?: { data?: { message?: string } } }).response
+      ?.data?.message === 'string'
+  ) {
+    return (err as { response: { data: { message: string } } }).response.data
+      .message;
+  }
+  return fallback;
 };

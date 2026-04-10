@@ -1,20 +1,35 @@
-// Serviciul Python returneaza snake_case — nu se aplica transformare axios
-// Toate campurile reflecta exact structura JSON primita de la backend
-
 export type SourceType = 'MANUAL' | 'OCR';
-export type TranslationLanguage = 'ro' | 'en';
+
+export type TranslationLanguage = 'ro' | 'en' | 'de' | 'es' | 'fr';
+
+export type PartOfSpeech =
+  | 'verb'
+  | 'substantiv'
+  | 'adjectiv'
+  | 'adverb'
+  | 'pronume'
+  | 'nume propriu'
+  | 'numar'
+  | 'particula'
+  | 'prepozitie'
+  | 'conjunctie'
+  | 'auxiliar'
+  | 'interjectie'
+  | 'punctuatie'
+  | 'necunoscut'
+  | null;
 
 export interface AnalysisTokenDto {
   id: number;
   analysis_id: number;
   hanzi: string;
-  pinyin: string | null;
-  translation: string | null;
+  pinyin: string;
+  translation: string;
   hsk_level: number | null;
   position_index: number;
+  pos: PartOfSpeech;
 }
 
-// Returnat la POST /text, POST /ocr, GET /{id} — include tokenii
 export interface TextAnalysisDto {
   id: number;
   student_id: number;
@@ -22,12 +37,11 @@ export interface TextAnalysisDto {
   source_type: SourceType;
   overall_hsk_level: number | null;
   created_at: string;
-  translated_text: string | null;
+  translated_text: string;
   translation_language: TranslationLanguage;
   tokens: AnalysisTokenDto[];
 }
 
-// Returnat in listare paginata — fara tokeni
 export interface TextAnalysisSummaryDto {
   id: number;
   student_id: number;
@@ -35,16 +49,17 @@ export interface TextAnalysisSummaryDto {
   source_type: SourceType;
   overall_hsk_level: number | null;
   created_at: string;
-  translated_text: string | null;
+  translated_text: string;
   translation_language: TranslationLanguage;
+  // tokens ABSENTI — se cer separat la GET /{analysisId}
 }
 
-export interface HskTokenDistribution {
+export interface TokenDistributionDto {
   hsk_level: number | null;
   token_count: number;
 }
 
-export interface UniqueCharsPerHskLevel {
+export interface UniqueCharsPerHskDto {
   hsk_level: number;
   unique_count: number;
   total_in_level: number;
@@ -52,28 +67,35 @@ export interface UniqueCharsPerHskLevel {
 }
 
 export interface StudentStatsDto {
-  token_distribution: HskTokenDistribution[];
+  token_distribution: TokenDistributionDto[];
   source_type_split: Record<SourceType, number>;
-  unique_chars_per_hsk_level: UniqueCharsPerHskLevel[];
-}
-
-export interface AnalyzeTextRequestDto {
-  raw_text: string;
-  translation_language?: TranslationLanguage;
-}
-
-// Folosit de ChineseText component — nu persista in DB
-export interface PreviewRequest {
-  text: string;
+  unique_chars_per_hsk_level: UniqueCharsPerHskDto[];
 }
 
 export interface PreviewTokenDto {
   hanzi: string;
-  pinyin: string | null;
+  pinyin: string;
   hsk_level: number | null;
   position_index: number;
+  pos: PartOfSpeech;
 }
 
-export interface PreviewResponse {
+export interface PreviewResponseDto {
   tokens: PreviewTokenDto[];
+}
+
+export interface AnalysisPageDto<T> {
+  items: T[];
+  total: number;
+  page: number;
+  size: number;
+  total_pages: number;
+}
+
+export interface AnalysisListParams {
+  page?: number;
+  size?: number;
+  source_type?: SourceType;
+  hsk_level?: number;
+  sort_order?: 'newest' | 'oldest';
 }

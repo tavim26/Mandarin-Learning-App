@@ -1,132 +1,156 @@
-import { useState, useEffect, useCallback } from 'react';
-import {
-  getAllUsers,
-  getAllStudents,
-  getAllTeachers,
-  createUser,
-  deleteUser,
-  updateUserName,
-  updateUserEmail,
-  resetUserPassword,
-  updateTeacherTitle,
-} from '@/api/usersApi';
+import { useState, useCallback } from 'react';
+import { usersApi } from '@/api/usersApi';
 import type {
   UserDto,
   StudentProfileDto,
   TeacherProfileDto,
-  CreateUserRequest,
 } from '@/types';
 
-// --- Hook pentru AdminDashboard ---
-
-export const useAdminOverview = () => {
+export const useUsers = () => {
   const [users, setUsers] = useState<UserDto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetch = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await getAllUsers();
-        setUsers(data);
-      } catch {
-        setError('Failed to load dashboard data.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetch();
-  }, []);
-
-  const totalStudents = users.filter((u) => u.role === 'STUDENT').length;
-  const totalTeachers = users.filter((u) => u.role === 'TEACHER').length;
-  const totalAdmins   = users.filter((u) => u.role === 'ADMIN').length;
-
-  return { users, totalStudents, totalTeachers, totalAdmins, loading, error };
-};
-
-// --- Tipuri pentru edit form (evita import circular cu modaluri) ---
-
-export interface EditUserForm {
-  userId: number;
-  fullName: string;
-  email: string;
-  title?: string;
-  type: 'STUDENT' | 'TEACHER';
-}
-
-// --- Hook pentru AdminUsers ---
-
-export const useAdminUsers = () => {
   const [students, setStudents] = useState<StudentProfileDto[]>([]);
   const [teachers, setTeachers] = useState<TeacherProfileDto[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchAllUsers = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-      const [studentsData, teachersData] = await Promise.all([
-        getAllStudents(),
-        getAllTeachers(),
-      ]);
-      setStudents(studentsData);
-      setTeachers(teachersData);
+      const data = await usersApi.getAllUsers();
+      setUsers(data);
     } catch {
-      setError('Failed to load users.');
+      setError('Nu s-au putut incarca utilizatorii.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const fetchStudents = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await usersApi.getAllStudents();
+      setStudents(data);
+    } catch {
+      setError('Nu s-au putut incarca studentii.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-  const editUser = async (data: EditUserForm): Promise<void> => {
-    const originalStudent = students.find((s) => s.userId === data.userId);
-    const originalTeacher = teachers.find((t) => t.userId === data.userId);
-    const original = originalStudent ?? originalTeacher;
-    if (!original) return;
+  const fetchTeachers = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await usersApi.getAllTeachers();
+      setTeachers(data);
+    } catch {
+      setError('Nu s-au putut incarca profesorii.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-    if (data.fullName !== original.fullName) {
-      await updateUserName(data.userId, data.fullName);
+  const createUser = async (data: {
+    email: string;
+    password: string;
+    fullName: string;
+    role: 'STUDENT' | 'TEACHER';
+  }): Promise<boolean> => {
+    try {
+      const newUser = await usersApi.createUser(data);
+      setUsers((prev) => [...prev, newUser]);
+      return true;
+    } catch {
+      setError('Crearea utilizatorului a esuat.');
+      return false;
     }
-    if (data.email !== original.email) {
-      await updateUserEmail(data.userId, data.email);
-    }
-    if (data.type === 'TEACHER' && data.title !== undefined) {
-      const originalTitle = (original as TeacherProfileDto).title ?? '';
-      if (data.title !== originalTitle) {
-        await updateTeacherTitle(data.userId, data.title);
-      }
-    }
-    await fetchData();
   };
 
-  const addUser = async (data: CreateUserRequest): Promise<void> => {
-    await createUser(data);
-    await fetchData();
+  const updateUserName = async (
+    id: number,
+    newName: string
+  ): Promise<boolean> => {
+    try {
+      const updated = await usersApi.updateName(id, newName);
+      setUsers((prev) => prev.map((u) => (u.id === id ? updated : u)));
+      return true;
+    } catch {
+      setError('Actualizarea numelui a esuat.');
+      return false;
+    }
   };
 
-  const removeUser = async (userId: number): Promise<void> => {
-    await deleteUser(userId);
-    await fetchData();
+  const resetUserPassword = async (
+    id: number,
+    newPassword: string
+  ): Promise<boolean> => {
+    try {
+      await usersApi.resetPassword(id, newPassword);
+      return true;
+    } catch {
+      setError('Resetarea parolei a esuat.');
+      return false;
+    }
   };
 
-  const resetPassword = async (userId: number, newPassword: string): Promise<void> => {
-    await resetUserPassword(userId, newPassword);
+  const banUser = async (id: number): Promise<boolean> => {
+    try {
+      await usersApi.banUser(id);
+      return true;
+    } catch {
+      setError('Operatiunea de ban a esuat.');
+      return false;
+    }
+  };
+
+  const unbanUser = async (id: number): Promise<boolean> => {
+    try {
+      await usersApi.unbanUser(id);
+      return true;
+    } catch {
+      setError('Operatiunea de unban a esuat.');
+      return false;
+    }
+  };
+
+  const deleteUser = async (id: number): Promise<boolean> => {
+    try {
+      await usersApi.deleteUser(id);
+      setUsers((prev) => prev.filter((u) => u.id !== id));
+      setStudents((prev) => prev.filter((s) => s.userId !== id));
+      setTeachers((prev) => prev.filter((t) => t.userId !== id));
+      return true;
+    } catch {
+      setError('Stergerea utilizatorului a esuat.');
+      return false;
+    }
+  };
+
+  const searchUsers = async (name: string): Promise<UserDto[]> => {
+    try {
+      return await usersApi.searchUsers(name);
+    } catch {
+      return [];
+    }
   };
 
   return {
+    users,
     students,
     teachers,
-    loading,
+    isLoading,
     error,
-    editUser,
-    addUser,
-    removeUser,
-    resetPassword,
+    fetchAllUsers,
+    fetchStudents,
+    fetchTeachers,
+    createUser,
+    updateUserName,
+    resetUserPassword,
+    banUser,
+    unbanUser,
+    deleteUser,
+    searchUsers,
   };
 };

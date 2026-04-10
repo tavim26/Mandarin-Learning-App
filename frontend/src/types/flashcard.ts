@@ -1,11 +1,7 @@
-// --- Enumerari ---
-
-export type FlashcardCategory = 'new' | 'learning' | 'mature' | 'due';
-
-// Valori quality conform algoritmului SM-2
+// Scala calitate SM-2: 0=Again, 1=Again(hard), 2=Hard, 3=Good, 4=Good(easy), 5=Easy
 export type ReviewQuality = 0 | 1 | 2 | 3 | 4 | 5;
 
-// --- DTOs primite de la backend ---
+export type Sm2Category = 'new' | 'learning' | 'mature' | 'due';
 
 export interface FlashcardSetDto {
   id: number;
@@ -22,9 +18,8 @@ export interface FlashcardDto {
   backText: string;
 }
 
-// id este null pentru carduri fara progress record (nevazute niciodata)
 export interface FlashcardProgressDto {
-  id: number | null;
+  id: number | null;         // null = card nou, nevazut niciodata
   studentId: number;
   flashcardId: number;
   easinessFactor: number;
@@ -68,8 +63,6 @@ export interface TotalDueStatsDto {
   bySet: DueCountBySetDto[];
 }
 
-// --- Request bodies ---
-
 export interface CreateFlashcardSetRequest {
   title: string;
   description?: string;
@@ -94,4 +87,5 @@ export interface UpdateFlashcardRequest {
 export interface SubmitReviewRequest {
   flashcardId: number;
   quality: ReviewQuality;
+  // studentId absent — vine din X-User-Id header
 }
