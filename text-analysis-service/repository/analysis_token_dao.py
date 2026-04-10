@@ -76,10 +76,6 @@ class AnalysisTokenDao(IAnalysisTokenDao):
         )
         return [(row.hsk_level, row.unique_count) for row in rows]
 
-
-
-
-
     def _to_entity(self, token: AnalysisToken) -> AnalysisTokenEntity:
         return AnalysisTokenEntity(
             id=token.id if token.id != 0 else None,
@@ -89,6 +85,7 @@ class AnalysisTokenDao(IAnalysisTokenDao):
             translation=token.translation,
             hsk_level=token.hsk_level,
             position_index=token.position_index,
+            pos=token.pos,
         )
 
     def _to_domain(self, entity: AnalysisTokenEntity) -> AnalysisToken:
@@ -100,4 +97,5 @@ class AnalysisTokenDao(IAnalysisTokenDao):
             translation=entity.translation,
             hsk_level=entity.hsk_level,
             position_index=entity.position_index,
+            pos=entity.pos,
         )

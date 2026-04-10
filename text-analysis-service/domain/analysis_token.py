@@ -10,3 +10,4 @@ class AnalysisToken:
     pinyin: str | None = None
     translation: str | None = None
     hsk_level: int | None = None
+    pos: str | None = None

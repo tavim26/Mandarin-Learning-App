@@ -170,6 +170,7 @@ class AnalysisService:
                     pinyin=t["pinyin"],
                     hsk_level=t["hsk_level"],
                     position_index=t["position_index"],
+                    pos=t["pos"],
                 )
                 for t in processed_tokens
             ]
@@ -217,6 +218,7 @@ class AnalysisService:
                     translation=token_translations[i],
                     hsk_level=t["hsk_level"],
                     position_index=t["position_index"],
+                    pos=t["pos"],
                 )
                 for i, t in enumerate(processed_tokens)
             ]

@@ -9,7 +9,6 @@ class AnalysisTokenEntity(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
 
-    # FK catre analiza parinte
     analysis_id: Mapped[int] = mapped_column(
         BigInteger, ForeignKey("text_analyses.id", ondelete="CASCADE"), nullable=False
     )
@@ -17,12 +16,12 @@ class AnalysisTokenEntity(Base):
     hanzi: Mapped[str] = mapped_column(VARCHAR(100), nullable=False)
     pinyin: Mapped[str | None] = mapped_column(VARCHAR(255), nullable=True)
     translation: Mapped[str | None] = mapped_column(Text, nullable=True)
-
-    # nivelul HSK al tokenului (1-6), None daca nu apare in listele HSK
     hsk_level: Mapped[int | None] = mapped_column(Integer, nullable=True)
-
-    # pozitia tokenului in textul original
     position_index: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # partea de vorbire — NOUN, VERB, ADJ, ADV, PART, PRON etc.
+    # nullable pentru compatibilitate cu analizele existente in DB
+    pos: Mapped[str | None] = mapped_column(VARCHAR(50), nullable=True)
 
     analysis: Mapped["TextAnalysisEntity"] = relationship(
         "TextAnalysisEntity",

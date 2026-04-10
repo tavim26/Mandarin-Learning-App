@@ -9,6 +9,7 @@ class AnalysisTokenDto(BaseModel):
     translation: str | None
     hsk_level: int | None
     position_index: int
+    pos: str | None
 
     class Config:
         from_attributes = True

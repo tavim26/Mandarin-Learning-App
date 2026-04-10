@@ -10,6 +10,7 @@ class PreviewTokenDto(BaseModel):
     pinyin: str
     hsk_level: int | None
     position_index: int
+    pos: str | None
 
 
 class PreviewResponseDto(BaseModel):

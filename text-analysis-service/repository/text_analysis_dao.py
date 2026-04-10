@@ -154,6 +154,7 @@ class TextAnalysisDao(ITextAnalysisDao):
                     translation=t.translation,
                     hsk_level=t.hsk_level,
                     position_index=t.position_index,
+                    pos=t.pos,
                 )
                 for t in entity.tokens
             ]
