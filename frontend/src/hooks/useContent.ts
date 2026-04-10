@@ -9,6 +9,9 @@ import type {
   LessonExerciseTypesDto,
 } from '@/types';
 
+export type { CourseUnitDto, LessonDto, ExerciseDto, LessonMaterialDto } from '@/types';
+
+
 export const useContent = () => {
   const [units, setUnits] = useState<CourseUnitDto[]>([]);
   const [currentUnit, setCurrentUnit] = useState<CourseUnitFullDto | null>(null);

@@ -10,6 +10,10 @@ import type {
   SubmitAttemptRequest,
 } from '@/types';
 
+
+export type { StudentSummaryDto, StudentLessonProgressDto, StudentUnitProgressDto } from '@/types';
+
+
 export const useProgress = () => {
   const { userId } = useAuthStore();
 

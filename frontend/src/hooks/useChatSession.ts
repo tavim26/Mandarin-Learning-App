@@ -6,6 +6,10 @@ import type {
   CreateSessionRequest,
 } from '@/types';
 
+
+export type { ChatSessionDto, ChatMessageDto } from '@/types';
+
+
 export const useChatSession = () => {
   const [sessions, setSessions] = useState<ChatSessionDto[]>([]);
   const [activeSession, setActiveSession] = useState<ChatSessionDto | null>(

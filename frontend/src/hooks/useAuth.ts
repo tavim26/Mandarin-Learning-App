@@ -4,6 +4,8 @@ import { authApi } from '@/api/authApi';
 import { useAuthStore } from '@/store/authStore';
 import type { AuthRequestDto, RegisterRequestDto } from '@/types';
 
+export type { Role } from '@/types';
+
 export const useAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

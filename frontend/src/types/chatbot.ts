@@ -1,3 +1,6 @@
+import type { PagedResponse } from './common';
+export type { PagedResponse };
+
 export type MessageSender = 'STUDENT' | 'AI';
 
 export interface ChatSessionDto {
@@ -31,13 +34,4 @@ export interface CreateSessionRequest {
 
 export interface SendMessageRequest {
   content: string;
-}
-
-export interface PagedResponse<T> {
-  content: T[];
-  page: number;
-  size: number;
-  totalElements: number;
-  totalPages: number;
-  last: boolean;
 }

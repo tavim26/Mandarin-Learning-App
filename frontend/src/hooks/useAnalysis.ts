@@ -11,6 +11,8 @@ import type {
   TranslationLanguage,
 } from '@/types';
 
+export type { TextAnalysisDto, TextAnalysisSummaryDto, AnalysisTokenDto, StudentStatsDto } from '@/types';
+
 export const useAnalysis = () => {
   const { userId } = useAuthStore();
 
