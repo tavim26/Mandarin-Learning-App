@@ -1,8 +1,5 @@
 import { useState } from 'react';
-import type {
-  MultipleChoiceData,
-  MultipleChoiceAnswer,
-} from '@/hooks/useContent';
+import type { MultipleChoiceData, MultipleChoiceAnswer } from '@/hooks/useContent';
 
 interface Props {
   data: MultipleChoiceData;
@@ -23,44 +20,62 @@ export const MultipleChoice = ({
 
   const handleSelect = (index: number) => {
     if (disabled) return;
+    // Click pe optiunea deja selectata o deselecteaza
+    if (selected === index) {
+      setSelected(null);
+      return;
+    }
     setSelected(index);
     onAnswer({ selectedIndex: index });
   };
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {data.options.map((option, index) => {
-        const isSelected = selected === index;
-        return (
-          <button
-            key={index}
-            onClick={() => handleSelect(index)}
-            disabled={disabled}
-            className={`
-              relative flex items-center gap-3 rounded-lg border-2 px-4 py-3
-              text-sm font-medium text-left transition-all duration-150
-              disabled:cursor-not-allowed disabled:opacity-60
-              ${
-                isSelected
+    <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-2">
+        {data.options.map((option, index) => {
+          const isSelected = selected === index;
+          return (
+            <button
+              key={index}
+              onClick={() => handleSelect(index)}
+              disabled={disabled}
+              className={`
+                relative flex items-center gap-3 rounded-lg border-2 px-4 py-3
+                text-sm font-medium text-left transition-all duration-150
+                disabled:cursor-not-allowed disabled:opacity-60
+                ${isSelected
                   ? 'border-primary bg-primary/8 text-primary'
                   : 'border-border bg-card text-foreground hover:border-primary/40 hover:bg-accent'
-              }
-            `}
-          >
-            {/* Index indicator */}
-            <span
-              className={`
-                flex h-6 w-6 shrink-0 items-center justify-center
-                rounded-full text-xs font-bold
-                ${isSelected ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}
+                }
               `}
             >
-              {String.fromCharCode(65 + index)}
-            </span>
-            {option}
-          </button>
-        );
-      })}
+              <span
+                className={`
+                  flex h-6 w-6 shrink-0 items-center justify-center
+                  rounded-full text-xs font-bold
+                  ${isSelected
+                    ? 'bg-primary text-white'
+                    : 'bg-muted text-muted-foreground'
+                  }
+                `}
+              >
+                {String.fromCharCode(65 + index)}
+              </span>
+              {option}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Deselect */}
+      {selected !== null && !disabled && (
+        <button
+          onClick={() => setSelected(null)}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          ↺ Clear selection
+        </button>
+      )}
     </div>
   );
 };

@@ -241,10 +241,6 @@ class AnalysisService:
             return None
         return round(sum(levels) / len(levels))
 
-
-
-
-
     def _to_dto(self, analysis: TextAnalysis) -> TextAnalysisDto:
         return TextAnalysisDto(
             id=analysis.id,
@@ -264,6 +260,7 @@ class AnalysisService:
                     translation=t.translation,
                     hsk_level=t.hsk_level,
                     position_index=t.position_index,
+                    pos=t.pos,
                 )
                 for t in analysis.tokens
             ]

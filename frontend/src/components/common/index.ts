@@ -5,4 +5,5 @@ export { PageHeader } from './PageHeader';
 export { Navbar } from './Navbar';
 export { AppLayout } from './AppLayout';
 export { ChangePasswordCard } from './ChangePasswordCard';
+export { ChineseText } from './ChineseText';
 export type { NavItem } from './AppLayout';

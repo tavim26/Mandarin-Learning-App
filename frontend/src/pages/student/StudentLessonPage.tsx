@@ -15,9 +15,18 @@ const StudentLessonPage = () => {
   const { lessonId } = useParams<{ lessonId: string }>();
   const navigate = useNavigate();
 
-  const { currentLesson, isLoading: isLoadingContent, error, fetchLesson } =
-    useContent();
-  const { submitAttempt, fetchLessonProgress, lessonProgress } = useProgress();
+  const {
+    currentLesson,
+    isLoading: isLoadingContent,
+    error,
+    fetchLesson,
+  } = useContent();
+
+  const {
+    lessonProgress,
+    submitAttempt,
+    fetchLessonProgress,
+  } = useProgress();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [attemptResult, setAttemptResult] = useState<ExerciseAttemptDto | null>(
@@ -27,12 +36,40 @@ const StudentLessonPage = () => {
     useState<SubmittedAnswer | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+
+const [initialized, setInitialized] = useState(false);
+
+// Initializare index la primul render cu date disponibile
+// Apelarea setState in timpul randarii este permisa de React pentru acest pattern
+if (
+  !initialized &&
+  currentLesson?.exercises?.length &&
+  lessonProgress !== undefined
+) {
+  setInitialized(true);
+  if (lessonProgress?.status === 'IN_PROGRESS') {
+    const total = currentLesson.exercises.length;
+    const resumeIdx = Math.min(
+      Math.floor((lessonProgress.completionPct / 100) * total),
+      total - 1
+    );
+    if (resumeIdx > 0) setCurrentIndex(resumeIdx);
+  }
+}
+
+
+
   useEffect(() => {
     if (!lessonId) return;
     const id = Number(lessonId);
     fetchLesson(id);
     fetchLessonProgress(id);
   }, [lessonId, fetchLesson, fetchLessonProgress]);
+
+ 
+
+
+
 
 
   const exercises = currentLesson?.exercises ?? [];
@@ -57,14 +94,21 @@ const StudentLessonPage = () => {
   };
 
   const handleNext = () => {
-  if (isLast) {
-    navigate(-1);
-  } else {
+    if (isLast) {
+      navigate(-1);
+    } else {
+      setAttemptResult(null);
+      setSubmittedAnswer(null);
+      setCurrentIndex((prev) => prev + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentIndex === 0) return;
     setAttemptResult(null);
     setSubmittedAnswer(null);
-    setCurrentIndex((prev) => prev + 1);
-  }
-};
+    setCurrentIndex((prev) => prev - 1);
+  };
 
   if (isLoadingContent) {
     return (
@@ -87,11 +131,20 @@ const StudentLessonPage = () => {
           { label: 'Lessons', onClick: () => navigate('/lessons') },
           {
             label: `Unit #${currentLesson.unitId}`,
-            onClick: () => navigate(`/lessons/units/${currentLesson.unitId}`),
+            onClick: () =>
+              navigate(`/lessons/units/${currentLesson.unitId}`),
           },
           { label: currentLesson.title },
         ]}
       />
+
+      {/* Banner resume */}
+      {lessonProgress?.status === 'IN_PROGRESS' && currentIndex > 0 && (
+        <div className="rounded-lg border border-primary/30 bg-primary/8 px-4 py-2.5 text-sm text-primary animate-fade-in">
+          Continuing from exercise {currentIndex + 1} — your progress has been
+          saved.
+        </div>
+      )}
 
       {/* Progress bar lectie */}
       <div className="space-y-2">
@@ -121,8 +174,8 @@ const StudentLessonPage = () => {
         />
       ) : currentExercise ? (
         <div className="space-y-6">
-          {/* Card exercitiu */}
-          <div  key={currentIndex} className="card-base p-6">
+          {/* Card exercitiu — key garanteaza remount la schimbarea indexului */}
+          <div key={currentIndex} className="card-base p-6">
             <ExerciseRenderer
               exercise={currentExercise}
               onAnswer={handleAnswer}
@@ -143,7 +196,7 @@ const StudentLessonPage = () => {
           <div className="flex items-center justify-between">
             <Button
               variant="outline"
-              onClick={() => setCurrentIndex((prev) => Math.max(0, prev - 1))}
+              onClick={handlePrevious}
               disabled={currentIndex === 0 || isSubmitting}
               className="gap-2"
             >

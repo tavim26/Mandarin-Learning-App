@@ -122,7 +122,7 @@ const SetFormModal = ({
 }: SetFormModalProps) => {
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md animate-scale-in">
+      <DialogContent className="sm:max-w-md">
         <SetFormContent
           key={open ? (initial?.id ?? 'create') : 'closed'}
           initial={initial}

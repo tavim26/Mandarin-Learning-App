@@ -7,6 +7,7 @@ import com.chineselearning.contentservice.service.ContentService;
 import com.chineselearning.contentservice.service.StorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -216,6 +217,20 @@ public class ContentController {
             return ResponseEntity.status(201).body(url);
         } catch (IOException e) {
             return ResponseEntity.status(500).build();
+        }
+    }
+
+
+    @GetMapping("/files/{fileName}")
+    public ResponseEntity<byte[]> serveFile(@PathVariable String fileName) {
+        try {
+            byte[] fileBytes = storageService.loadFile(fileName);
+            String contentType = storageService.getContentType(fileName);
+            return ResponseEntity.ok()
+                    .header("Content-Type", contentType)
+                    .body(fileBytes);
+        } catch (IOException e) {
+            return ResponseEntity.notFound().build();
         }
     }
 
