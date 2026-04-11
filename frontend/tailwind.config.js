@@ -6,6 +6,14 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  safelist: [
+  'bg-hsk-1', 'bg-hsk-2', 'bg-hsk-3',
+  'bg-hsk-4', 'bg-hsk-5', 'bg-hsk-6',
+  'bg-hsk-unknown',
+  'text-hsk-1', 'text-hsk-2', 'text-hsk-3',
+  'text-hsk-4', 'text-hsk-5', 'text-hsk-6',
+  'text-hsk-unknown',
+],
   theme: {
     extend: {
       fontFamily: {
@@ -90,3 +98,4 @@ export default {
   },
   plugins: [],
 };
+

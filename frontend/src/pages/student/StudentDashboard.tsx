@@ -1,187 +1,171 @@
 import { useNavigate } from 'react-router-dom';
+import {
+  BookOpen,
+  Brain,
+  Trophy,
+  Zap,
+  TrendingUp,
+  ArrowRight,
+  Clock,
+} from 'lucide-react';
+import { PageHeader } from '@/components/common/PageHeader';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { EmptyState } from '@/components/common/EmptyState';
 import { useStudentDashboard } from '@/hooks/useStudentDashboard';
+import { useAuth } from '@/hooks/useAuth';
 
 const StudentDashboard = () => {
+  const { fullName } = useAuth();
   const navigate = useNavigate();
-  const { summary, inProgress, dueStats, loading, error, xpProgress, xpPct } = useStudentDashboard();
+  const {
+    summary,
+    inProgressLessons,
+    leaderboard,
+    totalDue,
+    isLoading,
+  } = useStudentDashboard();
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-gray-400 text-sm">Loading...</p>
+      <div className="flex h-64 items-center justify-center">
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-red-500 text-sm">{error}</p>
-      </div>
-    );
-  }
+  const xpToNextLevel = summary ? 100 - (summary.xpTotal % 100) : 100;
+  const xpProgress = summary ? (summary.xpTotal % 100) : 0;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fade-in">
+      <PageHeader
+        title={`Welcome back, ${fullName?.split(' ')[0] ?? 'Student'}`}
+        subtitle="Here's your learning progress at a glance."
+        icon={LayoutDashboard}
+      />
 
-      <div className="space-y-1">
-        <h1
-          className="text-3xl font-bold text-gray-900"
-          style={{ fontFamily: 'Outfit, sans-serif' }}
-        >
-          Dashboard
-        </h1>
-        <p className="text-gray-400 text-sm">
-          Track your progress and continue learning
-        </p>
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl p-6 space-y-1" style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total XP</p>
-          <p className="text-4xl font-bold" style={{ color: '#e85d04', fontFamily: 'Outfit, sans-serif' }}>
+      {/* Stats cards */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="card-base p-4 space-y-2">
+          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            <Zap className="h-3.5 w-3.5 text-primary" />
+            Total XP
+          </div>
+          <p className="font-display text-3xl font-bold text-foreground">
             {summary?.xpTotal ?? 0}
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 space-y-1" style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Level</p>
-          <p className="text-4xl font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
+        <div className="card-base p-4 space-y-2">
+          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            <TrendingUp className="h-3.5 w-3.5 text-student" />
+            Level
+          </div>
+          <p className="font-display text-3xl font-bold text-foreground">
             {summary?.level ?? 1}
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 space-y-1" style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Lessons Done</p>
-          <p className="text-4xl font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
+        <div className="card-base p-4 space-y-2">
+          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            <BookOpen className="h-3.5 w-3.5 text-teacher" />
+            Completed
+          </div>
+          <p className="font-display text-3xl font-bold text-foreground">
             {summary?.completedLessonsCount ?? 0}
           </p>
+          <p className="text-xs text-muted-foreground">lessons</p>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 space-y-1" style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Cards Due</p>
-          <p
-            className="text-4xl font-bold"
-            style={{
-              color: (dueStats?.totalDue ?? 0) > 0 ? '#c1121f' : '#111827',
-              fontFamily: 'Outfit, sans-serif',
-            }}
-          >
-            {dueStats?.totalDue ?? 0}
+        <div
+          onClick={() => navigate('/flashcards')}
+          className="card-interactive p-4 space-y-2"
+        >
+          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            <Brain className="h-3.5 w-3.5 text-sm2-due" />
+            Due Today
+          </div>
+          <p className="font-display text-3xl font-bold text-foreground">
+            {totalDue?.totalDue ?? 0}
           </p>
+          <p className="text-xs text-muted-foreground">flashcards</p>
         </div>
       </div>
 
+      {/* XP Progress bar */}
       {summary && (
-        <div className="bg-white rounded-2xl p-6 space-y-3" style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}>
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
+        <div className="card-base p-5 space-y-3">
+          <div className="flex items-center justify-between text-sm">
+            <span className="font-medium text-foreground">
               Level {summary.level} → Level {summary.level + 1}
-            </p>
-            <p className="text-xs text-gray-400">{xpProgress} / 100 XP</p>
+            </span>
+            <span className="text-muted-foreground">
+              {xpProgress} / 100 XP
+            </span>
           </div>
-          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
             <div
-              className="h-full rounded-full transition-all"
-              style={{ width: `${xpPct}%`, background: '#e85d04' }}
+              className="h-full rounded-full bg-primary transition-all duration-700"
+              style={{ width: `${xpProgress}%` }}
             />
           </div>
+          <p className="text-xs text-muted-foreground">
+            {xpToNextLevel} XP needed to reach the next level
+          </p>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        <div className="bg-white rounded-2xl p-6 space-y-4" style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}>
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Lectii in progres */}
+        <div className="card-base p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
+            <h2 className="font-display font-semibold text-foreground">
               Continue Learning
             </h2>
             <button
               onClick={() => navigate('/lessons')}
-              className="text-xs font-semibold transition-opacity hover:opacity-70"
-              style={{ color: '#e85d04' }}
+              className="flex items-center gap-1 text-xs text-primary hover:underline"
             >
-              All lessons →
+              All lessons
+              <ArrowRight className="h-3 w-3" />
             </button>
           </div>
 
-          {inProgress.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-36 gap-3">
-              <p className="text-sm text-gray-400 text-center">No lessons in progress yet.</p>
-              <button
-                onClick={() => navigate('/lessons')}
-                className="text-sm font-semibold px-4 py-2 rounded-xl text-white hover:opacity-90 transition-opacity"
-                style={{ background: '#e85d04' }}
-              >
-                Browse Lessons
-              </button>
-            </div>
+          {inProgressLessons.length === 0 ? (
+            <EmptyState
+              icon={BookOpen}
+              title="No lessons in progress"
+              description="Start a lesson to see it here."
+              actionLabel="Browse lessons"
+              onAction={() => navigate('/lessons')}
+            />
           ) : (
-            <div className="space-y-3">
-              {inProgress.slice(0, 4).map((lesson) => (
+            <div className="space-y-2">
+              {inProgressLessons.slice(0, 4).map((progress) => (
                 <button
-                  key={lesson.id}
-                  onClick={() => navigate(`/lessons/${lesson.lessonId}`)}
-                  className="w-full text-left p-3 rounded-xl transition-all hover:bg-gray-50 group"
-                  style={{ border: '1px solid #f3f4f6' }}
+                  key={progress.lessonId}
+                  onClick={() => navigate(`/lessons/${progress.lessonId}`)}
+                  className="
+                    w-full flex items-center gap-3 rounded-lg
+                    border border-border bg-background px-3 py-2.5
+                    hover:border-primary/30 hover:bg-accent
+                    transition-colors duration-150 text-left
+                  "
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-semibold text-gray-800">Lesson #{lesson.lessonId}</p>
-                    <span
-                      className="text-xs font-semibold px-2 py-0.5 rounded-md"
-                      style={{ background: '#fff7f0', color: '#e85d04' }}
-                    >
-                      {Math.round(lesson.completionPct)}%
-                    </span>
+                  <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      Lesson #{progress.lessonId}
+                    </p>
+                    <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-primary"
+                        style={{ width: `${progress.completionPct}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: `${lesson.completionPct}%`, background: '#e85d04' }}
-                    />
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="bg-white rounded-2xl p-6 space-y-4" style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}>
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-              Flashcards Due Today
-            </h2>
-            <button
-              onClick={() => navigate('/flashcards')}
-              className="text-xs font-semibold transition-opacity hover:opacity-70"
-              style={{ color: '#e85d04' }}
-            >
-              All sets →
-            </button>
-          </div>
-
-          {!dueStats || dueStats.totalDue === 0 ? (
-            <div className="flex flex-col items-center justify-center h-36 gap-2">
-              <p className="text-sm font-semibold text-gray-700">All caught up!</p>
-              <p className="text-xs text-gray-400 text-center">No flashcards due today.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {dueStats.bySet.slice(0, 5).map((set) => (
-                <button
-                  key={set.setId}
-                  onClick={() => navigate('/flashcards')}
-                  className="w-full flex items-center justify-between p-3 rounded-xl transition-all hover:bg-gray-50"
-                  style={{ border: '1px solid #f3f4f6' }}
-                >
-                  <p className="text-sm font-medium text-gray-800 text-left truncate pr-4">
-                    {set.setTitle}
-                  </p>
-                  <span
-                    className="text-xs font-bold px-2.5 py-1 rounded-md flex-shrink-0"
-                    style={{ background: '#fef2f2', color: '#c1121f' }}
-                  >
-                    {set.dueCount} due
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    {progress.completionPct.toFixed(0)}%
                   </span>
                 </button>
               ))}
@@ -189,37 +173,95 @@ const StudentDashboard = () => {
           )}
         </div>
 
+        {/* Leaderboard */}
+        <div className="card-base p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display font-semibold text-foreground">
+              Leaderboard
+            </h2>
+            <Trophy className="h-4 w-4 text-yellow-500" />
+          </div>
+
+          {leaderboard.length === 0 ? (
+            <EmptyState
+              icon={Trophy}
+              title="No data yet"
+              description="Complete lessons to appear on the leaderboard."
+            />
+          ) : (
+            <div className="space-y-2">
+              {leaderboard.slice(0, 5).map((student, index) => (
+                <div
+                  key={student.studentId}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2"
+                >
+                  <span
+                    className={`
+                      flex h-6 w-6 shrink-0 items-center justify-center
+                      rounded-full text-xs font-bold
+                      ${index === 0
+                        ? 'bg-yellow-100 text-yellow-700'
+                        : index === 1
+                        ? 'bg-gray-100 text-gray-600'
+                        : index === 2
+                        ? 'bg-orange-100 text-orange-700'
+                        : 'bg-muted text-muted-foreground'
+                      }
+                    `}
+                  >
+                    {index + 1}
+                  </span>
+                  <span className="flex-1 text-sm font-medium text-foreground">
+                    Student #{student.studentId}
+                  </span>
+                  <span className="flex items-center gap-1 text-xs font-semibold text-primary">
+                    <Zap className="h-3 w-3" />
+                    {student.xpTotal}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Lessons',    description: 'Browse course content',  path: '/lessons',    color: '#e85d04' },
-          { label: 'Flashcards', description: 'Review vocabulary',       path: '/flashcards', color: '#0369a1' },
-          { label: 'Chatbot',    description: 'Practice with AI tutor',  path: '/chatbot',    color: '#15803d' },
-          { label: 'Analysis',   description: 'Analyze Chinese text',    path: '/analysis',   color: '#7c3aed' },
-        ].map((item) => (
-          <button
-            key={item.path}
-            onClick={() => navigate(item.path)}
-            className="bg-white rounded-2xl p-5 text-left transition-all hover:shadow-md group"
-            style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}
-          >
-            <p className="text-base font-bold" style={{ color: item.color, fontFamily: 'Outfit, sans-serif' }}>
-              {item.label}
-            </p>
-            <p className="text-xs text-gray-400 mt-0.5">{item.description}</p>
-            <span
-              className="text-lg font-thin mt-2 block transition-transform group-hover:translate-x-1"
-              style={{ color: item.color }}
+      {/* Flashcards due breakdown */}
+      {totalDue && totalDue.totalDue > 0 && (
+        <div className="card-base p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display font-semibold text-foreground">
+              Flashcards Due Today
+            </h2>
+            <button
+              onClick={() => navigate('/flashcards')}
+              className="flex items-center gap-1 text-xs text-primary hover:underline"
             >
-              →
-            </span>
-          </button>
-        ))}
-      </div>
-
+              Study now
+              <ArrowRight className="h-3 w-3" />
+            </button>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
+            {totalDue.bySet.map((item) => (
+              <div
+                key={item.setId}
+                className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
+              >
+                <span className="text-sm text-foreground truncate max-w-[140px]">
+                  {item.setTitle}
+                </span>
+                <span className="ml-2 shrink-0 flex h-6 min-w-6 items-center justify-center rounded-full bg-sm2-due px-1.5 text-xs font-bold text-white">
+                  {item.dueCount}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
+// Import missing — adaugat dupa scriere
+import { LayoutDashboard } from 'lucide-react';
 
 export default StudentDashboard;

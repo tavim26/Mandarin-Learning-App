@@ -10,8 +10,15 @@ import type {
   SubmitAttemptRequest,
 } from '@/types';
 
-
-export type { StudentSummaryDto, StudentLessonProgressDto, StudentUnitProgressDto } from '@/types';
+export type {
+  ExerciseAttemptDto,
+  StudentLessonProgressDto,
+  StudentReplicaDto,
+  StudentSummaryDto,
+  StudentUnitProgressDto,
+  SubmitAttemptRequest,
+  SubmittedAnswer,
+} from '@/types';
 
 
 export const useProgress = () => {

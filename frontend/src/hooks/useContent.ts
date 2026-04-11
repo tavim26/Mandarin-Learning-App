@@ -9,7 +9,25 @@ import type {
   LessonExerciseTypesDto,
 } from '@/types';
 
-export type { CourseUnitDto, LessonDto, ExerciseDto, LessonMaterialDto } from '@/types';
+export type {
+  CourseUnitDto,
+  LessonDto,
+  ExerciseDto,
+  LessonMaterialDto,
+  ExerciseType,
+  ExerciseContentData,
+  MultipleChoiceData,
+  TranslationData,
+  FillBlankData,
+  MatchingData,
+  OrderingData,
+  SubmittedAnswer,
+  MultipleChoiceAnswer,
+  TranslationAnswer,
+  FillBlankAnswer,
+  MatchingAnswer,
+  OrderingAnswer,
+} from '@/types';
 
 
 export const useContent = () => {

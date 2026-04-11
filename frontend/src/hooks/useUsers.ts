@@ -6,6 +6,9 @@ import type {
   TeacherProfileDto,
 } from '@/types';
 
+
+export type { UserDto, StudentDto, StudentProfileDto, TeacherDto, TeacherProfileDto } from '@/types';
+
 export const useUsers = () => {
   const [users, setUsers] = useState<UserDto[]>([]);
   const [students, setStudents] = useState<StudentProfileDto[]>([]);

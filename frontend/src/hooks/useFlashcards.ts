@@ -12,7 +12,7 @@ import type {
   UpdateFlashcardRequest,
 } from '@/types';
 
-export type { FlashcardSetDto, FlashcardDto, FlashcardSetStatsDto, TotalDueStatsDto } from '@/types';
+export type { FlashcardSetDto,FlashcardProgressDto, FlashcardDto, FlashcardSetStatsDto, TotalDueStatsDto, ReviewQuality } from '@/types';
 
 export const useFlashcards = () => {
   const { userId } = useAuthStore();

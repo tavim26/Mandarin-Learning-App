@@ -1,95 +1,185 @@
-import { useTeacherProfile } from '@/hooks/useProfile';
-import { Input } from '@/components/ui/input';
+import { User, Mail, Lock, GraduationCap } from 'lucide-react';
+import { PageHeader } from '@/components/common/PageHeader';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { ErrorBanner } from '@/components/common/ErrorBanner';
+import { ChangePasswordCard } from '@/components/common/ChangePasswordCard';
+import { useProfile } from '@/hooks/useProfile';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import ChangePasswordCard from '@/components/ChangePasswordCard';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+const emailSchema = z.object({
+  newEmail: z.string().email('Invalid email address.'),
+});
+
+const titleSchema = z.object({
+  newTitle: z.string().min(2, 'Title must be at least 2 characters.'),
+});
+
+type EmailForm = z.infer<typeof emailSchema>;
+type TitleForm = z.infer<typeof titleSchema>;
 
 const TeacherProfile = () => {
   const {
-    nameValue, setNameValue,
-    emailValue, setEmailValue,
-    titleValue, setTitleValue,
-    infoLoading, infoError, infoSuccess,
-    saveInfo,
-    fullName, role, email, userId,
-  } = useTeacherProfile();
+    userInfo,
+    teacherProfile,
+    isLoading,
+    error,
+    successMessage,
+    updateEmail,
+    updatePassword,
+    updateTitle,
+  } = useProfile();
+
+  const emailForm = useForm<EmailForm>({
+    resolver: zodResolver(emailSchema),
+  });
+
+  const titleForm = useForm<TitleForm>({
+    resolver: zodResolver(titleSchema),
+    defaultValues: { newTitle: teacherProfile?.title ?? '' },
+  });
+
+  const onEmailSubmit = async (data: EmailForm) => {
+    const success = await updateEmail(data.newEmail);
+    if (success) emailForm.reset();
+  };
+
+  const onTitleSubmit = async (data: TitleForm) => {
+    await updateTitle(data.newTitle);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8 max-w-2xl">
+    <div className="space-y-6 animate-fade-in max-w-2xl">
+      <PageHeader
+        title="My Profile"
+        subtitle="Manage your account settings."
+        icon={User}
+      />
 
-      <div className="space-y-1">
-        <h1 className="text-3xl font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-          My Profile
-        </h1>
-        <p className="text-gray-400 text-sm">Manage your account information</p>
-      </div>
+      {error && <ErrorBanner message={error} />}
 
-      <div className="bg-white rounded-2xl p-8 space-y-6" style={{ boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)' }}>
-        <div className="flex items-center gap-4">
-          <div
-            className="w-16 h-16 rounded-full flex items-center justify-center text-white text-2xl font-bold flex-shrink-0"
-            style={{ background: '#0369a1' }}
-          >
-            {fullName?.charAt(0).toUpperCase()}
+      {successMessage && (
+        <div className="rounded-lg border border-student/30 bg-student/8 px-4 py-3 text-sm text-student animate-fade-in">
+          {successMessage}
+        </div>
+      )}
+
+      {/* Info card */}
+      <div className="card-base p-5 space-y-3">
+        <h2 className="font-display font-semibold text-foreground text-sm uppercase tracking-wide">
+          Account Info
+        </h2>
+        <div className="space-y-2 text-sm">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <User className="h-4 w-4" />
+            <span className="text-foreground font-medium">
+              {userInfo?.fullName ?? '—'}
+            </span>
           </div>
-          <div>
-            <p className="text-xl font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>{fullName}</p>
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-md" style={{ background: '#f0f9ff', color: '#0369a1' }}>
-              {role}
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <GraduationCap className="h-4 w-4" />
+            <span className="text-foreground">
+              {teacherProfile?.title ?? 'No title set'}
             </span>
           </div>
         </div>
-
-        <div style={{ borderTop: '1px solid #f3f4f6' }} className="pt-6 space-y-4">
-          <h2 className="text-lg font-bold text-gray-900" style={{ fontFamily: 'Outfit, sans-serif' }}>
-            Account Information
-          </h2>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Full Name</label>
-            <Input className="h-11 rounded-xl border-gray-200 bg-gray-50" value={nameValue} onChange={(e) => setNameValue(e.target.value)} />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Title</label>
-            <Input
-              placeholder="e.g. Professor, Dr."
-              className="h-11 rounded-xl border-gray-200 bg-gray-50"
-              value={titleValue}
-              onChange={(e) => setTitleValue(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Current Email Address</label>
-            <Input className="h-11 rounded-xl border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed" value={email ?? ''} readOnly />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">New Email Address</label>
-            <Input
-              type="email"
-              placeholder="Leave blank to keep current email"
-              className="h-11 rounded-xl border-gray-200 bg-gray-50"
-              value={emailValue}
-              onChange={(e) => setEmailValue(e.target.value)}
-            />
-          </div>
-
-          {infoError && <p className="text-xs text-red-500">{infoError}</p>}
-          {infoSuccess && <p className="text-xs" style={{ color: '#15803d' }}>Profile updated successfully.</p>}
-
-          <Button
-            onClick={saveInfo}
-            disabled={infoLoading}
-            className="h-11 px-6 rounded-xl text-white font-semibold text-sm hover:opacity-90"
-            style={{ background: '#e85d04' }}
-          >
-            {infoLoading ? 'Saving...' : 'Save Changes'}
-          </Button>
-        </div>
       </div>
 
-      <ChangePasswordCard userId={userId} />
+      {/* Update title */}
+      <div className="card-base p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <GraduationCap className="h-4 w-4 text-muted-foreground" />
+          <h2 className="font-display font-semibold text-foreground">
+            Academic Title
+          </h2>
+        </div>
+        <form
+          onSubmit={titleForm.handleSubmit(onTitleSubmit)}
+          className="space-y-3"
+        >
+          <div className="space-y-1.5">
+            <Label htmlFor="newTitle">New Title</Label>
+            <Input
+              id="newTitle"
+              {...titleForm.register('newTitle')}
+              placeholder={teacherProfile?.title ?? 'e.g. Dr., Prof.'}
+              className="input-branded"
+            />
+            {titleForm.formState.errors.newTitle && (
+              <p className="text-xs text-destructive">
+                {titleForm.formState.errors.newTitle.message}
+              </p>
+            )}
+          </div>
+          <Button
+            type="submit"
+            className="btn-brand"
+            disabled={titleForm.formState.isSubmitting}
+          >
+            {titleForm.formState.isSubmitting ? 'Saving...' : 'Update Title'}
+          </Button>
+        </form>
+      </div>
+
+      {/* Update email */}
+      <div className="card-base p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <Mail className="h-4 w-4 text-muted-foreground" />
+          <h2 className="font-display font-semibold text-foreground">
+            Email Address
+          </h2>
+        </div>
+        <form
+          onSubmit={emailForm.handleSubmit(onEmailSubmit)}
+          className="space-y-3"
+        >
+          <div className="space-y-1.5">
+            <Label htmlFor="newEmail">New Email</Label>
+            <Input
+              id="newEmail"
+              type="email"
+              {...emailForm.register('newEmail')}
+              placeholder="new@email.com"
+              className="input-branded"
+            />
+            {emailForm.formState.errors.newEmail && (
+              <p className="text-xs text-destructive">
+                {emailForm.formState.errors.newEmail.message}
+              </p>
+            )}
+          </div>
+          <Button
+            type="submit"
+            className="btn-brand"
+            disabled={emailForm.formState.isSubmitting}
+          >
+            {emailForm.formState.isSubmitting ? 'Saving...' : 'Update Email'}
+          </Button>
+        </form>
+      </div>
+
+      {/* Change password */}
+      <div className="card-base p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <Lock className="h-4 w-4 text-muted-foreground" />
+          <h2 className="font-display font-semibold text-foreground">
+            Password
+          </h2>
+        </div>
+        <ChangePasswordCard onSubmit={updatePassword} />
+      </div>
     </div>
   );
 };

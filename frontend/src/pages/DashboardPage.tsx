@@ -1,16 +1,24 @@
-import { Navigate } from 'react-router-dom';
-import { useAuthStore } from '@/store/authStore';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
-// Redirectioneaza utilizatorul catre dashboard-ul corespunzator rolului sau
+// Pagina de redirect — trimite userul catre dashboard-ul corespunzator rolului sau.
 const DashboardPage = () => {
-  const role = useAuthStore((state) => state.role);
+  const { role } = useAuth();
+  const navigate = useNavigate();
 
-  if (role === 'STUDENT') return <Navigate to="/student/dashboard" replace />;
-  if (role === 'TEACHER') return <Navigate to="/teacher/dashboard" replace />;
-  if (role === 'ADMIN') return <Navigate to="/admin/dashboard" replace />;
+  useEffect(() => {
+    if (role === 'STUDENT') navigate('/student/dashboard', { replace: true });
+    else if (role === 'TEACHER') navigate('/teacher/dashboard', { replace: true });
+    else if (role === 'ADMIN') navigate('/admin/dashboard', { replace: true });
+  }, [role, navigate]);
 
-  // Daca rolul lipseste, trimite utilizatorul la login
-  return <Navigate to="/login" replace />;
+  return (
+    <div className="flex h-full items-center justify-center">
+      <LoadingSpinner size="lg" />
+    </div>
+  );
 };
 
 export default DashboardPage;

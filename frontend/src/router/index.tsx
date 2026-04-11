@@ -1,30 +1,131 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  BookOpen,
+  Brain,
+  BarChart2,
+  MessageSquare,
+  Users,
+  User,
+} from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
-import type { Role } from '@/types/auth';
+import { AppLayout } from '@/components/common/AppLayout';
+import type { NavItem } from '@/components/common/AppLayout';
+import type { Role } from '@/types';
 
-import AppLayout from '@/components/AppLayout';
-import LoginPage from '@/pages/LoginPage';
-import RegisterPage from '@/pages/RegisterPage';
+// --- Pagini publice ---
+import LoginPage from '@/pages/auth/LoginPage';
+import RegisterPage from '@/pages/auth/RegisterPage';
+
+// --- Redirecturi pe rol ---
 import DashboardPage from '@/pages/DashboardPage';
-import StudentDashboard from '@/pages/student/StudentDashboard';
-import TeacherDashboard from '@/pages/teacher/TeacherDashboard';
-import AdminDashboard from '@/pages/admin/AdminDashboard';
-import AdminUsers from '@/pages/admin/AdminUsers';
 import ProfilePage from '@/pages/ProfilePage';
+
+// --- Student ---
+import StudentDashboard from '@/pages/student/StudentDashboard';
+import StudentUnitsPage from '@/pages/student/StudentUnitsPage';
+import StudentUnitLessonsPage from '@/pages/student/StudentUnitLessonsPage';
+import StudentLessonPage from '@/pages/student/StudentLessonPage';
+import FlashcardsPage from '@/pages/student/FlashcardsPage';
+import ReviewSessionPage from '@/pages/student/ReviewSessionPage';
+import AnalysisPage from '@/pages/student/AnalysisPage';
+
+// --- Teacher ---
+import TeacherDashboard from '@/pages/teacher/TeacherDashboard';
+import TeacherUnitPage from '@/pages/teacher/TeacherUnitPage';
+import TeacherLessonPage from '@/pages/teacher/TeacherLessonPage';
+
+// --- Admin ---
+import AdminDashboard from '@/pages/admin/AdminDashboard';
+import AdminUsersPage from '@/pages/admin/AdminUsersPage';
+
+// --- Profil ---
 import StudentProfile from '@/pages/profile/StudentProfile';
 import TeacherProfile from '@/pages/profile/TeacherProfile';
 import AdminProfile from '@/pages/profile/AdminProfile';
 
-import TeacherUnitPage from '@/pages/teacher/TeacherUnitPage';
-import TeacherLessonPage from '@/pages/teacher/TeacherLessonPage';
+// --- Shared ---
+import ChatPage from '@/pages/shared/ChatPage';
 
-import StudentUnitsPage from '@/pages/student/StudentUnitsPage';
-import StudentUnitLessonsPage from '@/pages/student/StudentUnitLessonsPage';
-import StudentLessonPage from '@/pages/student/StudentLessonPage';
-import AnalysisPage from '@/pages/student/AnalysisPage';
+// ============================================================
+// NAV ITEMS — filtrate pe rol in AppLayout
+// ============================================================
+const NAV_ITEMS: NavItem[] = [
+  // Student
+  {
+    label: 'Dashboard',
+    path: '/student/dashboard',
+    icon: LayoutDashboard,
+    roles: ['STUDENT'],
+  },
+  {
+    label: 'Lessons',
+    path: '/lessons',
+    icon: BookOpen,
+    roles: ['STUDENT'],
+  },
+  {
+    label: 'Flashcards',
+    path: '/flashcards',
+    icon: Brain,
+    roles: ['STUDENT'],
+  },
+  {
+    label: 'Analysis',
+    path: '/analysis',
+    icon: BarChart2,
+    roles: ['STUDENT'],
+  },
+  {
+    label: 'Chat',
+    path: '/chat',
+    icon: MessageSquare,
+    roles: ['STUDENT'],
+  },
+  // Teacher
+  {
+    label: 'Dashboard',
+    path: '/teacher/dashboard',
+    icon: LayoutDashboard,
+    roles: ['TEACHER'],
+  },
+  {
+    label: 'My Content',
+    path: '/teacher/dashboard',
+    icon: BookOpen,
+    roles: ['TEACHER'],
+  },
+  // Admin
+  {
+    label: 'Dashboard',
+    path: '/admin/dashboard',
+    icon: LayoutDashboard,
+    roles: ['ADMIN'],
+  },
+  {
+    label: 'Users',
+    path: '/admin/users',
+    icon: Users,
+    roles: ['ADMIN'],
+  },
+  {
+    label: 'Chat',
+    path: '/chat',
+    icon: MessageSquare,
+    roles: ['ADMIN'],
+  },
+  // Shared
+  {
+    label: 'Profile',
+    path: '/profile',
+    icon: User,
+    roles: ['STUDENT', 'TEACHER', 'ADMIN'],
+  },
+];
 
-import FlashcardsPage from '@/pages/student/FlashcardsPage';
-
+// ============================================================
+// PROTECTED ROUTE
+// ============================================================
 interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles?: Role[];
@@ -41,20 +142,21 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Infasoara continutul in AppLayout — adauga Navbar automat
-  return <AppLayout>{children}</AppLayout>;
+  return <AppLayout navItems={NAV_ITEMS}>{children}</AppLayout>;
 };
 
+// ============================================================
+// ROUTER
+// ============================================================
 const AppRouter = () => {
   return (
     <BrowserRouter>
       <Routes>
-
-        {/* Rute publice — fara Navbar */}
+        {/* Rute publice */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* Router intermediar */}
+        {/* Redirect pe rol */}
         <Route
           path="/dashboard"
           element={
@@ -64,7 +166,17 @@ const AppRouter = () => {
           }
         />
 
-        {/* Dashboard student */}
+        {/* Redirect profil pe rol */}
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* --- Student --- */}
         <Route
           path="/student/dashboard"
           element={
@@ -73,8 +185,57 @@ const AppRouter = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/lessons"
+          element={
+            <ProtectedRoute allowedRoles={['STUDENT']}>
+              <StudentUnitsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/lessons/units/:unitId"
+          element={
+            <ProtectedRoute allowedRoles={['STUDENT']}>
+              <StudentUnitLessonsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/lessons/:lessonId"
+          element={
+            <ProtectedRoute allowedRoles={['STUDENT']}>
+              <StudentLessonPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/flashcards"
+          element={
+            <ProtectedRoute allowedRoles={['STUDENT']}>
+              <FlashcardsPage />
+            </ProtectedRoute>
+          }
+        />
+        {/* ReviewSession — full screen, fara AppLayout */}
+        <Route
+          path="/flashcards/review/:setId"
+          element={
+            <ProtectedRoute allowedRoles={['STUDENT']}>
+              <ReviewSessionPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/analysis"
+          element={
+            <ProtectedRoute allowedRoles={['STUDENT']}>
+              <AnalysisPage />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* Dashboard teacher */}
+        {/* --- Teacher --- */}
         <Route
           path="/teacher/dashboard"
           element={
@@ -83,8 +244,24 @@ const AppRouter = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/teacher/units/:unitId"
+          element={
+            <ProtectedRoute allowedRoles={['TEACHER']}>
+              <TeacherUnitPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/teacher/lessons/:lessonId"
+          element={
+            <ProtectedRoute allowedRoles={['TEACHER']}>
+              <TeacherLessonPage />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* Dashboard admin */}
+        {/* --- Admin --- */}
         <Route
           path="/admin/dashboard"
           element={
@@ -93,138 +270,56 @@ const AppRouter = () => {
             </ProtectedRoute>
           }
         />
-
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-
-
-        {/* Pagina management utilizatori */}
         <Route
           path="/admin/users"
           element={
             <ProtectedRoute allowedRoles={['ADMIN']}>
-              <AdminUsers />
-          </ProtectedRoute>
+              <AdminUsersPage />
+            </ProtectedRoute>
           }
         />
 
-        {/* Router intermediar profil */}
-<Route
-  path="/profile"
-  element={
-    <ProtectedRoute>
-      <ProfilePage />
-    </ProtectedRoute>
-  }
-/>
+        {/* --- Profile --- */}
+        <Route
+          path="/profile/student"
+          element={
+            <ProtectedRoute allowedRoles={['STUDENT']}>
+              <StudentProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile/teacher"
+          element={
+            <ProtectedRoute allowedRoles={['TEACHER']}>
+              <TeacherProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile/admin"
+          element={
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminProfile />
+            </ProtectedRoute>
+          }
+        />
 
-{/* Profil student */}
-<Route
-  path="/profile/student"
-  element={
-    <ProtectedRoute allowedRoles={['STUDENT']}>
-      <StudentProfile />
-    </ProtectedRoute>
-  }
-/>
+        {/* --- Shared --- */}
+        <Route
+          path="/chat"
+          element={
+            <ProtectedRoute allowedRoles={['STUDENT', 'ADMIN']}>
+              <ChatPage />
+            </ProtectedRoute>
+          }
+        />
 
-{/* Profil teacher */}
-<Route
-  path="/profile/teacher"
-  element={
-    <ProtectedRoute allowedRoles={['TEACHER']}>
-      <TeacherProfile />
-    </ProtectedRoute>
-  }
-/>
-
-{/* Profil admin */}
-<Route
-  path="/profile/admin"
-  element={
-    <ProtectedRoute allowedRoles={['ADMIN']}>
-      <AdminProfile />
-    </ProtectedRoute>
-  }
-/>
-
-
-{/* Pagina lectii dintr-o unitate */}
-<Route
-  path="/teacher/units/:unitId"
-  element={
-    <ProtectedRoute allowedRoles={['TEACHER']}>
-      <TeacherUnitPage />
-    </ProtectedRoute>
-  }
-/>
-
-{/* Pagina exercitii + materiale dintr-o lectie */}
-<Route
-  path="/teacher/lessons/:lessonId"
-  element={
-    <ProtectedRoute allowedRoles={['TEACHER']}>
-      <TeacherLessonPage />
-    </ProtectedRoute>
-  }
-
-  
-/>
-
-{/* Pagina unitati de curs — student */}
-<Route
-  path="/lessons"
-  element={
-    <ProtectedRoute allowedRoles={['STUDENT']}>
-      <StudentUnitsPage />
-    </ProtectedRoute>
-  }
-/>
-
-{/* Pagina lectii dintr-o unitate — student */}
-<Route
-  path="/lessons/units/:unitId"
-  element={
-    <ProtectedRoute allowedRoles={['STUDENT']}>
-      <StudentUnitLessonsPage />
-    </ProtectedRoute>
-  }
-/>
-
-{/* Pagina detaliu lectie — student */}
-<Route
-  path="/lessons/:lessonId"
-  element={
-    <ProtectedRoute allowedRoles={['STUDENT']}>
-      <StudentLessonPage />
-    </ProtectedRoute>
-  }
-/>
-
-<Route
-  path="/analysis"
-  element={
-    <ProtectedRoute allowedRoles={['STUDENT']}>
-      <AnalysisPage />
-    </ProtectedRoute>
-  }
-/>
-
-
-<Route
-  path="/flashcards"
-  element={
-    <ProtectedRoute allowedRoles={['STUDENT']}>
-      <FlashcardsPage />
-    </ProtectedRoute>
-  }
-/>
-
+        {/* Wildcard — intotdeauna ultimul */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
   );
 };
-
-
-
 
 export default AppRouter;

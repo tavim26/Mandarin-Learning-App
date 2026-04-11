@@ -1,15 +1,24 @@
-import { Navigate } from 'react-router-dom';
-import { useAuthStore } from '@/store/authStore';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
-// Redirectioneaza catre pagina de profil corespunzatoare rolului
+// Pagina de redirect — trimite userul catre profilul corespunzator rolului sau.
 const ProfilePage = () => {
-  const role = useAuthStore((state) => state.role);
+  const { role } = useAuth();
+  const navigate = useNavigate();
 
-  if (role === 'STUDENT') return <Navigate to="/profile/student" replace />;
-  if (role === 'TEACHER') return <Navigate to="/profile/teacher" replace />;
-  if (role === 'ADMIN') return <Navigate to="/profile/admin" replace />;
+  useEffect(() => {
+    if (role === 'STUDENT') navigate('/profile/student', { replace: true });
+    else if (role === 'TEACHER') navigate('/profile/teacher', { replace: true });
+    else if (role === 'ADMIN') navigate('/profile/admin', { replace: true });
+  }, [role, navigate]);
 
-  return <Navigate to="/login" replace />;
+  return (
+    <div className="flex h-full items-center justify-center">
+      <LoadingSpinner size="lg" />
+    </div>
+  );
 };
 
 export default ProfilePage;

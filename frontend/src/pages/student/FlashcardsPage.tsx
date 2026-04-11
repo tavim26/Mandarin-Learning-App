@@ -1,782 +1,308 @@
-import { useCallback, useEffect, useState } from 'react';
-import { useAuthStore } from '@/store/authStore';
-import {
-  getFlashcardSets,
-  createFlashcardSet,
-  deleteFlashcardSet,
-  getSetStats,
-  getCardsForSet,
-  createFlashcard,
-  deleteFlashcard,
-  getDueCards,
-  submitReview,
-} from '@/api/flashcardApi';
-// Tipurile importate din sursa lor corecta — nu din modulul API
-import type {
-  FlashcardSetDto,
-  FlashcardDto,
-  FlashcardProgressDto,
-  FlashcardSetStatsDto,
-  ReviewQuality,
-} from '@/types/flashcard';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Brain, Plus, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import DeleteConfirmModal from '@/components/modals/DeleteConfirmModal';
-import useTTS from '@/hooks/useTTS';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { PageHeader } from '@/components/common/PageHeader';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { ErrorBanner } from '@/components/common/ErrorBanner';
+import { EmptyState } from '@/components/common/EmptyState';
+import { FlashcardSetCard } from '@/components/flashcards/FlashcardSetCard';
+import { DeleteConfirmModal } from '@/components/modals/DeleteConfirmModal';
+import { useFlashcards } from '@/hooks/useFlashcards';
+import type { FlashcardSetDto } from '@/hooks/useFlashcards';
 
-// ----------------------------------------------------------------
-// Tipuri view
-// ----------------------------------------------------------------
-type View = 'list' | 'cards' | 'review';
-
-// ----------------------------------------------------------------
-// Modal creare set
-// ----------------------------------------------------------------
-interface CreateSetModalProps {
+// ============================================================
+// SetFormContent — montat fresh la fiecare deschidere prin key
+// Zero useEffect — useState se initializeaza direct din props
+// ============================================================
+interface SetFormContentProps {
+  initial?: FlashcardSetDto | null;
   onClose: () => void;
-  onSave: (title: string, description: string) => Promise<void>;
+  onSubmit: (title: string, description: string) => Promise<boolean>;
+  isSaving: boolean;
 }
 
-const CreateSetModal = ({ onClose, onSave }: CreateSetModalProps) => {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const SetFormContent = ({
+  initial,
+  onClose,
+  onSubmit,
+  isSaving,
+}: SetFormContentProps) => {
+  const [title, setTitle] = useState(initial?.title ?? '');
+  const [description, setDescription] = useState(
+    initial?.description ?? ''
+  );
 
-  const handleSave = async () => {
-    if (!title.trim()) { setError('Title is required.'); return; }
-    setLoading(true);
-    setError(null);
-    try {
-      await onSave(title.trim(), description.trim());
-      onClose();
-    } catch {
-      setError('Failed to create set.');
-    } finally {
-      setLoading(false);
-    }
+  const handleSubmit = async () => {
+    if (!title.trim()) return;
+    const success = await onSubmit(title.trim(), description.trim());
+    if (success) onClose();
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.35)' }}
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-2xl p-8 w-full max-w-sm space-y-5"
-        style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="font-display text-xl font-bold text-gray-900">New Flashcard Set</h2>
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Title *</label>
-            <Input className="h-11 rounded-xl border-gray-200 bg-gray-50" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. HSK 1 Vocabulary" />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</label>
-            <Input className="h-11 rounded-xl border-gray-200 bg-gray-50" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional" />
-          </div>
+    <>
+      <DialogHeader>
+        <DialogTitle className="font-display">
+          {initial ? 'Edit Set' : 'Create Flashcard Set'}
+        </DialogTitle>
+      </DialogHeader>
+
+      <div className="space-y-4 py-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="setTitle">Title</Label>
+          <Input
+            id="setTitle"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. HSK 1 Vocabulary"
+            className="input-branded"
+          />
         </div>
-        {error && <p className="text-xs text-red-500">{error}</p>}
-        <div className="flex gap-3">
-          <Button onClick={onClose} className="flex-1 h-11 rounded-xl font-semibold text-sm bg-gray-100 hover:bg-gray-200 text-gray-700">
-            Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={loading} className="flex-1 h-11 rounded-xl bg-brand text-white font-semibold text-sm hover:opacity-90">
-            {loading ? 'Creating...' : 'Create'}
-          </Button>
+        <div className="space-y-1.5">
+          <Label htmlFor="setDesc">Description (optional)</Label>
+          <Input
+            id="setDesc"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Brief description"
+            className="input-branded"
+          />
         </div>
       </div>
-    </div>
+
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose} disabled={isSaving}>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          className="btn-brand"
+          disabled={isSaving || !title.trim()}
+        >
+          {isSaving
+            ? initial
+              ? 'Saving...'
+              : 'Creating...'
+            : initial
+            ? 'Save Changes'
+            : 'Create Set'}
+        </Button>
+      </DialogFooter>
+    </>
   );
 };
 
-// ----------------------------------------------------------------
-// Modal adaugare card
-// ----------------------------------------------------------------
-interface AddCardModalProps {
-  setId: number;
+// ============================================================
+// SetFormModal — wrapper Dialog
+// key pe SetFormContent garanteaza remount la fiecare deschidere
+// ============================================================
+interface SetFormModalProps {
+  open: boolean;
+  initial?: FlashcardSetDto | null;
   onClose: () => void;
-  onSave: (frontText: string, backText: string) => Promise<void>;
+  onSubmit: (title: string, description: string) => Promise<boolean>;
+  isSaving: boolean;
 }
 
-const AddCardModal = ({ onClose, onSave }: AddCardModalProps) => {
-  const [frontText, setFrontText] = useState('');
-  const [backText, setBackText] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSave = async () => {
-    if (!frontText.trim()) { setError('Front text is required.'); return; }
-    if (!backText.trim()) { setError('Back text is required.'); return; }
-    setLoading(true);
-    setError(null);
-    try {
-      await onSave(frontText.trim(), backText.trim());
-      setFrontText('');
-      setBackText('');
-    } catch {
-      setError('Failed to add card.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+const SetFormModal = ({
+  open,
+  initial,
+  onClose,
+  onSubmit,
+  isSaving,
+}: SetFormModalProps) => {
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.35)' }}
-      onClick={onClose}
-    >
-      <div
-        className="bg-white rounded-2xl p-8 w-full max-w-sm space-y-5"
-        style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="font-display text-xl font-bold text-gray-900">Add Card</h2>
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Front (Chinese) *
-            </label>
-            <Input
-              className="h-11 rounded-xl border-gray-200 bg-gray-50 text-lg"
-              value={frontText}
-              onChange={(e) => setFrontText(e.target.value)}
-              placeholder="e.g. 你好"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Back (Pinyin + Translation) *
-            </label>
-            <Input
-              className="h-11 rounded-xl border-gray-200 bg-gray-50"
-              value={backText}
-              onChange={(e) => setBackText(e.target.value)}
-              placeholder="e.g. nǐ hǎo — Hello"
-            />
-          </div>
-        </div>
-        {error && <p className="text-xs text-red-500">{error}</p>}
-        <div className="flex gap-3">
-          <Button onClick={onClose} className="flex-1 h-11 rounded-xl font-semibold text-sm bg-gray-100 hover:bg-gray-200 text-gray-700">
-            Done
-          </Button>
-          <Button onClick={handleSave} disabled={loading} className="flex-1 h-11 rounded-xl bg-brand text-white font-semibold text-sm hover:opacity-90">
-            {loading ? 'Adding...' : '+ Add Card'}
-          </Button>
-        </div>
-      </div>
-    </div>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md animate-scale-in">
+        <SetFormContent
+          key={open ? (initial?.id ?? 'create') : 'closed'}
+          initial={initial}
+          onClose={onClose}
+          onSubmit={onSubmit}
+          isSaving={isSaving}
+        />
+      </DialogContent>
+    </Dialog>
   );
 };
 
-// ----------------------------------------------------------------
-// Componenta flip card
-// ----------------------------------------------------------------
-interface FlipCardProps {
-  front: string;
-  back: string;
-  flipped: boolean;
-  onClick: () => void;
-}
+// ============================================================
+// FlashcardsPage
+// ============================================================
+const FlashcardsPage = () => {
+  const navigate = useNavigate();
+  const {
+    sets,
+    currentSetStats,
+    totalDue,
+    isLoading,
+    isSaving,
+    error,
+    fetchSets,
+    fetchTotalDue,
+    fetchSetStats,
+    createSet,
+    updateSet,
+    deleteSet,
+  } = useFlashcards();
 
-const FlipCard = ({ front, back, flipped, onClick }: FlipCardProps) => {
-  const { speak, isSpeaking, stop } = useTTS();
-
-  return (
-    <div
-      className="mx-auto"
-      style={{ width: '100%', maxWidth: '480px', height: '240px', perspective: '1000px' }}
-    >
-      <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          height: '100%',
-          transformStyle: 'preserve-3d',
-          transition: 'transform 0.45s cubic-bezier(0.4, 0, 0.2, 1)',
-          transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
-        }}
-      >
-        {/* Fata */}
-        <div
-          className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center p-8 cursor-pointer"
-          style={{
-            backfaceVisibility: 'hidden',
-            WebkitBackfaceVisibility: 'hidden',
-            background: 'white',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.10)',
-            border: '2px solid #f3f4f6',
-          }}
-          onClick={onClick}
-        >
-          <p className="text-5xl font-bold text-center font-display text-gray-800">{front}</p>
-          <button
-            onClick={(e) => { e.stopPropagation(); if (isSpeaking) { stop(); } else { speak(front); } }}
-            className="mt-4 w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:opacity-80"
-            style={{
-              background: isSpeaking ? '#fff7f0' : '#f9fafb',
-              border: `1.5px solid ${isSpeaking ? '#e85d04' : '#e5e7eb'}`,
-              color: isSpeaking ? '#e85d04' : '#9ca3af',
-            }}
-          >
-            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-            </svg>
-          </button>
-          <p className="text-xs text-gray-300 mt-2">Click card to reveal</p>
-        </div>
-
-        {/* Spate */}
-        <div
-          className="absolute inset-0 rounded-2xl flex flex-col items-center justify-center p-8 cursor-pointer"
-          style={{
-            backfaceVisibility: 'hidden',
-            WebkitBackfaceVisibility: 'hidden',
-            transform: 'rotateY(180deg)',
-            background: '#fff7f0',
-            boxShadow: '0 8px 32px rgba(232,93,4,0.12)',
-            border: '2px solid #fde8d4',
-          }}
-          onClick={onClick}
-        >
-          <p className="text-2xl font-semibold text-center font-display text-brand">{back}</p>
-          <button
-            onClick={(e) => { e.stopPropagation(); if (isSpeaking) { stop(); } else { speak(front); } }}
-            className="mt-4 w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:opacity-80"
-            style={{
-              background: isSpeaking ? 'rgba(232,93,4,0.15)' : 'rgba(232,93,4,0.08)',
-              border: `1.5px solid ${isSpeaking ? '#e85d04' : 'rgba(232,93,4,0.2)'}`,
-              color: '#e85d04',
-            }}
-          >
-            <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-            </svg>
-          </button>
-          <p className="text-xs mt-1" style={{ color: 'rgba(232,93,4,0.5)' }}>Click card to flip back</p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ----------------------------------------------------------------
-// Sesiune de recenzie
-// ----------------------------------------------------------------
-interface ReviewSessionProps {
-  set: FlashcardSetDto;
-  studentId: number;
-  onFinish: () => void;
-}
-
-// quality este ReviewQuality — tipat strict pentru compatibilitate cu SubmitReviewRequest
-const REVIEW_BUTTONS: { label: string; quality: ReviewQuality; color: string; bg: string }[] = [
-  { label: 'Again', quality: 0, color: '#c1121f', bg: '#fef2f2' },
-  { label: 'Hard',  quality: 2, color: '#b45309', bg: '#fffbeb' },
-  { label: 'Good',  quality: 3, color: '#0369a1', bg: '#f0f9ff' },
-  { label: 'Easy',  quality: 5, color: '#15803d', bg: '#f0fdf4' },
-];
-
-const ReviewSession = ({ set, studentId, onFinish }: ReviewSessionProps) => {
-  const [dueCards, setDueCards]       = useState<FlashcardProgressDto[]>([]);
-  const [cardDetails, setCardDetails] = useState<Record<number, FlashcardDto>>({});
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [flipped, setFlipped]         = useState(false);
-  const [loading, setLoading]         = useState(true);
-  const [submitting, setSubmitting]   = useState(false);
-  const [results, setResults]         = useState<{ quality: ReviewQuality; label: string }[]>([]);
-  const [finished, setFinished]       = useState(false);
-
-  const fetchDueCards = useCallback(async () => {
-    try {
-      setLoading(true);
-      const due = await getDueCards(studentId, set.id);
-      setDueCards(due);
-
-      const allCards = await getCardsForSet(set.id);
-      const map: Record<number, FlashcardDto> = {};
-      allCards.forEach((c) => { map[c.id] = c; });
-      setCardDetails(map);
-    } catch {
-      // Eroare fetch
-    } finally {
-      setLoading(false);
-    }
-  }, [studentId, set.id]);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<FlashcardSetDto | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<FlashcardSetDto | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    fetchDueCards();
-  }, [fetchDueCards]);
+    fetchSets();
+    fetchTotalDue();
+  }, [fetchSets, fetchTotalDue]);
 
-  // quality este ReviewQuality — garantat de REVIEW_BUTTONS
-  const handleReview = async (quality: ReviewQuality, label: string) => {
-    if (submitting || !dueCards[currentIndex]) return;
-    const card = dueCards[currentIndex];
-    setSubmitting(true);
-    try {
-      await submitReview({ flashcardId: card.flashcardId, quality });
-      setResults((prev) => [...prev, { quality, label }]);
-
-      if (currentIndex + 1 >= dueCards.length) {
-        setFinished(true);
-      } else {
-        setCurrentIndex((i) => i + 1);
-        setFlipped(false);
-      }
-    } catch {
-      // Eroare submit
-    } finally {
-      setSubmitting(false);
-    }
+  const handleCreate = async (
+    title: string,
+    description: string
+  ): Promise<boolean> => {
+    const result = await createSet({
+      title,
+      description: description || undefined,
+    });
+    return result !== null;
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-gray-400 text-sm">Loading cards...</p>
-      </div>
-    );
-  }
+  const handleEdit = async (
+    title: string,
+    description: string
+  ): Promise<boolean> => {
+    if (!editTarget) return false;
+    return updateSet(editTarget.id, {
+      title,
+      description: description || undefined,
+    });
+  };
 
-  if (dueCards.length === 0) {
-    return (
-      <div className="space-y-6 max-w-lg mx-auto text-center">
-        <div className="bg-white rounded-2xl p-12 space-y-3 shadow-card">
-          <p className="text-4xl">✓</p>
-          <p className="font-display text-xl font-bold text-gray-900">All caught up!</p>
-          <p className="text-sm text-gray-400">No cards due for review in this set.</p>
-          <Button onClick={onFinish} className="h-11 px-8 rounded-xl bg-brand text-white font-semibold text-sm hover:opacity-90 mt-2">
-            Back to Sets
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (finished) {
-    const againCount = results.filter((r) => r.quality === 0).length;
-    const hardCount  = results.filter((r) => r.quality === 2).length;
-    const goodCount  = results.filter((r) => r.quality === 3).length;
-    const easyCount  = results.filter((r) => r.quality === 5).length;
-
-    return (
-      <div className="space-y-6 max-w-lg mx-auto">
-        <div className="bg-white rounded-2xl p-8 space-y-6 shadow-card">
-          <div className="text-center space-y-2">
-            <p className="text-4xl">🎉</p>
-            <p className="font-display text-2xl font-bold text-gray-900">Session Complete!</p>
-            <p className="text-sm text-gray-400">{results.length} cards reviewed from "{set.title}"</p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: 'Again', count: againCount, color: '#c1121f', bg: '#fef2f2' },
-              { label: 'Hard',  count: hardCount,  color: '#b45309', bg: '#fffbeb' },
-              { label: 'Good',  count: goodCount,  color: '#0369a1', bg: '#f0f9ff' },
-              { label: 'Easy',  count: easyCount,  color: '#15803d', bg: '#f0fdf4' },
-            ].map((item) => (
-              <div key={item.label} className="rounded-xl p-4 text-center" style={{ background: item.bg }}>
-                <p className="font-display text-2xl font-bold" style={{ color: item.color }}>{item.count}</p>
-                <p className="text-xs font-semibold" style={{ color: item.color }}>{item.label}</p>
-              </div>
-            ))}
-          </div>
-          <Button onClick={onFinish} className="w-full h-11 rounded-xl bg-brand text-white font-semibold text-sm hover:opacity-90">
-            Back to Sets
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  const currentProgress = dueCards[currentIndex];
-  const currentCard     = cardDetails[currentProgress?.flashcardId];
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    const success = await deleteSet(deleteTarget.id);
+    setIsDeleting(false);
+    if (success) setDeleteTarget(null);
+  };
 
   return (
-    <div className="space-y-6 max-w-lg mx-auto">
-      {/* Header sesiune */}
-      <div className="flex items-center justify-between">
-        <div className="space-y-0.5">
-          <p className="font-display text-lg font-bold text-gray-900">{set.title}</p>
-          <p className="text-xs text-gray-400">
-            {currentIndex + 1} / {dueCards.length} cards
+    <div className="space-y-6 animate-fade-in">
+      <PageHeader
+        title="Flashcards"
+        subtitle="Review your vocabulary with spaced repetition."
+        icon={Brain}
+        actions={
+          <Button
+            onClick={() => setCreateOpen(true)}
+            className="btn-brand gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            New Set
+          </Button>
+        }
+      />
+
+      {/* Due today banner */}
+      {totalDue && totalDue.totalDue > 0 && (
+        <div className="rounded-lg border border-sm2-due/30 bg-sm2-due/8 px-4 py-3 flex items-center justify-between animate-slide-up">
+          <p className="text-sm font-medium text-sm2-due">
+            You have{' '}
+            <span className="font-bold">{totalDue.totalDue}</span>{' '}
+            cards due for review today.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {currentProgress?.id === null && (
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-gray-100 text-hsk-unknown">
-              New
-            </span>
-          )}
+      )}
+
+      {error && <ErrorBanner message={error} />}
+
+      {isLoading ? (
+        <div className="flex h-64 items-center justify-center">
+          <LoadingSpinner size="lg" />
         </div>
-      </div>
-
-      {/* Progress bar sesiune */}
-      <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-        <div
-          className="h-full rounded-full bg-brand transition-all duration-300"
-          style={{ width: `${(currentIndex / dueCards.length) * 100}%` }}
-        />
-      </div>
-
-      {/* Flip card */}
-      {currentCard ? (
-        <FlipCard
-          front={currentCard.frontText}
-          back={currentCard.backText}
-          flipped={flipped}
-          onClick={() => setFlipped((f) => !f)}
+      ) : sets.length === 0 ? (
+        <EmptyState
+          icon={Brain}
+          title="No flashcard sets yet"
+          description="Create your first set to start practicing vocabulary."
+          actionLabel="Create Set"
+          onAction={() => setCreateOpen(true)}
         />
       ) : (
-        <div className="h-60 flex items-center justify-center">
-          <p className="text-gray-400 text-sm">Loading card...</p>
-        </div>
-      )}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {sets.map((set) => (
+            <div key={set.id} className="relative group">
+              <FlashcardSetCard
+                set={set}
+                stats={
+                  currentSetStats?.setId === set.id ? currentSetStats : null
+                }
+                onClick={() => fetchSetStats(set.id)}
+                onStudy={() => navigate(`/flashcards/review/${set.id}`)}
+              />
 
-      {!flipped && (
-        <p className="text-xs text-center text-gray-300">Click the card to reveal the answer</p>
-      )}
-
-      {flipped && (
-        <div className="grid grid-cols-4 gap-2">
-          {REVIEW_BUTTONS.map((btn) => (
-            <button
-              key={btn.label}
-              onClick={() => handleReview(btn.quality, btn.label)}
-              disabled={submitting}
-              className="py-3 rounded-xl font-semibold text-sm transition-all hover:opacity-90 disabled:opacity-50 flex flex-col items-center gap-0.5"
-              style={{ background: btn.bg, color: btn.color, border: `2px solid ${btn.color}22` }}
-            >
-              {btn.label}
-            </button>
+              {/* Actiuni edit/delete — apar la hover */}
+              <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditTarget(set);
+                  }}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteTarget(set);
+                  }}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg bg-card border border-border text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       )}
-    </div>
-  );
-};
 
-// ----------------------------------------------------------------
-// Vista carduri din set
-// ----------------------------------------------------------------
-interface CardsViewProps {
-  set: FlashcardSetDto;
-  onBack: () => void;
-  onStartReview: () => void;
-}
-
-const CardsView = ({ set, onBack, onStartReview }: CardsViewProps) => {
-  const { userId } = useAuthStore();
-  const [cards, setCards]           = useState<FlashcardDto[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
-  const [stats, setStats]           = useState<FlashcardSetStatsDto | null>(null);
-
-  const fetchCards = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await getCardsForSet(set.id);
-      setCards(data);
-    } catch {
-      // Eroare fetch
-    } finally {
-      setLoading(false);
-    }
-  }, [set.id]);
-
-  const fetchStats = useCallback(async () => {
-    try {
-      const data = await getSetStats(set.id);
-      setStats(data);
-    } catch {
-      // Stats optionale
-    }
-  }, [set.id]);
-
-  useEffect(() => {
-    fetchCards();
-    fetchStats();
-  }, [fetchCards, fetchStats]);
-
-  const handleAddCard = async (frontText: string, backText: string) => {
-    if (!userId) return;
-    const newCard = await createFlashcard({ setId: set.id, frontText, backText });
-    setCards((prev) => [...prev, newCard]);
-    await fetchStats();
-  };
-
-  const handleDeleteCard = async () => {
-    if (!deleteTarget) return;
-    await deleteFlashcard(deleteTarget);
-    setCards((prev) => prev.filter((c) => c.id !== deleteTarget));
-    setDeleteTarget(null);
-    await fetchStats();
-  };
-
-  return (
-    <>
-      {showAddModal && (
-        <AddCardModal
-          setId={set.id}
-          onClose={() => setShowAddModal(false)}
-          onSave={handleAddCard}
-        />
-      )}
-      {deleteTarget !== null && (
-        <DeleteConfirmModal
-          title="Delete Card"
-          description="Are you sure you want to delete this flashcard?"
-          onConfirm={handleDeleteCard}
-          onClose={() => setDeleteTarget(null)}
-        />
-      )}
-
-      <div className="space-y-6">
-        <div className="flex items-center gap-2 text-sm">
-          <button onClick={onBack} className="font-medium text-brand hover:opacity-70 transition-opacity">
-            Flashcards
-          </button>
-          <span className="text-gray-400">/</span>
-          <span className="text-gray-500">{set.title}</span>
-        </div>
-
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <h2 className="font-display text-2xl font-bold text-gray-900">{set.title}</h2>
-            {set.description && <p className="text-sm text-gray-400">{set.description}</p>}
-          </div>
-          <div className="flex gap-2 flex-shrink-0">
-            <Button
-              onClick={() => setShowAddModal(true)}
-              className="h-10 px-4 rounded-xl font-semibold text-sm bg-gray-100 hover:bg-gray-200 text-gray-700"
-            >
-              + Add Card
-            </Button>
-            <Button
-              onClick={onStartReview}
-              disabled={!stats || stats.dueToday === 0}
-              className="h-10 px-4 rounded-xl bg-brand text-white font-semibold text-sm hover:opacity-90 disabled:opacity-40"
-            >
-              Review {stats ? `(${stats.dueToday})` : ''}
-            </Button>
-          </div>
-        </div>
-
-        {stats && stats.totalCards > 0 && (
-          <div className="bg-white rounded-2xl p-4 flex items-center gap-6 shadow-card">
-            {[
-              { label: 'New',       count: stats.newCards,      color: '#9ca3af' },
-              { label: 'Learning',  count: stats.learningCards, color: '#e85d04' },
-              { label: 'Mature',    count: stats.matureCards,   color: '#15803d' },
-              { label: 'Due today', count: stats.dueToday,      color: '#c1121f' },
-            ].map((item) => (
-              <div key={item.label} className="text-center">
-                <p className="font-display text-xl font-bold" style={{ color: item.color }}>{item.count}</p>
-                <p className="text-xs text-gray-400">{item.label}</p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {loading ? (
-          <div className="flex items-center justify-center h-32">
-            <p className="text-gray-400 text-sm">Loading cards...</p>
-          </div>
-        ) : cards.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 text-center space-y-3 shadow-card">
-            <p className="text-gray-400 text-sm">No cards yet.</p>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="text-sm font-semibold px-4 py-2 rounded-xl bg-brand text-white hover:opacity-90"
-            >
-              Add your first card
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {cards.map((card) => (
-              <div
-                key={card.id}
-                className="bg-white rounded-2xl px-5 py-4 flex items-center justify-between shadow-card"
-              >
-                <div className="flex items-center gap-6 min-w-0">
-                  <span className="text-xl font-bold text-gray-800 flex-shrink-0">{card.frontText}</span>
-                  <span className="text-sm text-gray-400 truncate">{card.backText}</span>
-                </div>
-                <button
-                  onClick={() => setDeleteTarget(card.id)}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-red-50 flex-shrink-0 ml-4 transition-all text-error"
-                >
-                  Delete
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </>
-  );
-};
-
-// ----------------------------------------------------------------
-// Pagina principala
-// ----------------------------------------------------------------
-const FlashcardsPage = () => {
-  const { userId } = useAuthStore();
-  const [sets, setSets]             = useState<FlashcardSetDto[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [error, setError]           = useState<string | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [deleteTarget, setDeleteTarget]       = useState<FlashcardSetDto | null>(null);
-  const [activeSet, setActiveSet]   = useState<FlashcardSetDto | null>(null);
-  const [view, setView]             = useState<View>('list');
-
-  const fetchSets = useCallback(async () => {
-    if (!userId) return;
-    try {
-      setLoading(true);
-      const data = await getFlashcardSets(userId);
-      setSets(data);
-    } catch {
-      setError('Failed to load flashcard sets.');
-    } finally {
-      setLoading(false);
-    }
-  }, [userId]);
-
-  useEffect(() => {
-    fetchSets();
-  }, [fetchSets]);
-
-  const handleCreateSet = async (title: string, description: string) => {
-    // description este string | undefined — null nu este acceptat de CreateFlashcardSetRequest
-    const newSet = await createFlashcardSet({ title, description: description || undefined });
-    setSets((prev) => [newSet, ...prev]);
-  };
-
-  const handleDeleteSet = async () => {
-    if (!deleteTarget) return;
-    await deleteFlashcardSet(deleteTarget.id);
-    setSets((prev) => prev.filter((s) => s.id !== deleteTarget.id));
-    setDeleteTarget(null);
-  };
-
-  const handleOpenSet = (set: FlashcardSetDto) => {
-    setActiveSet(set);
-    setView('cards');
-  };
-
-  const handleStartReview = () => setView('review');
-
-  const handleBackToList = () => {
-    setActiveSet(null);
-    setView('list');
-    fetchSets();
-  };
-
-  if (view === 'cards' && activeSet) {
-    return <CardsView set={activeSet} onBack={handleBackToList} onStartReview={handleStartReview} />;
-  }
-
-  if (view === 'review' && activeSet) {
-    return (
-      <ReviewSession
-        set={activeSet}
-        studentId={userId!}
-        onFinish={() => setView('cards')}
+      {/* Modal creare */}
+      <SetFormModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onSubmit={handleCreate}
+        isSaving={isSaving}
       />
-    );
-  }
 
-  return (
-    <>
-      {showCreateModal && (
-        <CreateSetModal
-          onClose={() => setShowCreateModal(false)}
-          onSave={handleCreateSet}
-        />
-      )}
-      {deleteTarget && (
-        <DeleteConfirmModal
-          title="Delete Set"
-          description={`Are you sure you want to delete "${deleteTarget.title}"? All cards inside will be deleted.`}
-          onConfirm={handleDeleteSet}
-          onClose={() => setDeleteTarget(null)}
-        />
-      )}
+      {/* Modal editare */}
+      <SetFormModal
+        open={!!editTarget}
+        initial={editTarget}
+        onClose={() => setEditTarget(null)}
+        onSubmit={handleEdit}
+        isSaving={isSaving}
+      />
 
-      <div className="space-y-8">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <h1 className="font-display text-3xl font-bold text-gray-900">Flashcards</h1>
-            <p className="text-gray-400 text-sm">Spaced repetition review — SM-2 algorithm</p>
-          </div>
-          <Button
-            onClick={() => setShowCreateModal(true)}
-            className="h-11 px-6 rounded-xl bg-brand text-white font-semibold text-sm hover:opacity-90 flex-shrink-0"
-          >
-            + New Set
-          </Button>
-        </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <p className="text-gray-400 text-sm">Loading...</p>
-          </div>
-        ) : error ? (
-          <div className="flex items-center justify-center h-64">
-            <p className="text-sm text-error">{error}</p>
-          </div>
-        ) : sets.length === 0 ? (
-          <div className="bg-white rounded-2xl p-16 text-center space-y-4 shadow-card">
-            <p className="text-gray-400 text-sm">No flashcard sets yet.</p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="text-sm font-semibold px-6 py-2.5 rounded-xl bg-brand text-white hover:opacity-90 transition-opacity"
-            >
-              Create your first set
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sets.map((set) => (
-              <div
-                key={set.id}
-                className="bg-white rounded-2xl p-6 space-y-4 cursor-pointer transition-all hover:shadow-md group shadow-card"
-                onClick={() => handleOpenSet(set)}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-display text-base font-bold text-gray-900 truncate">{set.title}</p>
-                    {set.description && (
-                      <p className="text-xs text-gray-400 mt-0.5 truncate">{set.description}</p>
-                    )}
-                  </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setDeleteTarget(set); }}
-                    className="opacity-0 group-hover:opacity-100 text-xs font-semibold px-2 py-1 rounded-lg hover:bg-red-50 flex-shrink-0 transition-all text-error"
-                  >
-                    Delete
-                  </button>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="font-display text-3xl font-bold text-brand">{set.cardCount}</span>
-                  <span className="text-xs text-gray-400">cards</span>
-                  <span className="text-sm font-thin transition-transform group-hover:translate-x-0.5 ml-auto text-brand">→</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </>
+      {/* Modal confirmare stergere */}
+      <DeleteConfirmModal
+        open={!!deleteTarget}
+        title="Delete Flashcard Set"
+        description={`"${deleteTarget?.title}" and all its cards will be permanently deleted.`}
+        isLoading={isDeleting}
+        onConfirm={handleDelete}
+        onClose={() => setDeleteTarget(null)}
+      />
+    </div>
   );
 };
 
