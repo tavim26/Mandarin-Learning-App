@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { usersApi } from '@/api/usersApi';
 import { useAuthStore } from '@/store/authStore';
-import type { StudentDto, TeacherDto, UserDto } from '@/types';
+import type { StudentDto, TeacherDto } from '@/types';
 
 export const useProfile = () => {
-  const { userId, role } = useAuthStore();
+  const { userId, role, fullName } = useAuthStore();
 
-  const [userInfo, setUserInfo] = useState<UserDto | null>(null);
   const [studentProfile, setStudentProfile] = useState<StudentDto | null>(null);
   const [teacherProfile, setTeacherProfile] = useState<TeacherDto | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -15,11 +14,9 @@ export const useProfile = () => {
 
   useEffect(() => {
     if (!userId) return;
-    const load = async () => {
+    const loadExtended = async () => {
       setIsLoading(true);
       try {
-        const me = await usersApi.getMe();
-        setUserInfo(me);
         if (role === 'STUDENT') {
           const sp = await usersApi.getStudentById(userId);
           setStudentProfile(sp);
@@ -28,12 +25,12 @@ export const useProfile = () => {
           setTeacherProfile(tp);
         }
       } catch {
-        setError('Nu s-au putut incarca datele profilului.');
+        // Profilul extins poate sa nu existe inca
       } finally {
         setIsLoading(false);
       }
     };
-    load();
+    loadExtended();
   }, [userId, role]);
 
   const updateEmail = async (newEmail: string): Promise<boolean> => {
@@ -41,12 +38,11 @@ export const useProfile = () => {
     setError(null);
     setSuccessMessage(null);
     try {
-      const updated = await usersApi.updateEmail(userId, newEmail);
-      setUserInfo(updated);
-      setSuccessMessage('Email actualizat cu succes.');
+      await usersApi.updateEmail(userId, newEmail);
+      setSuccessMessage('Email updated successfully.');
       return true;
     } catch {
-      setError('Actualizarea email-ului a esuat.');
+      setError('Failed to update email.');
       return false;
     }
   };
@@ -60,10 +56,10 @@ export const useProfile = () => {
     setSuccessMessage(null);
     try {
       await usersApi.updatePassword(userId, oldPassword, newPassword);
-      setSuccessMessage('Parola actualizata cu succes.');
+      setSuccessMessage('Password updated successfully.');
       return true;
     } catch {
-      setError('Parola veche este incorecta.');
+      setError('Current password is incorrect.');
       return false;
     }
   };
@@ -75,10 +71,10 @@ export const useProfile = () => {
     try {
       const updated = await usersApi.updateStudentNickname(userId, newNickname);
       setStudentProfile(updated);
-      setSuccessMessage('Nickname actualizat cu succes.');
+      setSuccessMessage('Nickname updated successfully.');
       return true;
     } catch {
-      setError('Nickname-ul este deja folosit.');
+      setError('Nickname is already taken.');
       return false;
     }
   };
@@ -90,16 +86,18 @@ export const useProfile = () => {
     try {
       const updated = await usersApi.updateTeacherTitle(userId, newTitle);
       setTeacherProfile(updated);
-      setSuccessMessage('Titlul academic actualizat cu succes.');
+      setSuccessMessage('Title updated successfully.');
       return true;
     } catch {
-      setError('Actualizarea titlului a esuat.');
+      setError('Failed to update title.');
       return false;
     }
   };
 
   return {
-    userInfo,
+    // fullName si role vin direct din store — intotdeauna disponibile
+    fullName,
+    role,
     studentProfile,
     teacherProfile,
     isLoading,

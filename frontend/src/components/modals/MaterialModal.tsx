@@ -71,7 +71,7 @@ export const MaterialModal = ({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md animate-scale-in">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-display">Upload Material</DialogTitle>
         </DialogHeader>

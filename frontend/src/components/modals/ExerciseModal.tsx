@@ -129,7 +129,7 @@ export const ExerciseModal = ({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md animate-scale-in">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-display">
             {isEditing ? 'Edit Exercise' : 'Create Exercise'}

@@ -6,3 +6,5 @@ export { UnitModal } from './UnitModal';
 export { LessonModal } from './LessonModal';
 export { ExerciseModal } from './ExerciseModal';
 export { MaterialModal } from './MaterialModal';
+export { EditStudentModal } from './EditStudentModal';
+export { EditTeacherModal } from './EditTeacherModal';

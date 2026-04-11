@@ -13,6 +13,9 @@ import { AppLayout } from '@/components/common/AppLayout';
 import type { NavItem } from '@/components/common/AppLayout';
 import type { Role } from '@/types';
 
+import AdminStatsPage from '@/pages/admin/AdminStatsPage';
+
+
 // --- Pagini publice ---
 import LoginPage from '@/pages/auth/LoginPage';
 import RegisterPage from '@/pages/auth/RegisterPage';
@@ -96,24 +99,25 @@ const NAV_ITEMS: NavItem[] = [
     roles: ['TEACHER'],
   },
   // Admin
-  {
-    label: 'Dashboard',
-    path: '/admin/dashboard',
-    icon: LayoutDashboard,
-    roles: ['ADMIN'],
-  },
-  {
-    label: 'Users',
-    path: '/admin/users',
-    icon: Users,
-    roles: ['ADMIN'],
-  },
-  {
-    label: 'Chat',
-    path: '/chat',
-    icon: MessageSquare,
-    roles: ['ADMIN'],
-  },
+  // Admin
+{
+  label: 'Dashboard',
+  path: '/admin/dashboard',
+  icon: LayoutDashboard,
+  roles: ['ADMIN'],
+},
+{
+  label: 'Users',
+  path: '/admin/users',
+  icon: Users,
+  roles: ['ADMIN'],
+},
+{
+  label: 'Statistics',
+  path: '/admin/stats',
+  icon: BarChart2,
+  roles: ['ADMIN'],
+},
   // Shared
   {
     label: 'Profile',
@@ -317,6 +321,16 @@ const AppRouter = () => {
 
         {/* Wildcard — intotdeauna ultimul */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
+
+
+        <Route
+  path="/admin/stats"
+  element={
+    <ProtectedRoute allowedRoles={['ADMIN']}>
+      <AdminStatsPage />
+    </ProtectedRoute>
+  }
+/>
       </Routes>
     </BrowserRouter>
   );

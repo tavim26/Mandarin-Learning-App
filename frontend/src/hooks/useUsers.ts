@@ -139,6 +139,29 @@ export const useUsers = () => {
     }
   };
 
+
+  const updateStudentNickname = async (userId: number, newNickname: string) => {
+    try {
+      await usersApi.updateStudentNickname(userId, newNickname);
+      await fetchStudents();
+      return true;
+    } catch {
+      setError('Failed to update nickname.');
+      return false;
+    }
+  };
+
+  const updateTeacherTitle = async (userId: number, newTitle: string) => {
+    try {
+      await usersApi.updateTeacherTitle(userId, newTitle);
+      await fetchTeachers();
+      return true;
+    } catch {
+      setError('Failed to update title.');
+      return false;
+    }
+  };
+
   return {
     users,
     students,
@@ -155,5 +178,7 @@ export const useUsers = () => {
     unbanUser,
     deleteUser,
     searchUsers,
+    updateStudentNickname,
+    updateTeacherTitle
   };
 };

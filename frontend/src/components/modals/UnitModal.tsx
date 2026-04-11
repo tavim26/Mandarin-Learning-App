@@ -94,7 +94,7 @@ export const UnitModal = ({ open, unit, onClose, onSuccess }: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md animate-scale-in">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-display">
             {isEditing ? 'Edit Unit' : 'Create Unit'}
