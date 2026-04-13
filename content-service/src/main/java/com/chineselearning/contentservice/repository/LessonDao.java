@@ -43,9 +43,26 @@ public class LessonDao implements ILessonDao
     }
 
     @Override
-    public Lesson save(Lesson lesson)
-    {
-        LessonEntity saved = lessonJpaRepository.save(toEntity(lesson));
+    public Lesson save(Lesson lesson) {
+        LessonEntity entity;
+
+        if (lesson.getId() != null) {
+            entity = lessonJpaRepository.findById(lesson.getId())
+                    .orElse(new LessonEntity());
+        } else {
+            entity = new LessonEntity();
+        }
+
+        entity.setTitle(lesson.getTitle());
+        entity.setDescription(lesson.getDescription());
+        entity.setXpReward(lesson.getXpReward());
+        entity.setOrderIndex(lesson.getOrderIndex());
+
+        if (lesson.getUnit() != null && lesson.getUnit().getId() != null) {
+            entity.setUnit(courseUnitJpaRepository.getReferenceById(lesson.getUnit().getId()));
+        }
+
+        LessonEntity saved = lessonJpaRepository.save(entity);
         return toDomain(saved);
     }
 
@@ -80,19 +97,5 @@ public class LessonDao implements ILessonDao
         return lesson;
     }
 
-    private LessonEntity toEntity(Lesson lesson)
-    {
-        LessonEntity entity = new LessonEntity();
-        entity.setId(lesson.getId());
-        entity.setTitle(lesson.getTitle());
-        entity.setDescription(lesson.getDescription());
-        entity.setXpReward(lesson.getXpReward());
-        entity.setOrderIndex(lesson.getOrderIndex());
 
-        if (lesson.getUnit() != null && lesson.getUnit().getId() != null) {
-            entity.setUnit(courseUnitJpaRepository.getReferenceById(lesson.getUnit().getId()));
-        }
-
-        return entity;
-    }
 }

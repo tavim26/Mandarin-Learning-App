@@ -6,4 +6,5 @@ export { Navbar } from './Navbar';
 export { AppLayout } from './AppLayout';
 export { ChangePasswordCard } from './ChangePasswordCard';
 export { ChineseText } from './ChineseText';
+export { MaterialPreview } from './MaterialPreview';
 export type { NavItem } from './AppLayout';

@@ -37,9 +37,25 @@ public class CourseUnitDao implements ICourseUnitDao
     }
 
     @Override
-    public CourseUnit save(CourseUnit unit)
-    {
-        CourseUnitEntity saved = jpaRepository.save(toEntity(unit));
+    public CourseUnit save(CourseUnit unit) {
+        CourseUnitEntity entity;
+
+        if (unit.getId() != null) {
+            // UPDATE — incarca entitatea existenta din DB pentru a pastra lessons intacte
+            entity = jpaRepository.findById(unit.getId())
+                    .orElse(new CourseUnitEntity());
+        } else {
+            // CREATE — entitate noua
+            entity = new CourseUnitEntity();
+        }
+
+        entity.setTitle(unit.getTitle());
+        entity.setDescription(unit.getDescription());
+        entity.setHskLevel(unit.getHskLevel());
+        entity.setOrderIndex(unit.getOrderIndex());
+        entity.setCreatedByTeacherId(unit.getCreatedByTeacherId());
+
+        CourseUnitEntity saved = jpaRepository.save(entity);
         return toDomain(saved);
     }
 
@@ -83,14 +99,5 @@ public class CourseUnitDao implements ICourseUnitDao
         return unit;
     }
 
-    private CourseUnitEntity toEntity(CourseUnit unit) {
-        CourseUnitEntity entity = new CourseUnitEntity();
-        entity.setId(unit.getId());
-        entity.setTitle(unit.getTitle());
-        entity.setDescription(unit.getDescription());
-        entity.setHskLevel(unit.getHskLevel());
-        entity.setOrderIndex(unit.getOrderIndex());
-        entity.setCreatedByTeacherId(unit.getCreatedByTeacherId());
-        return entity;
-    }
+
 }

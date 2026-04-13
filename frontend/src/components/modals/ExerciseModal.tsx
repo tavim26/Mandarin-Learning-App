@@ -15,10 +15,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ErrorBanner } from '@/components/common/ErrorBanner';
 import { useContent } from '@/hooks/useContent';
-import type { ExerciseDto, ExerciseType } from '@/hooks/useContent';
+import type {
+  ExerciseDto,
+  ExerciseType,
+  MultipleChoiceData,
+  TranslationData,
+  FillBlankData,
+  MatchingData,
+  OrderingData,
+} from '@/hooks/useContent';
 
 // ============================================================
-// Tipuri exercitii — cu etichete si descrieri prietenoase
+// Tipuri exercitii
 // ============================================================
 interface ExerciseTypeOption {
   type: ExerciseType;
@@ -60,9 +68,6 @@ const EXERCISE_TYPE_OPTIONS: ExerciseTypeOption[] = [
   },
 ];
 
-// ============================================================
-// Schema de baza — comuna tuturor tipurilor
-// ============================================================
 const baseSchema = z.object({
   prompt: z.string().min(2, 'Prompt must be at least 2 characters.'),
   difficulty: z.string().optional(),
@@ -71,77 +76,88 @@ const baseSchema = z.object({
 type BaseForm = z.infer<typeof baseSchema>;
 
 // ============================================================
-// Pasul 1 — Selectie tip exercitiu
+// Pasul 1 — Selectie tip (doar la creare)
 // ============================================================
-interface StepSelectTypeProps {
+const StepSelectType = ({
+  onSelect,
+}: {
   onSelect: (type: ExerciseType) => void;
-}
-
-const StepSelectType = ({ onSelect }: StepSelectTypeProps) => {
-  return (
-    <div className="space-y-3 py-2">
-      <p className="text-sm text-muted-foreground">
-        Choose the type of exercise you want to create:
-      </p>
-      <div className="grid gap-2">
-        {EXERCISE_TYPE_OPTIONS.map((option) => (
-          <button
-            key={option.type}
-            onClick={() => onSelect(option.type)}
-            className="
-              flex items-center gap-4 rounded-xl border-2 border-border
-              bg-card px-4 py-3 text-left
-              hover:border-primary/40 hover:bg-accent
-              transition-all duration-150 group
-            "
-          >
-            <span className="text-2xl">{option.icon}</span>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-foreground">{option.label}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {option.description}
-              </p>
-            </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-          </button>
-        ))}
-      </div>
+}) => (
+  <div className="space-y-3 py-2">
+    <p className="text-sm text-muted-foreground">
+      Choose the type of exercise you want to create:
+    </p>
+    <div className="grid gap-2">
+      {EXERCISE_TYPE_OPTIONS.map((option) => (
+        <button
+          key={option.type}
+          onClick={() => onSelect(option.type)}
+          className="
+            flex items-center gap-4 rounded-xl border-2 border-border
+            bg-card px-4 py-3 text-left
+            hover:border-primary/40 hover:bg-accent
+            transition-all duration-150 group
+          "
+        >
+          <span className="text-2xl">{option.icon}</span>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-foreground">{option.label}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {option.description}
+            </p>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+        </button>
+      ))}
     </div>
-  );
-};
+  </div>
+);
 
 // ============================================================
-// Pasul 2 — Formular specific per tip
+// MULTIPLE CHOICE FORM
 // ============================================================
-
-// --- MULTIPLE CHOICE ---
 interface MultipleChoiceFormProps {
+  initial?: { prompt: string; difficulty: number | null; data: MultipleChoiceData };
   onSubmit: (data: {
     prompt: string;
     difficulty: number | null;
-    contentData: { options: string[]; correctIndex: number };
+    contentData: MultipleChoiceData;
   }) => Promise<void>;
   isSaving: boolean;
+  isEditing: boolean;
 }
 
-const MultipleChoiceForm = ({ onSubmit, isSaving }: MultipleChoiceFormProps) => {
-  const { register, handleSubmit, formState: { errors } } =
-    useForm<BaseForm>({ resolver: zodResolver(baseSchema) });
+const MultipleChoiceForm = ({
+  initial,
+  onSubmit,
+  isSaving,
+  isEditing,
+}: MultipleChoiceFormProps) => {
+  const { register, handleSubmit, formState: { errors } } = useForm<BaseForm>({
+    resolver: zodResolver(baseSchema),
+    defaultValues: {
+      prompt: initial?.prompt ?? '',
+      difficulty: initial?.difficulty?.toString() ?? '',
+    },
+  });
 
-  const [options, setOptions] = useState(['', '', '', '']);
-  const [correctIndex, setCorrectIndex] = useState(0);
+  const [options, setOptions] = useState<string[]>(
+    initial?.data.options ?? ['', '', '', '']
+  );
+  const [correctIndex, setCorrectIndex] = useState<number>(
+    initial?.data.correctIndex ?? 0
+  );
 
-  const updateOption = (index: number, value: string) => {
+  const updateOption = (index: number, value: string) =>
     setOptions((prev) => prev.map((o, i) => (i === index ? value : o)));
-  };
 
   const onFormSubmit = async (base: BaseForm) => {
-    const filledOptions = options.map((o) => o.trim()).filter(Boolean);
-    if (filledOptions.length < 2) return;
+    const filled = options.map((o) => o.trim()).filter(Boolean);
+    if (filled.length < 2) return;
     await onSubmit({
       prompt: base.prompt,
       difficulty: base.difficulty ? Number(base.difficulty) : null,
-      contentData: { options: filledOptions, correctIndex },
+      contentData: { options: filled, correctIndex },
     });
   };
 
@@ -199,28 +215,46 @@ const MultipleChoiceForm = ({ onSubmit, isSaving }: MultipleChoiceFormProps) => 
 
       <DialogFooter className="pt-2">
         <Button type="submit" className="btn-brand" disabled={isSaving}>
-          {isSaving ? 'Saving...' : 'Create Exercise'}
+          {isSaving
+            ? isEditing ? 'Saving...' : 'Creating...'
+            : isEditing ? 'Save Changes' : 'Create Exercise'}
         </Button>
       </DialogFooter>
     </form>
   );
 };
 
-// --- TRANSLATION ---
+// ============================================================
+// TRANSLATION FORM
+// ============================================================
 interface TranslationFormProps {
+  initial?: { prompt: string; difficulty: number | null; data: TranslationData };
   onSubmit: (data: {
     prompt: string;
     difficulty: number | null;
-    contentData: { acceptedAnswers: string[] };
+    contentData: TranslationData;
   }) => Promise<void>;
   isSaving: boolean;
+  isEditing: boolean;
 }
 
-const TranslationForm = ({ onSubmit, isSaving }: TranslationFormProps) => {
-  const { register, handleSubmit, formState: { errors } } =
-    useForm<BaseForm>({ resolver: zodResolver(baseSchema) });
+const TranslationForm = ({
+  initial,
+  onSubmit,
+  isSaving,
+  isEditing,
+}: TranslationFormProps) => {
+  const { register, handleSubmit, formState: { errors } } = useForm<BaseForm>({
+    resolver: zodResolver(baseSchema),
+    defaultValues: {
+      prompt: initial?.prompt ?? '',
+      difficulty: initial?.difficulty?.toString() ?? '',
+    },
+  });
 
-  const [answers, setAnswers] = useState(['', '']);
+  const [answers, setAnswers] = useState<string[]>(
+    initial?.data.acceptedAnswers ?? ['', '']
+  );
 
   const addAnswer = () => setAnswers((prev) => [...prev, '']);
   const removeAnswer = (index: number) =>
@@ -265,9 +299,6 @@ const TranslationForm = ({ onSubmit, isSaving }: TranslationFormProps) => {
             Add variant
           </button>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Add all acceptable translation variants.
-        </p>
         {answers.map((answer, index) => (
           <div key={index} className="flex items-center gap-2">
             <Input
@@ -304,28 +335,46 @@ const TranslationForm = ({ onSubmit, isSaving }: TranslationFormProps) => {
 
       <DialogFooter className="pt-2">
         <Button type="submit" className="btn-brand" disabled={isSaving}>
-          {isSaving ? 'Saving...' : 'Create Exercise'}
+          {isSaving
+            ? isEditing ? 'Saving...' : 'Creating...'
+            : isEditing ? 'Save Changes' : 'Create Exercise'}
         </Button>
       </DialogFooter>
     </form>
   );
 };
 
-// --- FILL BLANK ---
+// ============================================================
+// FILL BLANK FORM
+// ============================================================
 interface FillBlankFormProps {
+  initial?: { prompt: string; difficulty: number | null; data: FillBlankData };
   onSubmit: (data: {
     prompt: string;
     difficulty: number | null;
-    contentData: { correctAnswers: string[] };
+    contentData: FillBlankData;
   }) => Promise<void>;
   isSaving: boolean;
+  isEditing: boolean;
 }
 
-const FillBlankForm = ({ onSubmit, isSaving }: FillBlankFormProps) => {
-  const { register, handleSubmit, formState: { errors } } =
-    useForm<BaseForm>({ resolver: zodResolver(baseSchema) });
+const FillBlankForm = ({
+  initial,
+  onSubmit,
+  isSaving,
+  isEditing,
+}: FillBlankFormProps) => {
+  const { register, handleSubmit, formState: { errors } } = useForm<BaseForm>({
+    resolver: zodResolver(baseSchema),
+    defaultValues: {
+      prompt: initial?.prompt ?? '',
+      difficulty: initial?.difficulty?.toString() ?? '',
+    },
+  });
 
-  const [answers, setAnswers] = useState(['']);
+  const [answers, setAnswers] = useState<string[]>(
+    initial?.data.correctAnswers ?? ['']
+  );
 
   const addAnswer = () => setAnswers((prev) => [...prev, '']);
   const removeAnswer = (index: number) =>
@@ -354,8 +403,9 @@ const FillBlankForm = ({ onSubmit, isSaving }: FillBlankFormProps) => {
           className="input-branded font-display"
         />
         <p className="text-xs text-muted-foreground">
-          Use <span className="font-mono bg-muted px-1 rounded">___</span> to
-          mark each blank in the sentence.
+          Use{' '}
+          <span className="font-mono bg-muted px-1 rounded">___</span> to mark
+          each blank.
         </p>
         {errors.prompt && (
           <p className="text-xs text-destructive">{errors.prompt.message}</p>
@@ -413,54 +463,65 @@ const FillBlankForm = ({ onSubmit, isSaving }: FillBlankFormProps) => {
 
       <DialogFooter className="pt-2">
         <Button type="submit" className="btn-brand" disabled={isSaving}>
-          {isSaving ? 'Saving...' : 'Create Exercise'}
+          {isSaving
+            ? isEditing ? 'Saving...' : 'Creating...'
+            : isEditing ? 'Save Changes' : 'Create Exercise'}
         </Button>
       </DialogFooter>
     </form>
   );
 };
 
-// --- MATCHING ---
+// ============================================================
+// MATCHING FORM
+// ============================================================
 interface MatchingFormProps {
+  initial?: { prompt: string; difficulty: number | null; data: MatchingData };
   onSubmit: (data: {
     prompt: string;
     difficulty: number | null;
-    contentData: { pairs: { left: string; right: string }[] };
+    contentData: MatchingData;
   }) => Promise<void>;
   isSaving: boolean;
+  isEditing: boolean;
 }
 
-const MatchingForm = ({ onSubmit, isSaving }: MatchingFormProps) => {
-  const { register, handleSubmit, formState: { errors } } =
-    useForm<BaseForm>({ resolver: zodResolver(baseSchema) });
+const MatchingForm = ({
+  initial,
+  onSubmit,
+  isSaving,
+  isEditing,
+}: MatchingFormProps) => {
+  const { register, handleSubmit, formState: { errors } } = useForm<BaseForm>({
+    resolver: zodResolver(baseSchema),
+    defaultValues: {
+      prompt: initial?.prompt ?? '',
+      difficulty: initial?.difficulty?.toString() ?? '',
+    },
+  });
 
-  const [pairs, setPairs] = useState([
-    { left: '', right: '' },
-    { left: '', right: '' },
-  ]);
+  const [pairs, setPairs] = useState<{ left: string; right: string }[]>(
+    initial?.data.pairs.length
+      ? initial.data.pairs.map((p) => ({ left: p.left, right: p.right }))
+      : [{ left: '', right: '' }, { left: '', right: '' }]
+  );
 
   const addPair = () => setPairs((prev) => [...prev, { left: '', right: '' }]);
   const removePair = (index: number) =>
     setPairs((prev) => prev.filter((_, i) => i !== index));
-  const updatePair = (
-    index: number,
-    side: 'left' | 'right',
-    value: string
-  ) =>
+  const updatePair = (index: number, side: 'left' | 'right', value: string) =>
     setPairs((prev) =>
       prev.map((p, i) => (i === index ? { ...p, [side]: value } : p))
     );
 
   const onFormSubmit = async (base: BaseForm) => {
-    const filledPairs = pairs.filter(
-      (p) => p.left.trim() && p.right.trim()
-    );
-    if (filledPairs.length < 2) return;
+    const filled = pairs.filter((p) => p.left.trim() && p.right.trim());
+    if (filled.length < 2) return;
     await onSubmit({
       prompt: base.prompt,
       difficulty: base.difficulty ? Number(base.difficulty) : null,
       contentData: {
-        pairs: filledPairs.map((p) => ({
+        pairs: filled.map((p) => ({
           left: p.left.trim(),
           right: p.right.trim(),
         })),
@@ -495,8 +556,6 @@ const MatchingForm = ({ onSubmit, isSaving }: MatchingFormProps) => {
             Add pair
           </button>
         </div>
-
-        {/* Header coloane */}
         <div className="grid grid-cols-2 gap-2 px-1">
           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             Chinese
@@ -505,7 +564,6 @@ const MatchingForm = ({ onSubmit, isSaving }: MatchingFormProps) => {
             Translation
           </span>
         </div>
-
         {pairs.map((pair, index) => (
           <div key={index} className="flex items-center gap-2">
             <div className="grid grid-cols-2 gap-2 flex-1">
@@ -550,34 +608,52 @@ const MatchingForm = ({ onSubmit, isSaving }: MatchingFormProps) => {
 
       <DialogFooter className="pt-2">
         <Button type="submit" className="btn-brand" disabled={isSaving}>
-          {isSaving ? 'Saving...' : 'Create Exercise'}
+          {isSaving
+            ? isEditing ? 'Saving...' : 'Creating...'
+            : isEditing ? 'Save Changes' : 'Create Exercise'}
         </Button>
       </DialogFooter>
     </form>
   );
 };
 
-// --- ORDERING ---
+// ============================================================
+// ORDERING FORM
+// ============================================================
 interface OrderingFormProps {
+  initial?: { prompt: string; difficulty: number | null; data: OrderingData };
   onSubmit: (data: {
     prompt: string;
     difficulty: number | null;
-    contentData: {
-      words: string[];
-      correctOrder: string[];
-      translation: string;
-    };
+    contentData: OrderingData;
   }) => Promise<void>;
   isSaving: boolean;
+  isEditing: boolean;
 }
 
-const OrderingForm = ({ onSubmit, isSaving }: OrderingFormProps) => {
-  const { register, handleSubmit, formState: { errors } } =
-    useForm<BaseForm>({ resolver: zodResolver(baseSchema) });
+const OrderingForm = ({
+  initial,
+  onSubmit,
+  isSaving,
+  isEditing,
+}: OrderingFormProps) => {
+  const { register, handleSubmit, formState: { errors } } = useForm<BaseForm>({
+    resolver: zodResolver(baseSchema),
+    defaultValues: {
+      prompt: initial?.prompt ?? '',
+      difficulty: initial?.difficulty?.toString() ?? '',
+    },
+  });
 
-  const [wordsInput, setWordsInput] = useState('');
-  const [correctOrderInput, setCorrectOrderInput] = useState('');
-  const [translation, setTranslation] = useState('');
+  const [wordsInput, setWordsInput] = useState(
+    initial?.data.words.join(' ') ?? ''
+  );
+  const [correctOrderInput, setCorrectOrderInput] = useState(
+    initial?.data.correctOrder.join(' ') ?? ''
+  );
+  const [translation, setTranslation] = useState(
+    initial?.data.translation ?? ''
+  );
 
   const onFormSubmit = async (base: BaseForm) => {
     const words = wordsInput
@@ -588,9 +664,7 @@ const OrderingForm = ({ onSubmit, isSaving }: OrderingFormProps) => {
       .split(/[\s,，]+/)
       .map((w) => w.trim())
       .filter(Boolean);
-
     if (words.length < 2 || correctOrder.length < 2) return;
-
     await onSubmit({
       prompt: base.prompt,
       difficulty: base.difficulty ? Number(base.difficulty) : null,
@@ -638,9 +712,6 @@ const OrderingForm = ({ onSubmit, isSaving }: OrderingFormProps) => {
           placeholder="e.g. 今 天 会 下 雨"
           className="input-branded font-display"
         />
-        <p className="text-xs text-muted-foreground">
-          The correct arrangement of the words above.
-        </p>
       </div>
 
       <div className="space-y-1.5">
@@ -669,7 +740,9 @@ const OrderingForm = ({ onSubmit, isSaving }: OrderingFormProps) => {
 
       <DialogFooter className="pt-2">
         <Button type="submit" className="btn-brand" disabled={isSaving}>
-          {isSaving ? 'Saving...' : 'Create Exercise'}
+          {isSaving
+            ? isEditing ? 'Saving...' : 'Creating...'
+            : isEditing ? 'Save Changes' : 'Create Exercise'}
         </Button>
       </DialogFooter>
     </form>
@@ -679,19 +752,26 @@ const OrderingForm = ({ onSubmit, isSaving }: OrderingFormProps) => {
 // ============================================================
 // ExerciseModalContent — orchestreaza pasii
 // ============================================================
-interface ExerciseModalContentProps {
+interface ContentProps {
   lessonId: number;
+  exercise?: ExerciseDto | null;
   onClose: () => void;
   onSuccess: () => void;
 }
 
 const ExerciseModalContent = ({
   lessonId,
+  exercise,
   onClose,
   onSuccess,
-}: ExerciseModalContentProps) => {
-  const { createExercise, isSaving, error } = useContent();
-  const [selectedType, setSelectedType] = useState<ExerciseType | null>(null);
+}: ContentProps) => {
+  const { createExercise, updateExercise, isSaving, error } = useContent();
+  const isEditing = !!exercise;
+
+  // La editare sarim direct la form-ul specific — tipul nu se poate schimba
+  const [selectedType, setSelectedType] = useState<ExerciseType | null>(
+    exercise?.type ?? null
+  );
 
   const selectedOption = EXERCISE_TYPE_OPTIONS.find(
     (o) => o.type === selectedType
@@ -715,11 +795,46 @@ const ExerciseModalContent = ({
     }
   };
 
+  const handleUpdate = async (payload: {
+    prompt: string;
+    difficulty: number | null;
+    contentData: object;
+  }) => {
+    if (!exercise) return;
+    const success = await updateExercise(exercise.id, {
+      type: exercise.type,
+      prompt: payload.prompt,
+      difficulty: payload.difficulty,
+      contentData: payload.contentData as ExerciseDto['contentData'],
+    });
+    if (success) {
+      onSuccess();
+      onClose();
+    }
+  };
+
+  const handleSubmit = isEditing ? handleUpdate : handleCreate;
+
+  // Helper pentru extragerea datelor initiale
+  const getInitialData = () => {
+    if (!exercise) return undefined;
+    return {
+      prompt: exercise.prompt,
+      difficulty: exercise.difficulty,
+      data: exercise.contentData,
+    };
+  };
+
   return (
     <>
       <DialogHeader>
         <DialogTitle className="font-display">
-          {selectedType ? (
+          {isEditing ? (
+            <span className="flex items-center gap-2">
+              <span>{selectedOption?.icon}</span>
+              Edit {selectedOption?.label}
+            </span>
+          ) : selectedType ? (
             <span className="flex items-center gap-2">
               <button
                 onClick={() => setSelectedType(null)}
@@ -733,64 +848,119 @@ const ExerciseModalContent = ({
             'Create Exercise'
           )}
         </DialogTitle>
+
+        {/* Badge tip exercitiu la editare — nu poate fi schimbat */}
+        {isEditing && (
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1">
+            <span className="rounded-full bg-muted px-2 py-0.5 font-medium">
+              {exercise?.type.replace(/_/g, ' ')}
+            </span>
+            <span>· Exercise type cannot be changed.</span>
+          </p>
+        )}
       </DialogHeader>
 
       {error && <ErrorBanner message={error} />}
 
-      {!selectedType ? (
-        <StepSelectType onSelect={setSelectedType} />
-      ) : (
+      {/* Pasul 1 — selectie tip (doar la creare) */}
+      {!selectedType && !isEditing && (
         <>
-          {selectedType === 'MULTIPLE_CHOICE' && (
-            <MultipleChoiceForm
-              onSubmit={handleCreate}
-              isSaving={isSaving}
-            />
-          )}
-          {selectedType === 'TRANSLATION' && (
-            <TranslationForm
-              onSubmit={handleCreate}
-              isSaving={isSaving}
-            />
-          )}
-          {selectedType === 'FILL_BLANK' && (
-            <FillBlankForm
-              onSubmit={handleCreate}
-              isSaving={isSaving}
-            />
-          )}
-          {selectedType === 'MATCHING' && (
-            <MatchingForm
-              onSubmit={handleCreate}
-              isSaving={isSaving}
-            />
-          )}
-          {selectedType === 'ORDERING' && (
-            <OrderingForm
-              onSubmit={handleCreate}
-              isSaving={isSaving}
-            />
-          )}
+          <StepSelectType onSelect={setSelectedType} />
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+          </DialogFooter>
         </>
       )}
 
-      {!selectedType && (
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-        </DialogFooter>
+      {/* Pasul 2 — form specific tipului */}
+      {selectedType === 'MULTIPLE_CHOICE' && (
+        <MultipleChoiceForm
+          initial={
+            exercise?.contentData
+              ? {
+                  prompt: exercise.prompt,
+                  difficulty: exercise.difficulty,
+                  data: exercise.contentData as MultipleChoiceData,
+                }
+              : undefined
+          }
+          onSubmit={handleSubmit}
+          isSaving={isSaving}
+          isEditing={isEditing}
+        />
+      )}
+      {selectedType === 'TRANSLATION' && (
+        <TranslationForm
+          initial={
+            exercise?.contentData
+              ? {
+                  prompt: exercise.prompt,
+                  difficulty: exercise.difficulty,
+                  data: exercise.contentData as TranslationData,
+                }
+              : undefined
+          }
+          onSubmit={handleSubmit}
+          isSaving={isSaving}
+          isEditing={isEditing}
+        />
+      )}
+      {selectedType === 'FILL_BLANK' && (
+        <FillBlankForm
+          initial={
+            exercise?.contentData
+              ? {
+                  prompt: exercise.prompt,
+                  difficulty: exercise.difficulty,
+                  data: exercise.contentData as FillBlankData,
+                }
+              : undefined
+          }
+          onSubmit={handleSubmit}
+          isSaving={isSaving}
+          isEditing={isEditing}
+        />
+      )}
+      {selectedType === 'MATCHING' && (
+        <MatchingForm
+          initial={
+            exercise?.contentData
+              ? {
+                  prompt: exercise.prompt,
+                  difficulty: exercise.difficulty,
+                  data: exercise.contentData as MatchingData,
+                }
+              : undefined
+          }
+          onSubmit={handleSubmit}
+          isSaving={isSaving}
+          isEditing={isEditing}
+        />
+      )}
+      {selectedType === 'ORDERING' && (
+        <OrderingForm
+          initial={
+            exercise?.contentData
+              ? {
+                  prompt: exercise.prompt,
+                  difficulty: exercise.difficulty,
+                  data: exercise.contentData as OrderingData,
+                }
+              : undefined
+          }
+          onSubmit={handleSubmit}
+          isSaving={isSaving}
+          isEditing={isEditing}
+        />
       )}
     </>
   );
 };
 
 // ============================================================
-// ExerciseModal — wrapper
-// Nota: editarea contentData unui exercitiu existent este
-// intentionat omisa — complexitatea unui editor de tip WYSIWYG
-// per tip de exercitiu depaseste scopul unui modal simplu.
-// Profesorul poate sterge si recrea exercitiul.
+// ExerciseModal
 // ============================================================
 interface Props {
   open: boolean;
@@ -803,6 +973,7 @@ interface Props {
 export const ExerciseModal = ({
   open,
   lessonId,
+  exercise,
   onClose,
   onSuccess,
 }: Props) => {
@@ -810,8 +981,9 @@ export const ExerciseModal = ({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <ExerciseModalContent
-          key={open ? lessonId : 'closed'}
+          key={open ? `${lessonId}-${exercise?.id ?? 'new'}` : 'closed'}
           lessonId={lessonId}
+          exercise={exercise}
           onClose={onClose}
           onSuccess={onSuccess}
         />

@@ -18,6 +18,7 @@ import { MaterialModal } from '@/components/modals/MaterialModal';
 import { DeleteConfirmModal } from '@/components/modals/DeleteConfirmModal';
 import { useContent } from '@/hooks/useContent';
 import type { ExerciseDto, LessonMaterialDto } from '@/hooks/useContent';
+import { MaterialPreview } from '@/components/common/MaterialPreview';
 
 const difficultyDots = (level: number | null) => {
   if (!level) return null;
@@ -258,42 +259,59 @@ const TeacherLessonPage = () => {
             />
           ) : (
             <div className="space-y-3">
-              {materials.map((material) => (
-                <div
-                  key={material.id}
-                  className="card-base flex items-center gap-4 p-4"
-                >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                  </div>
+              {materials.map((material) => {
+  const type = material.type.toLowerCase();
+  const isAudioVideo = type === 'audio' || type === 'video';
 
-                  <div className="flex-1 min-w-0 space-y-0.5">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {material.title}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {material.type}
-                    </p>
-                  </div>
+  return (
+    <div
+      key={material.id}
+      className="card-base p-4 space-y-3"
+    >
+      {/* Layout principal */}
+      <div className="flex items-center gap-4">
+        {/* Preview compact — imagine, pdf, word, link */}
+        {!isAudioVideo && (
+          <MaterialPreview material={material} />
+        )}
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    
-                      href={material.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-primary hover:underline"
-                    <a>
-                      View
-                    </a>
-                    <button
-                      onClick={() => setDeleteMatTarget(material)}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
+        {/* Info */}
+        <div className="flex-1 min-w-0 space-y-0.5">
+          <p className="text-sm font-medium text-foreground truncate">
+            {material.title}
+          </p>
+          <p className="text-xs text-muted-foreground capitalize">
+            {material.type}
+          </p>
+        </div>
+
+        {/* Actiuni */}
+        <div className="flex items-center gap-2 shrink-0">
+          
+          <a
+            href={material.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-primary hover:underline"
+          >
+            {type === 'link' ? 'Open' : 'View'}
+          </a>
+          <button
+            onClick={() => setDeleteMatTarget(material)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Audio/Video preview — ocupa toata latimea */}
+      {isAudioVideo && (
+        <MaterialPreview material={material} />
+      )}
+    </div>
+  );
+})}
             </div>
           )}
         </>

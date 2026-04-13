@@ -37,6 +37,7 @@ import AnalysisPage from '@/pages/student/AnalysisPage';
 import TeacherDashboard from '@/pages/teacher/TeacherDashboard';
 import TeacherUnitPage from '@/pages/teacher/TeacherUnitPage';
 import TeacherLessonPage from '@/pages/teacher/TeacherLessonPage';
+import TeacherStatsPage from '@/pages/teacher/TeacherStatsPage';
 
 // --- Admin ---
 import AdminDashboard from '@/pages/admin/AdminDashboard';
@@ -98,6 +99,13 @@ const NAV_ITEMS: NavItem[] = [
     icon: BookOpen,
     roles: ['TEACHER'],
   },
+
+  {
+  label: 'Statistics',
+  path: '/teacher/stats',
+  icon: BarChart2,
+  roles: ['TEACHER'],
+},
   // Admin
   // Admin
 {
@@ -264,6 +272,16 @@ const AppRouter = () => {
             </ProtectedRoute>
           }
         />
+
+
+        <Route
+  path="/teacher/stats"
+  element={
+    <ProtectedRoute allowedRoles={['TEACHER']}>
+      <TeacherStatsPage />
+    </ProtectedRoute>
+  }
+/>
 
         {/* --- Admin --- */}
         <Route

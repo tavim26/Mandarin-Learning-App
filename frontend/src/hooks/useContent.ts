@@ -27,6 +27,7 @@ export type {
   FillBlankAnswer,
   MatchingAnswer,
   OrderingAnswer,
+  LessonExerciseTypesDto
 } from '@/types';
 
 
