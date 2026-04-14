@@ -15,10 +15,10 @@ interface ReviewCard {
 
 interface SessionSummary {
   total: number;
-  again: number;   // quality 0-1
-  hard: number;    // quality 2
-  good: number;    // quality 3-4
-  easy: number;    // quality 5
+  again: number;
+  hard: number;
+  good: number;
+  easy: number;
 }
 
 export const useReviewSession = () => {
@@ -33,7 +33,9 @@ export const useReviewSession = () => {
   const [summary, setSummary] = useState<SessionSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Incarca coada de recenzie o singura data la inceputul sesiunii
+  // Acumuleaza calitatile pe parcursul sesiunii
+  const [qualityLog, setQualityLog] = useState<ReviewQuality[]>([]);
+
   const startSession = useCallback(
     async (setId: number) => {
       if (!userId) return;
@@ -42,6 +44,7 @@ export const useReviewSession = () => {
       setIsFinished(false);
       setCurrentIndex(0);
       setSummary(null);
+      setQualityLog([]);
 
       try {
         const dueList = await flashcardApi.getDueCards(userId, setId);
@@ -52,7 +55,6 @@ export const useReviewSession = () => {
           return;
         }
 
-        // Fetch paralel pentru toate cardurile din coada
         const cards = await Promise.all(
           dueList.map((p) => flashcardApi.getCardById(p.flashcardId))
         );
@@ -64,7 +66,7 @@ export const useReviewSession = () => {
 
         setQueue(reviewQueue);
       } catch {
-        setError('Nu s-a putut incarca sesiunea de recenzie.');
+        setError('Failed to load the review session.');
       } finally {
         setIsLoading(false);
       }
@@ -88,10 +90,14 @@ export const useReviewSession = () => {
           quality,
         });
 
+        // Acumuleaza calitatea in log
+        const updatedLog = [...qualityLog, quality];
+        setQualityLog(updatedLog);
+
         const isLast = currentIndex === queue.length - 1;
 
         if (isLast) {
-          setSummary(buildSummary(queue.length));
+          setSummary(computeSummary(updatedLog));
           setIsFinished(true);
         } else {
           setCurrentIndex((prev) => prev + 1);
@@ -100,17 +106,18 @@ export const useReviewSession = () => {
 
         return result;
       } catch {
-        setError('Sending the review failed. Please try again.');
+        setError('Failed to submit review. Please try again.');
         return null;
       } finally {
         setIsSubmitting(false);
       }
     },
-    [queue, currentIndex]
+    [queue, currentIndex, qualityLog]
   );
 
   const currentCard = queue[currentIndex] ?? null;
-  const progress = queue.length > 0 ? (currentIndex / queue.length) * 100 : 0;
+  const progress =
+    queue.length > 0 ? (currentIndex / queue.length) * 100 : 0;
 
   return {
     currentCard,
@@ -129,12 +136,11 @@ export const useReviewSession = () => {
   };
 };
 
-// Construieste sumarul sesiunii progresiv
-// Aceasta functie este apelata doar la ultimul card
-const buildSummary = (total: number): SessionSummary => ({
-  total,
-  again: 0,
-  hard: 0,
-  good: 0,
-  easy: 0,
+// Calculeaza sumarul din log-ul complet de calitati
+const computeSummary = (log: ReviewQuality[]): SessionSummary => ({
+  total: log.length,
+  again: log.filter((q) => q <= 1).length,
+  hard:  log.filter((q) => q === 2).length,
+  good:  log.filter((q) => q === 3 || q === 4).length,
+  easy:  log.filter((q) => q === 5).length,
 });

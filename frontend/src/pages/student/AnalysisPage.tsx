@@ -5,9 +5,10 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorBanner } from '@/components/common/ErrorBanner';
 import { EmptyState } from '@/components/common/EmptyState';
-import { TokenDisplay } from '@/components/analysis/TokenDisplay';
 import { HskStatsChart } from '@/components/analysis/HskStatsChart';
 import { DeleteConfirmModal } from '@/components/modals/DeleteConfirmModal';
+{/* Importul existent de TokenDisplay nu mai este necesar */}
+import { ChineseText } from '@/components/common/ChineseText';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import type {
   TextAnalysisSummaryDto,
@@ -192,13 +193,23 @@ const AnalysisPage = () => {
               <div className="divider" />
 
               {/* Tokeni */}
-              <div className="flex flex-wrap gap-x-1 gap-y-2">
-                {currentAnalysis.tokens
-                  .sort((a, b) => a.position_index - b.position_index)
-                  .map((token) => (
-                    <TokenDisplay key={token.id} token={token} />
-                  ))}
-              </div>
+              {/* DUPA — un singur ChineseText cu toate feature-urile activate */}
+<ChineseText
+  text={currentAnalysis.raw_text}
+  showPinyin={true}
+  showPlayAll={true}
+  showFlashcardButton={true}
+  preloadedTokens={currentAnalysis.tokens
+    .sort((a, b) => a.position_index - b.position_index)
+    .map((t) => ({
+      hanzi: t.hanzi,
+      pinyin: t.pinyin,
+      hsk_level: t.hsk_level,
+      position_index: t.position_index,
+      pos: t.pos,
+      translation: t.translation,
+    }))}
+/>
             </div>
           )}
         </div>
@@ -284,13 +295,23 @@ const AnalysisPage = () => {
                 </span>
               </p>
               <div className="divider" />
-              <div className="flex flex-wrap gap-x-1 gap-y-2">
-                {currentAnalysis.tokens
-                  .sort((a, b) => a.position_index - b.position_index)
-                  .map((token) => (
-                    <TokenDisplay key={token.id} token={token} />
-                  ))}
-              </div>
+              {/* DUPA — un singur ChineseText cu toate feature-urile activate */}
+<ChineseText
+  text={currentAnalysis.raw_text}
+  showPinyin={true}
+  showPlayAll={true}
+  showFlashcardButton={true}
+  preloadedTokens={currentAnalysis.tokens
+    .sort((a, b) => a.position_index - b.position_index)
+    .map((t) => ({
+      hanzi: t.hanzi,
+      pinyin: t.pinyin,
+      hsk_level: t.hsk_level,
+      position_index: t.position_index,
+      pos: t.pos,
+      translation: t.translation,
+    }))}
+/>
             </div>
           )}
         </div>
@@ -360,13 +381,23 @@ const AnalysisPage = () => {
                     {currentAnalysis.translated_text}
                   </p>
                   <div className="divider" />
-                  <div className="flex flex-wrap gap-x-1 gap-y-2">
-                    {currentAnalysis.tokens
-                      .sort((a, b) => a.position_index - b.position_index)
-                      .map((token) => (
-                        <TokenDisplay key={token.id} token={token} />
-                      ))}
-                  </div>
+                  {/* DUPA — un singur ChineseText cu toate feature-urile activate */}
+<ChineseText
+  text={currentAnalysis.raw_text}
+  showPinyin={true}
+  showPlayAll={true}
+  showFlashcardButton={true}
+  preloadedTokens={currentAnalysis.tokens
+    .sort((a, b) => a.position_index - b.position_index)
+    .map((t) => ({
+      hanzi: t.hanzi,
+      pinyin: t.pinyin,
+      hsk_level: t.hsk_level,
+      position_index: t.position_index,
+      pos: t.pos,
+      translation: t.translation,
+    }))}
+/>
                 </div>
               )}
             </>

@@ -142,14 +142,12 @@ const FlashcardsPage = () => {
   const navigate = useNavigate();
   const {
     sets,
-    currentSetStats,
     totalDue,
     isLoading,
     isSaving,
     error,
     fetchSets,
     fetchTotalDue,
-    fetchSetStats,
     createSet,
     updateSet,
     deleteSet,
@@ -242,13 +240,10 @@ const FlashcardsPage = () => {
           {sets.map((set) => (
             <div key={set.id} className="relative group">
               <FlashcardSetCard
-                set={set}
-                stats={
-                  currentSetStats?.setId === set.id ? currentSetStats : null
-                }
-                onClick={() => fetchSetStats(set.id)}
-                onStudy={() => navigate(`/flashcards/review/${set.id}`)}
-              />
+  set={set}
+  onClick={() => navigate(`/flashcards/sets/${set.id}`)}
+  onStudy={() => navigate(`/flashcards/review/${set.id}`)}
+/>
 
               {/* Actiuni edit/delete — apar la hover */}
               <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

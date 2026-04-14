@@ -59,11 +59,18 @@ public class FlashcardSetDao implements IFlashcardSetDao
     // Conversie domain -> entity pentru persistenta
     private FlashcardSetEntity toEntity(FlashcardSet domain)
     {
-        FlashcardSetEntity entity = new FlashcardSetEntity();
+        // La update (id != null), incarcam entitatea existenta din DB
+        // pentru a pastra colectia flashcards intacta
+        FlashcardSetEntity entity = domain.getId() != null
+                ? flashcardSetJpaRepository.findById(domain.getId())
+                .orElse(new FlashcardSetEntity())
+                : new FlashcardSetEntity();
+
         entity.setId(domain.getId());
         entity.setStudentId(domain.getStudentId());
         entity.setTitle(domain.getTitle());
         entity.setDescription(domain.getDescription());
+        // flashcards este pastrat din entitatea incarcata din DB — nu il atingem
         return entity;
     }
 

@@ -6,7 +6,10 @@ import com.chineselearning.flashcardservice.repository.entities.FlashcardEntity;
 import com.chineselearning.flashcardservice.repository.entities.FlashcardSetEntity;
 import com.chineselearning.flashcardservice.repository.jpa.FlashcardJpaRepository;
 import com.chineselearning.flashcardservice.repository.jpa.FlashcardSetJpaRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -32,6 +35,7 @@ public class FlashcardDao implements IFlashcardDao
     }
 
     @Override
+    @Transactional
     public Optional<Flashcard> findById(Long id)
     {
         return flashcardJpaRepository.findById(id)
@@ -39,6 +43,7 @@ public class FlashcardDao implements IFlashcardDao
     }
 
     @Override
+    @Transactional
     public List<Flashcard> findBySetId(Long setId)
     {
         return flashcardJpaRepository.findBySetId(setId)
@@ -58,13 +63,20 @@ public class FlashcardDao implements IFlashcardDao
     // Conversie domain -> entity
     private FlashcardEntity toEntity(Flashcard domain)
     {
-        FlashcardEntity entity = new FlashcardEntity();
+        // La update (id != null), incarcam entitatea existenta din DB
+        // pentru a pastra progressRecords si reviews intacte
+        FlashcardEntity entity = domain.getId() != null
+                ? flashcardJpaRepository.findById(domain.getId())
+                .orElse(new FlashcardEntity())
+                : new FlashcardEntity();
+
         entity.setId(domain.getId());
         entity.setFrontText(domain.getFrontText());
         entity.setBackText(domain.getBackText());
 
         FlashcardSetEntity setEntity = flashcardSetJpaRepository.findById(domain.getSetId())
-                .orElseThrow(() -> new RuntimeException("Setul cu id " + domain.getSetId() + " nu exista"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Setul cu id " + domain.getSetId() + " nu exista"));
         entity.setSet(setEntity);
 
         return entity;

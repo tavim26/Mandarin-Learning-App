@@ -32,6 +32,7 @@ import StudentLessonPage from '@/pages/student/StudentLessonPage';
 import FlashcardsPage from '@/pages/student/FlashcardsPage';
 import ReviewSessionPage from '@/pages/student/ReviewSessionPage';
 import AnalysisPage from '@/pages/student/AnalysisPage';
+import FlashcardSetPage from '@/pages/student/FlashcardSetPage';
 
 // --- Teacher ---
 import TeacherDashboard from '@/pages/teacher/TeacherDashboard';
@@ -246,6 +247,16 @@ const AppRouter = () => {
             </ProtectedRoute>
           }
         />
+
+
+        <Route
+  path="/flashcards/sets/:setId"
+  element={
+    <ProtectedRoute allowedRoles={['STUDENT']}>
+      <FlashcardSetPage />
+    </ProtectedRoute>
+  }
+/>
 
         {/* --- Teacher --- */}
         <Route

@@ -815,15 +815,7 @@ const ExerciseModalContent = ({
 
   const handleSubmit = isEditing ? handleUpdate : handleCreate;
 
-  // Helper pentru extragerea datelor initiale
-  const getInitialData = () => {
-    if (!exercise) return undefined;
-    return {
-      prompt: exercise.prompt,
-      difficulty: exercise.difficulty,
-      data: exercise.contentData,
-    };
-  };
+  
 
   return (
     <>

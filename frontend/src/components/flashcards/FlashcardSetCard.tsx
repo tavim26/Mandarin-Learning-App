@@ -1,18 +1,38 @@
+import { useState, useCallback } from 'react';
 import { BookOpen, Calendar, TrendingUp } from 'lucide-react';
 import type { FlashcardSetDto, FlashcardSetStatsDto } from '@/hooks/useFlashcards';
 
 interface Props {
   set: FlashcardSetDto;
-  stats?: FlashcardSetStatsDto | null;
   onClick: () => void;
   onStudy: () => void;
 }
 
-export const FlashcardSetCard = ({ set, stats, onClick, onStudy }: Props) => {
+export const FlashcardSetCard = ({ set, onClick, onStudy }: Props) => {
+  const [stats, setStats] = useState<FlashcardSetStatsDto | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+
+  const handleMouseEnter = useCallback(async () => {
+    if (stats) return; // Nu re-fetcha daca deja le avem
+    setIsLoadingStats(true);
+    try {
+      // fetchSetStats seteaza in hook — avem nevoie sa returneze datele
+      // Alternativ: apelam direct flashcardApi
+      const { flashcardApi } = await import('@/api/flashcardApi');
+      const result = await flashcardApi.getSetStats(set.id);
+      setStats(result);
+    } catch {
+      // Ignoram silentios
+    } finally {
+      setIsLoadingStats(false);
+    }
+  }, [set.id, stats]);
+
   const dueCount = stats?.dueToday ?? 0;
 
   return (
     <div
+      onMouseEnter={handleMouseEnter}
       onClick={onClick}
       className="card-interactive group p-5 space-y-4"
     >
@@ -53,11 +73,16 @@ export const FlashcardSetCard = ({ set, stats, onClick, onStudy }: Props) => {
             </span>
           </>
         )}
+        {isLoadingStats && (
+          <span className="text-muted-foreground/50 animate-pulse">
+            Loading stats...
+          </span>
+        )}
       </div>
 
-      {/* Progress bar SM-2 */}
+      {/* Progress bar SM-2 — apare dupa hover */}
       {stats && stats.totalCards > 0 && (
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 animate-fade-in">
           <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
             <div
               className="bg-sm2-new transition-all duration-500"
@@ -92,16 +117,21 @@ export const FlashcardSetCard = ({ set, stats, onClick, onStudy }: Props) => {
           e.stopPropagation();
           onStudy();
         }}
-        disabled={dueCount === 0}
+        disabled={stats !== null && dueCount === 0}
         className={`
           w-full rounded-lg py-2 text-sm font-medium transition-all duration-150
-          ${dueCount > 0
+          ${stats === null || dueCount > 0
             ? 'bg-primary text-white hover:bg-[hsl(var(--brand-hover))]'
             : 'bg-muted text-muted-foreground cursor-not-allowed'
           }
         `}
       >
-        {dueCount > 0 ? `Study ${dueCount} due cards` : 'All caught up'}
+        {stats === null
+          ? `Study ${set.cardCount} cards`
+          : dueCount > 0
+          ? `Study ${dueCount} due cards`
+          : 'All caught up'
+        }
       </button>
     </div>
   );

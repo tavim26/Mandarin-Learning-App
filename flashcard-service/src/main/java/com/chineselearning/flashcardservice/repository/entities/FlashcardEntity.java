@@ -1,6 +1,8 @@
 package com.chineselearning.flashcardservice.repository.entities;
 
 import jakarta.persistence.*;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "flashcards", indexes = {
@@ -23,6 +25,13 @@ public class FlashcardEntity
     @Column(name = "back_text", columnDefinition = "TEXT", nullable = false)
     private String backText;
 
+    // Cascade DELETE spre progress si reviews — evita FK violation la stergerea cardului
+    @OneToMany(mappedBy = "flashcard", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<FlashcardProgressEntity> progressRecords = new ArrayList<>();
+
+    @OneToMany(mappedBy = "flashcard", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<FlashcardReviewEntity> reviews = new ArrayList<>();
+
     public FlashcardEntity() {}
 
     public Long getId() { return id; }
@@ -36,4 +45,10 @@ public class FlashcardEntity
 
     public String getBackText() { return backText; }
     public void setBackText(String backText) { this.backText = backText; }
+
+    public List<FlashcardProgressEntity> getProgressRecords() { return progressRecords; }
+    public void setProgressRecords(List<FlashcardProgressEntity> progressRecords) { this.progressRecords = progressRecords; }
+
+    public List<FlashcardReviewEntity> getReviews() { return reviews; }
+    public void setReviews(List<FlashcardReviewEntity> reviews) { this.reviews = reviews; }
 }

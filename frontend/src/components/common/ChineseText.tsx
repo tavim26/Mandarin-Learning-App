@@ -1,17 +1,24 @@
-import { useState, useEffect } from 'react';
-import { Volume2, Loader2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Volume2, Loader2, Brain } from 'lucide-react';
 import { useChinesePreview } from '@/hooks/useChinesePreview';
 import { useTTS } from '@/hooks/useTTS';
-import type { PreviewTokenDto } from '@/hooks/useChinesePreview';
+import { CreateFlashcardFromTokenModal } from '@/components/modals/CreateFlashcardFromTokenModal';
 
 // ============================================================
-// Tooltip per token
+// Tip token unificat — compatibil cu PreviewTokenDto si AnalysisTokenDto
 // ============================================================
-interface TokenTooltipProps {
-  token: PreviewTokenDto;
-  onClose: () => void;
+export interface RichTokenDto {
+  hanzi: string;
+  pinyin: string;
+  hsk_level: number | null;
+  position_index: number;
+  pos: string | null;
+  translation?: string; // prezent in AnalysisTokenDto, absent in PreviewTokenDto
 }
 
+// ============================================================
+// Culori HSK
+// ============================================================
 const hskTextClass: Record<number, string> = {
   1: 'text-hsk-1',
   2: 'text-hsk-2',
@@ -30,7 +37,22 @@ const hskBgClass: Record<number, string> = {
   6: 'bg-hsk-6',
 };
 
-const TokenTooltip = ({ token, onClose }: TokenTooltipProps) => {
+// ============================================================
+// TokenTooltip
+// ============================================================
+interface TokenTooltipProps {
+  token: RichTokenDto;
+  onClose: () => void;
+  onCreateFlashcard: (token: RichTokenDto) => void;
+  showFlashcardButton: boolean;
+}
+
+const TokenTooltip = ({
+  token,
+  onClose,
+  onCreateFlashcard,
+  showFlashcardButton,
+}: TokenTooltipProps) => {
   const { speak, isSpeaking } = useTTS();
 
   const colorClass = token.hsk_level
@@ -39,18 +61,13 @@ const TokenTooltip = ({ token, onClose }: TokenTooltipProps) => {
 
   return (
     <>
-      {/* Overlay pentru inchidere */}
-      <span
-        className="fixed inset-0 z-10"
-        onClick={onClose}
-      />
+      <span className="fixed inset-0 z-10" onClick={onClose} />
       <span
         className="
           absolute bottom-full left-1/2 z-20 mb-2
           -translate-x-1/2 animate-scale-in
-          w-44 rounded-xl border border-border
-          bg-card shadow-form p-3 space-y-2
-          block
+          w-48 rounded-xl border border-border
+          bg-card shadow-form p-3 space-y-2 block
         "
       >
         {/* Hanzi + TTS */}
@@ -85,6 +102,13 @@ const TokenTooltip = ({ token, onClose }: TokenTooltipProps) => {
           {token.pinyin}
         </span>
 
+        {/* Traducere — afisata doar daca exista */}
+        {token.translation && (
+          <span className="block text-sm text-foreground">
+            {token.translation}
+          </span>
+        )}
+
         {/* POS + HSK */}
         <span className="flex items-center justify-between pt-1 border-t border-border">
           {token.pos && (
@@ -100,26 +124,56 @@ const TokenTooltip = ({ token, onClose }: TokenTooltipProps) => {
             </span>
           )}
         </span>
+
+        {/* Buton Create Flashcard */}
+        {showFlashcardButton && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onCreateFlashcard(token);
+              onClose();
+            }}
+            className="
+              w-full flex items-center justify-center gap-1.5
+              rounded-lg border border-primary/30 bg-primary/8
+              px-2 py-1.5 text-xs font-medium text-primary
+              hover:bg-primary/15 transition-colors
+            "
+          >
+            <Brain className="h-3 w-3" />
+            Create Flashcard
+          </button>
+        )}
       </span>
     </>
   );
 };
 
 // ============================================================
-// InteractiveToken — un singur token clicabil
+// InteractiveToken
 // ============================================================
 interface InteractiveTokenProps {
-  token: PreviewTokenDto;
+  token: RichTokenDto;
+  showPinyin: boolean;
+  showFlashcardButton: boolean;
+  onCreateFlashcard: (token: RichTokenDto) => void;
 }
 
-const InteractiveToken = ({ token }: InteractiveTokenProps) => {
+const InteractiveToken = ({
+  token,
+  showPinyin,
+  showFlashcardButton,
+  onCreateFlashcard,
+}: InteractiveTokenProps) => {
   const [open, setOpen] = useState(false);
 
-  // Punctuatia nu e interactiva
   if (token.pos === 'punctuatie') {
     return (
-      <span className="font-display text-xl text-muted-foreground">
-        {token.hanzi}
+      <span className="inline-flex flex-col items-center">
+        <span className="font-display text-xl text-muted-foreground">
+          {token.hanzi}
+        </span>
+        {showPinyin && <span className="h-3.5" />}
       </span>
     );
   }
@@ -129,7 +183,7 @@ const InteractiveToken = ({ token }: InteractiveTokenProps) => {
     : 'text-foreground';
 
   return (
-    <span className="relative inline-block">
+    <span className="relative inline-flex flex-col items-center">
       <button
         onClick={() => setOpen((p) => !p)}
         className={`
@@ -141,8 +195,20 @@ const InteractiveToken = ({ token }: InteractiveTokenProps) => {
       >
         {token.hanzi}
       </button>
+
+      {showPinyin && (
+        <span className="text-[10px] text-muted-foreground leading-none mt-0.5 font-medium">
+          {token.pinyin}
+        </span>
+      )}
+
       {open && (
-        <TokenTooltip token={token} onClose={() => setOpen(false)} />
+        <TokenTooltip
+          token={token}
+          onClose={() => setOpen(false)}
+          onCreateFlashcard={onCreateFlashcard}
+          showFlashcardButton={showFlashcardButton}
+        />
       )}
     </span>
   );
@@ -154,16 +220,36 @@ const InteractiveToken = ({ token }: InteractiveTokenProps) => {
 interface Props {
   text: string;
   className?: string;
+  showPinyin?: boolean;
+  showPlayAll?: boolean;
+  showFlashcardButton?: boolean;
+  preloadedTokens?: RichTokenDto[];
 }
 
-export const ChineseText = ({ text, className = '' }: Props) => {
-  const { tokens, isLoading, fetchPreview } = useChinesePreview();
+export const ChineseText = ({
+  text,
+  className = '',
+  showPinyin = false,
+  showPlayAll = false,
+  showFlashcardButton = false,
+  preloadedTokens,
+}: Props) => {
+  const { tokens: fetchedTokens, isLoading, fetchPreview } =
+    useChinesePreview();
+  const { speak, stop, isSpeaking } = useTTS();
+  const [flashcardToken, setFlashcardToken] = useState<RichTokenDto | null>(
+    null
+  );
 
   useEffect(() => {
-    if (text.trim()) fetchPreview(text);
-  }, [text, fetchPreview]);
+    if (!preloadedTokens && text.trim()) fetchPreview(text);
+  }, [text, fetchPreview, preloadedTokens]);
 
-  // Detecteaza daca textul contine caractere chinezesti
+  const handlePlayAll = useCallback(() => {
+    if (isSpeaking) stop();
+    else speak(text);
+  }, [text, speak, stop, isSpeaking]);
+
   const hasChinese = /[\u4e00-\u9fff]/.test(text);
 
   if (!hasChinese) {
@@ -174,7 +260,8 @@ export const ChineseText = ({ text, className = '' }: Props) => {
     );
   }
 
-  if (isLoading || !tokens) {
+  // Fallback la textul brut cat timp se incarca
+  if (!preloadedTokens && (isLoading || !fetchedTokens)) {
     return (
       <span className={`font-display text-xl text-foreground ${className}`}>
         {text}
@@ -182,11 +269,53 @@ export const ChineseText = ({ text, className = '' }: Props) => {
     );
   }
 
+  const activeTokens: RichTokenDto[] = preloadedTokens ?? fetchedTokens ?? [];
+
   return (
-    <span className={`flex flex-wrap items-end gap-x-0.5 gap-y-1 ${className}`}>
-      {tokens.map((token, idx) => (
-        <InteractiveToken key={idx} token={token} />
-      ))}
-    </span>
+    <>
+      <span className={`inline-flex flex-col gap-1 ${className}`}>
+        <span className="flex flex-wrap items-end gap-x-1 gap-y-2">
+          {activeTokens.map((token, idx) => (
+            <InteractiveToken
+              key={idx}
+              token={token}
+              showPinyin={showPinyin}
+              showFlashcardButton={showFlashcardButton}
+              onCreateFlashcard={setFlashcardToken}
+            />
+          ))}
+
+          {showPlayAll && (
+            <button
+              onClick={handlePlayAll}
+              title={isSpeaking ? 'Stop' : 'Play all'}
+              className={`
+                flex h-8 w-8 shrink-0 items-center justify-center
+                rounded-full border transition-colors duration-150 mb-0.5
+                ${isSpeaking
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border bg-muted text-muted-foreground hover:border-primary/40 hover:bg-primary/8 hover:text-primary'
+                }
+              `}
+            >
+              {isSpeaking
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <Volume2 className="h-3.5 w-3.5" />
+              }
+            </button>
+          )}
+        </span>
+      </span>
+
+      {flashcardToken && (
+        <CreateFlashcardFromTokenModal
+          open={!!flashcardToken}
+          hanzi={flashcardToken.hanzi}
+          pinyin={flashcardToken.pinyin}
+          translation={flashcardToken.translation}
+          onClose={() => setFlashcardToken(null)}
+        />
+      )}
+    </>
   );
 };

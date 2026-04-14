@@ -8,3 +8,4 @@ export { ExerciseModal } from './ExerciseModal';
 export { MaterialModal } from './MaterialModal';
 export { EditStudentModal } from './EditStudentModal';
 export { EditTeacherModal } from './EditTeacherModal';
+export { CreateFlashcardFromTokenModal } from './CreateFlashcardFromTokenModal';
