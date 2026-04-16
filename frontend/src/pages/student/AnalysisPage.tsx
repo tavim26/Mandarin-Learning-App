@@ -73,11 +73,16 @@ const AnalysisPage = () => {
   };
 
   const handleSelectAnalysis = useCallback(
-    (id: number) => {
-      fetchAnalysisById(id);
-    },
-    [fetchAnalysisById]
-  );
+  (id: number) => {
+    if (id === -1) {
+      // Deselect
+      fetchAnalysisById(0);
+      return;
+    }
+    fetchAnalysisById(id);
+  },
+  [fetchAnalysisById]
+);
 
   const tabs = [
     { key: 'text', label: 'Analyze Text', icon: Type },
@@ -287,123 +292,184 @@ const AnalysisPage = () => {
 
           {/* Rezultat OCR — acelasi layout ca Text */}
           {currentAnalysis && currentAnalysis.source_type === 'OCR' && (
-            <div className="card-base p-5 space-y-4 animate-slide-up">
-              <p className="text-xs text-muted-foreground">
-                Extracted text:{' '}
-                <span className="font-medium text-foreground">
-                  {currentAnalysis.raw_text}
-                </span>
-              </p>
-              <div className="divider" />
-              {/* DUPA — un singur ChineseText cu toate feature-urile activate */}
-<ChineseText
-  text={currentAnalysis.raw_text}
-  showPinyin={true}
-  showPlayAll={true}
-  showFlashcardButton={true}
-  preloadedTokens={currentAnalysis.tokens
-    .sort((a, b) => a.position_index - b.position_index)
-    .map((t) => ({
-      hanzi: t.hanzi,
-      pinyin: t.pinyin,
-      hsk_level: t.hsk_level,
-      position_index: t.position_index,
-      pos: t.pos,
-      translation: t.translation,
-    }))}
-/>
-            </div>
-          )}
-        </div>
+  <div className="card-base p-5 space-y-4 animate-slide-up">
+    {/* Traducere — identic cu tab-ul text */}
+    <div className="flex items-start justify-between gap-3">
+      <div className="space-y-1">
+        <p className="text-xs text-muted-foreground">
+          Translation ({currentAnalysis.translation_language.toUpperCase()})
+        </p>
+        <p className="text-sm text-foreground">
+          {currentAnalysis.translated_text}
+        </p>
+      </div>
+      {currentAnalysis.overall_hsk_level && (
+        <span
+          className={`hsk-badge bg-hsk-${currentAnalysis.overall_hsk_level} shrink-0 text-white`}
+        >
+          HSK {currentAnalysis.overall_hsk_level}
+        </span>
       )}
+    </div>
+
+    <div className="divider" />
+
+    <p className="text-xs text-muted-foreground">
+      Extracted text:{' '}
+      <span className="font-medium text-foreground">
+        {currentAnalysis.raw_text}
+      </span>
+    </p>
+
+    <div className="divider" />
+
+    <ChineseText
+      text={currentAnalysis.raw_text}
+      showPinyin={true}
+      showPlayAll={true}
+      showFlashcardButton={true}
+      preloadedTokens={currentAnalysis.tokens
+        .sort((a, b) => a.position_index - b.position_index)
+        .map((t) => ({
+          hanzi: t.hanzi,
+          pinyin: t.pinyin,
+          hsk_level: t.hsk_level,
+          position_index: t.position_index,
+          pos: t.pos,
+          translation: t.translation,
+        }))}
+    />
+  </div>
+)}
+
+
+</div>
+)}
+
+
+
+      
 
       {/* Tab: History */}
-      {activeTab === 'history' && (
-        <div className="space-y-3">
-          {isLoading ? (
-            <div className="flex h-40 items-center justify-center">
-              <LoadingSpinner size="md" />
-            </div>
-          ) : !analysisList || analysisList.items.length === 0 ? (
-            <EmptyState
-              icon={BarChart2}
-              title="No analyses yet"
-              description="Analyze some text to see your history here."
-            />
-          ) : (
-            <>
-              {analysisList.items.map((item) => (
-                <div
-                  key={item.id}
-                  className="card-base p-4 flex items-start justify-between gap-3"
-                >
-                  <button
-                    onClick={() => handleSelectAnalysis(item.id)}
-                    className="flex-1 text-left space-y-1"
-                  >
-                    <p className="text-sm font-medium text-foreground truncate max-w-xs">
-                      {item.raw_text}
-                    </p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{item.source_type}</span>
-                      <span>·</span>
-                      <span>
-                        {new Date(item.created_at).toLocaleDateString()}
-                      </span>
-                      {item.overall_hsk_level && (
-                        <>
-                          <span>·</span>
-                          <span
-                            className={`hsk-badge bg-hsk-${item.overall_hsk_level}`}
-                          >
-                            HSK {item.overall_hsk_level}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => setDeleteTarget(item)}
-                    className="shrink-0 flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ))}
+      {activeTab === 'history' && 
+     (
+  <div className="space-y-3">
+    {isLoading ? (
+      <div className="flex h-40 items-center justify-center">
+        <LoadingSpinner size="md" />
+      </div>
+    ) : !analysisList || analysisList.items.length === 0 ? (
+      <EmptyState
+        icon={BarChart2}
+        title="No analyses yet"
+        description="Analyze some text to see your history here."
+      />
+    ) : (
+      analysisList.items.map((item) => {
+        const isSelected =
+          currentAnalysis?.id === item.id;
 
-              {/* Analiza selectata din history */}
-              {currentAnalysis && (
-                <div className="card-base p-5 space-y-4 animate-slide-up">
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
-                    Selected Analysis
+        return (
+          <div key={item.id} className="space-y-0">
+            {/* Header item */}
+            <div
+              className={`
+                card-base p-4 flex items-start justify-between gap-3
+                transition-colors duration-150
+                ${isSelected ? 'border-primary/40 bg-primary/4 rounded-b-none border-b-0' : ''}
+              `}
+            >
+              <button
+                onClick={() =>
+                  isSelected
+                    ? handleSelectAnalysis(-1) // deselect
+                    : handleSelectAnalysis(item.id)
+                }
+                className="flex-1 text-left space-y-1"
+              >
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-foreground truncate max-w-xs">
+                    {item.raw_text}
                   </p>
-                  <p className="text-sm text-foreground">
-                    {currentAnalysis.translated_text}
-                  </p>
-                  <div className="divider" />
-                  {/* DUPA — un singur ChineseText cu toate feature-urile activate */}
-<ChineseText
-  text={currentAnalysis.raw_text}
-  showPinyin={true}
-  showPlayAll={true}
-  showFlashcardButton={true}
-  preloadedTokens={currentAnalysis.tokens
-    .sort((a, b) => a.position_index - b.position_index)
-    .map((t) => ({
-      hanzi: t.hanzi,
-      pinyin: t.pinyin,
-      hsk_level: t.hsk_level,
-      position_index: t.position_index,
-      pos: t.pos,
-      translation: t.translation,
-    }))}
-/>
+                  {isSelected && (
+                    <span className="shrink-0 text-xs text-primary font-medium">
+                      ▲ Hide
+                    </span>
+                  )}
                 </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>{item.source_type}</span>
+                  <span>·</span>
+                  <span>
+                    {new Date(item.created_at).toLocaleDateString()}
+                  </span>
+                  {item.overall_hsk_level && (
+                    <>
+                      <span>·</span>
+                      <span
+                        className={`hsk-badge text-white bg-hsk-${item.overall_hsk_level}`}
+                      >
+                        HSK {item.overall_hsk_level}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </button>
+              <button
+                onClick={() => setDeleteTarget(item)}
+                className="shrink-0 flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            {/* Detalii inline — apar imediat sub item */}
+            {isSelected && currentAnalysis && (
+              <div className="border border-primary/40 border-t-0 rounded-b-lg bg-card p-5 space-y-4 animate-fade-in">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">
+                      Translation ({currentAnalysis.translation_language.toUpperCase()})
+                    </p>
+                    <p className="text-sm text-foreground">
+                      {currentAnalysis.translated_text}
+                    </p>
+                  </div>
+                  {currentAnalysis.overall_hsk_level && (
+                    <span
+                      className={`hsk-badge text-white bg-hsk-${currentAnalysis.overall_hsk_level} shrink-0`}
+                    >
+                      HSK {currentAnalysis.overall_hsk_level}
+                    </span>
+                  )}
+                </div>
+                <div className="divider" />
+                <ChineseText
+                  text={currentAnalysis.raw_text}
+                  showPinyin={true}
+                  showPlayAll={true}
+                  showFlashcardButton={true}
+                  preloadedTokens={currentAnalysis.tokens
+                    .sort((a, b) => a.position_index - b.position_index)
+                    .map((t) => ({
+                      hanzi: t.hanzi,
+                      pinyin: t.pinyin,
+                      hsk_level: t.hsk_level,
+                      position_index: t.position_index,
+                      pos: t.pos,
+                      translation: t.translation,
+                    }))}
+                />
+              </div>
+            )}
+          </div>
+        );
+      })
+    )}
+  </div>
+)}
+
+
 
       {/* Tab: Stats */}
       {activeTab === 'stats' && (

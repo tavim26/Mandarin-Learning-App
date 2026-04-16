@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Volume2, Loader2, Brain } from 'lucide-react';
 import { useChinesePreview } from '@/hooks/useChinesePreview';
 import { useTTS } from '@/hooks/useTTS';
 import { CreateFlashcardFromTokenModal } from '@/components/modals/CreateFlashcardFromTokenModal';
+import { createPortal } from 'react-dom';
 
 // ============================================================
 // Tip token unificat — compatibil cu PreviewTokenDto si AnalysisTokenDto
@@ -49,26 +50,43 @@ interface TokenTooltipProps {
 
 const TokenTooltip = ({
   token,
+  anchorRef,
   onClose,
   onCreateFlashcard,
   showFlashcardButton,
-}: TokenTooltipProps) => {
+}: TokenTooltipProps & { anchorRef: React.RefObject<HTMLElement | null> }) => {
   const { speak, isSpeaking } = useTTS();
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    if (!anchorRef.current) return;
+    const rect = anchorRef.current.getBoundingClientRect();
+    setPosition({
+      top: rect.top + window.scrollY - 8,
+      left: rect.left + rect.width / 2 + window.scrollX,
+    });
+  }, [anchorRef]);
 
   const colorClass = token.hsk_level
     ? (hskTextClass[token.hsk_level] ?? 'text-hsk-unknown')
     : 'text-hsk-unknown';
 
-  return (
+  return createPortal(
     <>
-      <span className="fixed inset-0 z-10" onClick={onClose} />
-      <span
-        className="
-          absolute bottom-full left-1/2 z-20 mb-2
-          -translate-x-1/2 animate-scale-in
-          w-48 rounded-xl border border-border
-          bg-card shadow-form p-3 space-y-2 block
-        "
+      {/* Overlay inchidere */}
+      <div
+        className="fixed inset-0 z-[900]"
+        onClick={onClose}
+      />
+
+      {/* Tooltip */}
+      <div
+        className="absolute z-[901] animate-scale-in w-48 rounded-xl border border-border bg-card shadow-form p-3 space-y-2"
+        style={{
+          top: position.top,
+          left: position.left,
+          transform: 'translate(-50%, -100%)',
+        }}
       >
         {/* Hanzi + TTS */}
         <span className="flex items-center justify-between">
@@ -102,7 +120,7 @@ const TokenTooltip = ({
           {token.pinyin}
         </span>
 
-        {/* Traducere — afisata doar daca exista */}
+        {/* Traducere */}
         {token.translation && (
           <span className="block text-sm text-foreground">
             {token.translation}
@@ -117,9 +135,7 @@ const TokenTooltip = ({
             </span>
           )}
           {token.hsk_level && (
-            <span
-              className={`hsk-badge text-white ${hskBgClass[token.hsk_level]}`}
-            >
+            <span className={`hsk-badge text-white ${hskBgClass[token.hsk_level]}`}>
               HSK {token.hsk_level}
             </span>
           )}
@@ -144,8 +160,9 @@ const TokenTooltip = ({
             Create Flashcard
           </button>
         )}
-      </span>
-    </>
+      </div>
+    </>,
+    document.body
   );
 };
 
@@ -166,6 +183,7 @@ const InteractiveToken = ({
   onCreateFlashcard,
 }: InteractiveTokenProps) => {
   const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   if (token.pos === 'punctuatie') {
     return (
@@ -185,6 +203,7 @@ const InteractiveToken = ({
   return (
     <span className="relative inline-flex flex-col items-center">
       <button
+        ref={buttonRef}
         onClick={() => setOpen((p) => !p)}
         className={`
           font-display text-xl font-medium leading-relaxed
@@ -205,6 +224,7 @@ const InteractiveToken = ({
       {open && (
         <TokenTooltip
           token={token}
+          anchorRef={buttonRef}
           onClose={() => setOpen(false)}
           onCreateFlashcard={onCreateFlashcard}
           showFlashcardButton={showFlashcardButton}

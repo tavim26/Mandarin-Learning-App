@@ -66,18 +66,29 @@ export const useAnalysis = () => {
     }
   }, [userId]);
 
+
+
+
   const fetchAnalysisById = useCallback(async (analysisId: number) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await analysisApi.getAnalysisById(analysisId);
-      setCurrentAnalysis(data);
-    } catch {
-      setError('Analiza nu a putut fi incarcata.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  if (analysisId === 0) {
+    setCurrentAnalysis(null);
+    return;
+  }
+  setIsLoading(true);
+  setError(null);
+  try {
+    const data = await analysisApi.getAnalysisById(analysisId);
+    setCurrentAnalysis(data);
+  } catch {
+    setError('Analysis could not be loaded.');
+  } finally {
+    setIsLoading(false);
+  }
+}, []);
+
+
+
+
 
   const analyzeText = async (
     rawText: string,
