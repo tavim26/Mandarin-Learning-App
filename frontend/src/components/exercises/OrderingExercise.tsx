@@ -5,7 +5,9 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  DragOverlay,
   type DragEndEvent,
+  type DragStartEvent,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -17,19 +19,31 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
 import type { OrderingData, OrderingAnswer } from '@/hooks/useContent';
 
+// Item cu ID unic — rezolva problema cuvintelor duplicate
+interface WordItem {
+  id: string;   // unic: `word-0`, `word-1`, etc.
+  word: string; // textul efectiv
+}
+
 interface SortableWordProps {
-  id: string;
-  word: string;
+  item: WordItem;
   disabled: boolean;
 }
 
-const SortableWord = ({ id, word, disabled }: SortableWordProps) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id, disabled });
+const SortableWord = ({ item, disabled }: SortableWordProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id, disabled });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    opacity: isDragging ? 0 : 1,
   };
 
   return (
@@ -41,20 +55,24 @@ const SortableWord = ({ id, word, disabled }: SortableWordProps) => {
       className={`
         flex items-center gap-1.5 rounded-lg border-2 px-3 py-2
         font-display text-xl select-none
-        transition-all duration-150
-        ${isDragging
-          ? 'border-primary bg-primary/10 text-primary shadow-card-hover z-50 scale-105'
-          : disabled
+        ${disabled
           ? 'border-border bg-muted text-muted-foreground cursor-not-allowed'
           : 'border-border bg-card text-foreground cursor-grab hover:border-primary/40 hover:bg-accent active:cursor-grabbing'
         }
       `}
     >
       <GripVertical className="h-3 w-3 text-muted-foreground shrink-0" />
-      {word}
+      {item.word}
     </div>
   );
 };
+
+const DragGhost = ({ word }: { word: string }) => (
+  <div className="flex items-center gap-1.5 rounded-lg border-2 border-primary bg-primary/10 text-primary px-3 py-2 font-display text-xl shadow-card-hover rotate-2 cursor-grabbing select-none">
+    <GripVertical className="h-3 w-3 shrink-0" />
+    {word}
+  </div>
+);
 
 interface Props {
   data: OrderingData;
@@ -67,10 +85,14 @@ export const OrderingExercise = ({
   onAnswer,
   disabled = false,
 }: Props) => {
-  // Amesteca cuvintele la mount
-  const [items, setItems] = useState<string[]>(() =>
-    [...data.words].sort(() => Math.random() - 0.5)
+  // Genereaza items cu ID-uri unice la mount — rezolva duplicate
+  const [items, setItems] = useState<WordItem[]>(() =>
+    [...data.words]
+      .sort(() => Math.random() - 0.5)
+      .map((word, i) => ({ id: `word-${i}`, word }))
   );
+
+  const [activeItem, setActiveItem] = useState<WordItem | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -78,15 +100,22 @@ export const OrderingExercise = ({
     })
   );
 
+  const handleDragStart = (event: DragStartEvent) => {
+    const found = items.find((item) => item.id === event.active.id);
+    setActiveItem(found ?? null);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    setActiveItem(null);
     if (!over || active.id === over.id) return;
 
     setItems((prev) => {
-      const oldIndex = prev.indexOf(active.id as string);
-      const newIndex = prev.indexOf(over.id as string);
+      const oldIndex = prev.findIndex((item) => item.id === active.id);
+      const newIndex = prev.findIndex((item) => item.id === over.id);
       const reordered = arrayMove(prev, oldIndex, newIndex);
-      onAnswer({ order: reordered });
+      // Emite ordinea cuvintelor (textele, nu ID-urile)
+      onAnswer({ order: reordered.map((item) => item.word) });
       return reordered;
     });
   };
@@ -100,23 +129,27 @@ export const OrderingExercise = ({
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
         <SortableContext
-          items={items}
+          items={items.map((item) => item.id)}
           strategy={horizontalListSortingStrategy}
         >
           <div className="flex flex-wrap gap-2 min-h-[60px] rounded-lg border-2 border-dashed border-border bg-muted/30 p-3">
-            {items.map((word) => (
+            {items.map((item) => (
               <SortableWord
-                key={word}
-                id={word}
-                word={word}
+                key={item.id}
+                item={item}
                 disabled={disabled}
               />
             ))}
           </div>
         </SortableContext>
+
+        <DragOverlay dropAnimation={null}>
+          {activeItem ? <DragGhost word={activeItem.word} /> : null}
+        </DragOverlay>
       </DndContext>
 
       {data.translation && (

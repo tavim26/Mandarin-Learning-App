@@ -63,7 +63,7 @@ const SetFormContent = ({
             id="setTitle"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. HSK 1 Vocabulary"
+            placeholder="Flashcard Set Title"
             className="input-branded"
           />
         </div>

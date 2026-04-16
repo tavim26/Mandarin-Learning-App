@@ -117,7 +117,7 @@ export const LessonModal = ({
             <Input
               id="title"
               {...register('title')}
-              placeholder="e.g. Basic Greetings"
+              placeholder="Lesson Title"
               className="input-branded"
             />
             {errors.title && (

@@ -109,7 +109,7 @@ export const UnitModal = ({ open, unit, onClose, onSuccess }: Props) => {
             <Input
               id="title"
               {...register('title')}
-              placeholder="e.g. HSK 1 — Greetings"
+              placeholder="Unit Title"
               className="input-branded"
             />
             {errors.title && (

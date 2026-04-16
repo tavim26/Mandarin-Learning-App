@@ -28,7 +28,11 @@ const DraggableChip = ({
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({ id: chip.id, disabled });
 
-  const style = transform
+  // Cand isDragging, NU aplicam transform pe original —
+  // DragOverlay se ocupa de vizualizarea in miscare
+  const style = isDragging
+    ? undefined
+    : transform
     ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
     : undefined;
 

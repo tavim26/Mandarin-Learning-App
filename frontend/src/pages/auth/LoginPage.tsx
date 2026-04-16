@@ -60,7 +60,7 @@ const LoginPage = () => {
                 type="email"
                 autoComplete="email"
                 {...register('email')}
-                placeholder="you@example.com"
+                placeholder="email@example.com"
                 className="input-branded"
               />
               {errors.email && (

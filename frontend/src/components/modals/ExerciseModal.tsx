@@ -168,7 +168,7 @@ const MultipleChoiceForm = ({
         <Input
           id="prompt"
           {...register('prompt')}
-          placeholder="e.g. What does 三 mean?"
+          placeholder=""
           className="input-branded"
         />
         {errors.prompt && (
@@ -279,7 +279,7 @@ const TranslationForm = ({
         <Input
           id="prompt"
           {...register('prompt')}
-          placeholder="e.g. 我是老师，不是学生。"
+          placeholder=""
           className="input-branded font-display"
         />
         {errors.prompt && (
@@ -399,7 +399,7 @@ const FillBlankForm = ({
         <Input
           id="prompt"
           {...register('prompt')}
-          placeholder="e.g. 你好！我 ___ 学生，我 ___ 中国。"
+          placeholder=""
           className="input-branded font-display"
         />
         <p className="text-xs text-muted-foreground">
@@ -536,7 +536,7 @@ const MatchingForm = ({
         <Input
           id="prompt"
           {...register('prompt')}
-          placeholder="e.g. Match the numbers with their translations:"
+          placeholder=""
           className="input-branded"
         />
         {errors.prompt && (
@@ -570,13 +570,13 @@ const MatchingForm = ({
               <Input
                 value={pair.left}
                 onChange={(e) => updatePair(index, 'left', e.target.value)}
-                placeholder="e.g. 六"
+                placeholder=""
                 className="input-branded font-display"
               />
               <Input
                 value={pair.right}
                 onChange={(e) => updatePair(index, 'right', e.target.value)}
-                placeholder="e.g. six"
+                placeholder=""
                 className="input-branded"
               />
             </div>
@@ -679,7 +679,7 @@ const OrderingForm = ({
         <Input
           id="prompt"
           {...register('prompt')}
-          placeholder="e.g. Order the words to form the correct sentence:"
+          placeholder=""
           className="input-branded"
         />
         {errors.prompt && (
@@ -693,7 +693,7 @@ const OrderingForm = ({
           id="words"
           value={wordsInput}
           onChange={(e) => setWordsInput(e.target.value)}
-          placeholder="e.g. 雨 下 天 会 今"
+          placeholder=""
           className="input-branded font-display"
         />
         <p className="text-xs text-muted-foreground">
@@ -709,7 +709,7 @@ const OrderingForm = ({
           id="correctOrder"
           value={correctOrderInput}
           onChange={(e) => setCorrectOrderInput(e.target.value)}
-          placeholder="e.g. 今 天 会 下 雨"
+          placeholder=""
           className="input-branded font-display"
         />
       </div>
@@ -720,7 +720,7 @@ const OrderingForm = ({
           id="translation"
           value={translation}
           onChange={(e) => setTranslation(e.target.value)}
-          placeholder="e.g. Today it will rain."
+          placeholder=""
           className="input-branded"
         />
       </div>

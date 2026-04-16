@@ -79,7 +79,7 @@ export const CreateUserModal = ({ open, onClose, onSuccess }: Props) => {
             <Input
               id="fullName"
               {...register('fullName')}
-              placeholder="John Doe"
+              placeholder="Full Name"
               className="input-branded"
             />
             {errors.fullName && (
@@ -93,7 +93,7 @@ export const CreateUserModal = ({ open, onClose, onSuccess }: Props) => {
               id="email"
               type="email"
               {...register('email')}
-              placeholder="john@example.com"
+              placeholder="email@example.com"
               className="input-branded"
             />
             {errors.email && (

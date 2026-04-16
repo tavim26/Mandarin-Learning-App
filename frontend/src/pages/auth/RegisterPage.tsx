@@ -72,7 +72,7 @@ const RegisterPage = () => {
               <Input
                 id="fullName"
                 {...register('fullName')}
-                placeholder="John Doe"
+                placeholder="Full Name"
                 className="input-branded"
               />
               {errors.fullName && (
@@ -89,7 +89,7 @@ const RegisterPage = () => {
                 type="email"
                 autoComplete="email"
                 {...register('email')}
-                placeholder="you@example.com"
+                placeholder="email@example.com"
                 className="input-branded"
               />
               {errors.email && (

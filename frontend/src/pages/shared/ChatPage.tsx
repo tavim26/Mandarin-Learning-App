@@ -58,7 +58,7 @@ const CreateSessionModal = ({
               id="sessionTitle"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. HSK 1 Practice"
+              placeholder="Conversation Title"
               className="input-branded"
             />
           </div>
@@ -70,7 +70,7 @@ const CreateSessionModal = ({
               id="instructions"
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
-              placeholder="e.g. Use only HSK 2 vocabulary."
+              placeholder="Custom instructions"
               className="input-branded"
             />
             <p className="text-xs text-muted-foreground">

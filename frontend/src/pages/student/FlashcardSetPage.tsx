@@ -162,7 +162,7 @@ const AddCardContent = ({ setId, onClose, onSuccess }: AddCardContentProps) => {
             id="front"
             value={frontText}
             onChange={(e) => setFrontText(e.target.value)}
-            placeholder="e.g. 你好"
+            placeholder="Hanji Character"
             className="input-branded font-display text-lg"
           />
         </div>

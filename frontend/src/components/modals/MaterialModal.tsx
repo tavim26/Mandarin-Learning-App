@@ -125,7 +125,7 @@ export const MaterialModal = ({
               id="matTitle"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Vocabulary List"
+              placeholder="Material Title"
               className="input-branded"
             />
           </div>

@@ -143,7 +143,7 @@ const AnalysisPage = () => {
             <textarea
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Paste or type Chinese text here... e.g. 我在学习中文"
+              placeholder="Paste or type Chinese text here..."
               rows={4}
               className="
                 w-full rounded-lg border border-border bg-background
