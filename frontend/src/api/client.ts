@@ -32,18 +32,11 @@ apiClient.interceptors.response.use(
     if (status === 401) {
       // Token absent, expirat sau corupt — curata sesiunea si redirectioneaza
       useAuthStore.getState().clearAuth();
-      // Evitam importul React Router aici pentru a nu crea dependente circulare.
-      // Redirectionarea se face prin manipulare directa a history-ului browserului.
-      // Componenta ProtectedRoute va intercepta starea clearAuth si va face redirect
-      // la urmatorul render, dar pentru a forta redirectul imediat din afara arborelui
-      // React (ex: request in background), folosim window.location.
+ 
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }
     }
-
-    // 403 este propagat catre hook-ul apelant — fiecare domeniu
-    // are logica proprie de tratare (ex: redirect, toast, rollback optimistic)
 
     return Promise.reject(error);
   }

@@ -234,12 +234,23 @@ class AnalysisService:
 
 
 
-
     def _calculate_overall_hsk(self, tokens: list[dict]) -> int | None:
         levels = [t["hsk_level"] for t in tokens if t["hsk_level"] is not None]
+
         if not levels:
             return None
-        return round(sum(levels) / len(levels))
+
+        # numara aparitiile fiecarui nivel HSK
+        frequency: dict[int, int] = {}
+        for level in levels:
+            frequency[level] = frequency.get(level, 0) + 1
+
+        # returneaza nivelul cu frecventa maxima
+        # la egalitate, max() pe chei alege nivelul HSK mai mare (tie-breaker)
+        return max(frequency, key=lambda level: (frequency[level], level))
+
+
+
 
     def _to_dto(self, analysis: TextAnalysis) -> TextAnalysisDto:
         return TextAnalysisDto(
