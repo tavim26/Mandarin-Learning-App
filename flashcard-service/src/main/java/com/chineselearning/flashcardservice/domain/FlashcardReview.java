@@ -15,6 +15,8 @@ public class FlashcardReview
     // Scor SM-2: 0-5
     private Integer quality;
 
+
+
     public FlashcardReview() {}
 
     public Long getId() { return id; }

@@ -40,15 +40,7 @@ public class FlashcardProgressDao implements IFlashcardProgressDao
                 .map(this::toDomain);
     }
 
-    @Override
-    public List<FlashcardProgress> findByStudentIdAndNextReviewAtLessThanEqual(Long studentId, LocalDateTime now)
-    {
-        return flashcardProgressJpaRepository
-                .findByStudentIdAndNextReviewAtLessThanEqual(studentId, now)
-                .stream()
-                .map(this::toDomain)
-                .toList();
-    }
+
 
     @Override
     public List<FlashcardProgress> findByStudentIdAndFlashcardIdIn(Long studentId, List<Long> flashcardIds)

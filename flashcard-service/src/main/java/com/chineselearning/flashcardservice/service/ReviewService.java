@@ -55,7 +55,7 @@ public class ReviewService
                 .orElseGet(() -> createInitialProgress(studentId, flashcard.getId()));
 
         // Rulam calculul SM-2 cu starea curenta si scorul primit de la student
-        Sm2Algorithm.Sm2Result result = Sm2Algorithm.calculate(
+        Sm2Result result = Sm2Algorithm.calculate(
                 progress.getEasinessFactor(),
                 progress.getIntervalDays(),
                 progress.getRepetitionCount(),
@@ -83,6 +83,8 @@ public class ReviewService
         resultDto.setProgress(toProgressDto(savedProgress));
         return resultDto;
     }
+
+
 
     // Returneaza cardurile scadente + cardurile nevazute niciodata din setul specificat
     @Transactional(readOnly = true)

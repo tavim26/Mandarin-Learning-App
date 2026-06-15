@@ -114,6 +114,8 @@ public class FlashcardController
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
+
+
     @Operation(
             summary = "Cardurile unui set",
             description = "Returneaza lista tuturor flashcard-urilor dintr-un set identificat prin id."
@@ -125,6 +127,8 @@ public class FlashcardController
         return ResponseEntity.ok(flashcards);
     }
 
+
+
     @Operation(
             summary = "Obtinere flashcard dupa id",
             description = "Returneaza detaliile unui flashcard individual identificat prin id."
@@ -135,6 +139,8 @@ public class FlashcardController
         FlashcardDto flashcard = flashcardSetService.getFlashcardById(flashcardId);
         return ResponseEntity.ok(flashcard);
     }
+
+
 
     @Operation(
             summary = "Actualizare flashcard",
@@ -150,6 +156,9 @@ public class FlashcardController
         return ResponseEntity.ok(updated);
     }
 
+
+
+
     @Operation(
             summary = "Stergere flashcard",
             description = "Sterge un flashcard dupa id. Operatia este permisa doar proprietarului setului."
@@ -162,6 +171,9 @@ public class FlashcardController
         flashcardSetService.deleteFlashcard(userId, flashcardId);
         return ResponseEntity.noContent().build();
     }
+
+
+
 
 
     @Operation(
@@ -212,6 +224,9 @@ public class FlashcardController
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 
+
+
+
     @Operation(
             summary = "Carduri scadente pentru recenzie",
             description = "Returneaza toate flashcard-urile unui student pentru care next_review_at este in trecut, " +
@@ -226,6 +241,10 @@ public class FlashcardController
         return ResponseEntity.ok(due);
     }
 
+
+
+
+
     @Operation(
             summary = "Istoric recenzii",
             description = "Returneaza istoricul complet al recenziilor unui student pentru un flashcard specific, " +
@@ -239,6 +258,9 @@ public class FlashcardController
         List<FlashcardReviewDto> history = reviewService.getReviewHistory(studentId, flashcardId);
         return ResponseEntity.ok(history);
     }
+
+
+
 
     @Operation(
             summary = "Stare SM-2 curenta",

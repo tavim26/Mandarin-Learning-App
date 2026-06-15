@@ -16,7 +16,6 @@ class OcrService:
         self._reader: easyocr.Reader | None = None
 
 
-
     def _get_reader(self) -> easyocr.Reader:
         if self._reader is None:
             self._reader = easyocr.Reader(["ch_sim"], gpu=False)

@@ -166,18 +166,21 @@ public class FlashcardSetService
 
         LocalDateTime now = LocalDateTime.now();
 
-        int totalCards    = allCards.size();
-        int newCards      = totalCards - existingProgress.size();
+        int totalCards = allCards.size();
+        int newCards = totalCards - existingProgress.size();
         int learningCards = (int) existingProgress.stream()
                 .filter(p -> p.getRepetitionCount() < 3)
                 .count();
+
         int matureCards   = (int) existingProgress.stream()
                 .filter(p -> p.getIntervalDays() >= 21)
                 .count();
+
         int dueFromExisting = (int) existingProgress.stream()
                 .filter(p -> p.getNextReviewAt() != null && !p.getNextReviewAt().isAfter(now))
                 .count();
-        int dueToday      = dueFromExisting + newCards;
+
+        int dueToday = dueFromExisting + newCards;
 
         BigDecimal averageEF = existingProgress.isEmpty()
                 ? new BigDecimal("2.5")

@@ -14,8 +14,6 @@ public interface IFlashcardProgressDao
     // Starea SM-2 pentru o pereche unica (student, flashcard)
     Optional<FlashcardProgress> findByStudentIdAndFlashcardId(Long studentId, Long flashcardId);
 
-    // Cardurile scadente pentru recenzie: next_review_at <= momentul curent
-    List<FlashcardProgress> findByStudentIdAndNextReviewAtLessThanEqual(Long studentId, LocalDateTime now);
 
     // Progresul existent pentru o lista de flashcard-uri — folosit pentru a identifica cardurile nevazute
     List<FlashcardProgress> findByStudentIdAndFlashcardIdIn(Long studentId, List<Long> flashcardIds);
