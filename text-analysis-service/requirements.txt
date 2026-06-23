@@ -10,3 +10,4 @@ numpy
 easyocr
 spacy
 pypinyin
+python-multipart

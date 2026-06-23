@@ -1,5 +1,4 @@
 import { Navbar } from '@/components/common/Navbar';
-import ChatbotWidget from '@/components/ChatbotWidget';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -14,7 +13,6 @@ const AppLayout = ({ children }: AppLayoutProps) => {
       <main className="max-w-7xl mx-auto px-6 py-8">
         {children}
       </main>
-      <ChatbotWidget />
     </div>
   );
 };

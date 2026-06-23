@@ -217,14 +217,8 @@ services:
     ports:
       - "8080:8080"
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       APPLICATION_SECURITY_JWT_SECRET_KEY: ${JWT_SECRET}
-      # inlocuieste localhost cu numele containerelor Docker
-      SPRING_CLOUD_GATEWAY_SERVER_WEBMVC_ROUTES_0_URI: http://user-service:8082
-      SPRING_CLOUD_GATEWAY_SERVER_WEBMVC_ROUTES_1_URI: http://content-service:8081
-      SPRING_CLOUD_GATEWAY_SERVER_WEBMVC_ROUTES_2_URI: http://progress-service:8083
-      SPRING_CLOUD_GATEWAY_SERVER_WEBMVC_ROUTES_3_URI: http://chatbot-service:8084
-      SPRING_CLOUD_GATEWAY_SERVER_WEBMVC_ROUTES_4_URI: http://text-analysis-service:8085
-      SPRING_CLOUD_GATEWAY_SERVER_WEBMVC_ROUTES_5_URI: http://flashcard-service:8086
     depends_on:
       - user-service
       - content-service
