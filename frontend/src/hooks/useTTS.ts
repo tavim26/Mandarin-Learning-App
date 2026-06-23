@@ -8,15 +8,20 @@ export const useTTS = () => {
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const speak = useCallback(
-    (text: string, lang = 'zh-CN') => {
-      if (!isSupported) return;
+  (text: string, lang = 'zh-CN') => {
+    if (!isSupported) return;
 
-      // Opreste orice redare in curs
-      window.speechSynthesis.cancel();
+    window.speechSynthesis.cancel();
+
+    setTimeout(() => {
+      // Scoate engine-ul din suspended state (Chromium bug — Edge & Chrome)
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
 
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = lang;
-      utterance.rate = 0.85;   // usor incetinit pentru claritate pedagogica
+      utterance.rate = 0.85;
       utterance.pitch = 1;
       utterance.volume = 1;
 
@@ -26,9 +31,10 @@ export const useTTS = () => {
 
       utteranceRef.current = utterance;
       window.speechSynthesis.speak(utterance);
-    },
-    [isSupported]
-  );
+    }, 100);
+  },
+  [isSupported]
+);
 
   const stop = useCallback(() => {
     if (!isSupported) return;
