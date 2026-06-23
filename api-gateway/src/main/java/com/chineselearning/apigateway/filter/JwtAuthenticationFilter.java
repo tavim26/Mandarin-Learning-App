@@ -75,6 +75,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         mutableRequest.putHeader("X-User-Id", String.valueOf(userId));
         mutableRequest.putHeader("X-User-Role", role);
 
+        mutableRequest.removeHeader("Connection");
+        mutableRequest.removeHeader("Upgrade");
+        mutableRequest.removeHeader("HTTP2-Settings");
+        mutableRequest.removeHeader("Transfer-Encoding");
+
         filterChain.doFilter(mutableRequest, response);
     }
 }

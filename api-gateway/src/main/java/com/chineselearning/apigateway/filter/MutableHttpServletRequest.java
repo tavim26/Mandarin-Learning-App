@@ -9,6 +9,7 @@ public class MutableHttpServletRequest extends HttpServletRequestWrapper
 {
 
     private final Map<String, String> customHeaders = new HashMap<>();
+    private final Set<String> removedHeaders = new HashSet<>();
 
     public MutableHttpServletRequest(HttpServletRequest request)
     {
@@ -20,9 +21,17 @@ public class MutableHttpServletRequest extends HttpServletRequestWrapper
         customHeaders.put(name, value);
     }
 
+    public void removeHeader(String name) {
+        removedHeaders.add(name.toLowerCase());
+        customHeaders.remove(name);
+    }
+
     @Override
     public String getHeader(String name)
     {
+        if (removedHeaders.contains(name.toLowerCase())) {
+            return null;
+        }
         if (customHeaders.containsKey(name))
         {
             return customHeaders.get(name);
@@ -35,9 +44,14 @@ public class MutableHttpServletRequest extends HttpServletRequestWrapper
     {
         Set<String> names = new HashSet<>(customHeaders.keySet());
         Enumeration<String> original = super.getHeaderNames();
+
         while (original.hasMoreElements())
         {
-            names.add(original.nextElement());
+            String name = original.nextElement();
+
+            if (!removedHeaders.contains(name.toLowerCase())) {
+                names.add(name);
+            }
         }
         return Collections.enumeration(names);
     }
@@ -45,6 +59,9 @@ public class MutableHttpServletRequest extends HttpServletRequestWrapper
     @Override
     public Enumeration<String> getHeaders(String name)
     {
+        if (removedHeaders.contains(name.toLowerCase())) {
+            return Collections.enumeration(Collections.emptyList());
+        }
         if (customHeaders.containsKey(name))
         {
             return Collections.enumeration(List.of(customHeaders.get(name)));

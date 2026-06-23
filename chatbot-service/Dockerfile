@@ -1,4 +1,5 @@
-FROM amazoncorretto:21-alpine AS build
+# ===== BUILD STAGE =====
+FROM eclipse-temurin:21-jdk-alpine AS build
 
 WORKDIR /app
 
@@ -12,16 +13,15 @@ RUN ./mvnw dependency:go-offline -B
 COPY src ./src
 RUN ./mvnw clean package -DskipTests
 
-# Runtime stage
-FROM amazoncorretto:21-alpine
+
+# ===== RUNTIME STAGE =====
+FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
 # Copiere JAR din build stage
 COPY --from=build /app/target/*.jar app.jar
 
-# Expune portul
 EXPOSE 8084
 
-# Run application
 ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
 
-  # BAZE DE DATE
+  # ===== BAZE DE DATE =====
 
   user-db:
     image: postgres:16-alpine
@@ -101,21 +101,17 @@ services:
       retries: 5
 
 
-
-
-
-
-  # MICROSERVICII JAVA
+  # ===== MICROSERVICII JAVA =====
 
   user-service:
     build:
       context: ./user-service
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://user-db:5432/user_database
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      APPLICATION_SECURITY_JWT_SECRET_KEY: ${JWT_SECRET}
-      APPLICATION_SECURITY_JWT_EXPIRATION: 86400000
+      # Numele variabilelor coincid cu ${...} din application.properties
+      DB_URL: jdbc:postgresql://user-db:5432/user_database
+      DB_USERNAME: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
     depends_on:
       user-db:
         condition: service_healthy
@@ -126,12 +122,12 @@ services:
     build:
       context: ./content-service
     ports:
-      - "8081:8081"   # expus direct — necesar pentru URL-urile fisierelor uploadate
+      - "8081:8081"   # expus direct — URL-urile fisierelor uploadate sunt accesate din browser
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://content-db:5432/content_database
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      STORAGE_UPLOAD_DIR: uploads
+      DB_URL: jdbc:postgresql://content-db:5432/content_database
+      DB_USERNAME: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      # http://localhost:8081 — accesibil din browser deoarece portul e expus pe host
       STORAGE_BASE_URL: http://localhost:8081
     volumes:
       - content-uploads:/app/uploads
@@ -145,9 +141,9 @@ services:
     build:
       context: ./progress-service
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://progress-db:5432/progress_database
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_URL: jdbc:postgresql://progress-db:5432/progress_database
+      DB_USERNAME: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
       CONTENT_SERVICE_URL: http://content-service:8081
     depends_on:
       progress-db:
@@ -161,9 +157,9 @@ services:
     build:
       context: ./chatbot-service
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://chatbot-db:5432/chatbot_database
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_URL: jdbc:postgresql://chatbot-db:5432/chatbot_database
+      DB_USERNAME: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
     depends_on:
       chatbot-db:
@@ -175,9 +171,9 @@ services:
     build:
       context: ./flashcard-service
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://flashcard-db:5432/flashcard_database
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_URL: jdbc:postgresql://flashcard-db:5432/flashcard_database
+      DB_USERNAME: postgres
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
     depends_on:
       flashcard-db:
         condition: service_healthy
@@ -185,16 +181,15 @@ services:
       - app-network
 
 
-
-
-
-
-  # TEXT ANALYSIS SERVICE — Python / FastAPI
+  # ===== TEXT ANALYSIS SERVICE — Python / FastAPI =====
 
   text-analysis-service:
     build:
       context: ./text-analysis-service
+    ports:
+      - "8085:8085"
     environment:
+      # Suprascrie .env local — docker-compose are prioritate fata de fisierul .env al serviciului
       DATABASE_URL: postgresql+psycopg2://postgres:${POSTGRES_PASSWORD}@analysis-db:5432/text_analysis_database
       GOOGLE_TRANSLATE_API_KEY: ${GOOGLE_TRANSLATE_API_KEY}
     volumes:
@@ -206,10 +201,7 @@ services:
       - app-network
 
 
-
-
-
-  # API GATEWAY
+  # ===== API GATEWAY =====
 
   api-gateway:
     build:
@@ -217,8 +209,15 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_PROFILES_ACTIVE: docker
-      APPLICATION_SECURITY_JWT_SECRET_KEY: ${JWT_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
+      USER_SERVICE_URL: http://user-service:8082
+      CONTENT_SERVICE_URL: http://content-service:8081
+      PROGRESS_SERVICE_URL: http://progress-service:8083
+      CHATBOT_SERVICE_URL: http://chatbot-service:8084
+      ANALYSIS_SERVICE_URL: http://text-analysis-service:8085
+      FLASHCARD_SERVICE_URL: http://flashcard-service:8086
+      # Forteaza excluderea UserDetailsServiceAutoConfiguration ca env var
+      SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
     depends_on:
       - user-service
       - content-service
@@ -230,11 +229,7 @@ services:
       - app-network
 
 
-
-
-
-  # FRONTEND — Nginx
-
+  # ===== FRONTEND — Nginx =====
 
   frontend:
     build:
@@ -247,11 +242,7 @@ services:
       - app-network
 
 
-
-
-
-# VOLUMES
-
+# ===== VOLUMES =====
 
 volumes:
   user-db-data:
@@ -264,10 +255,7 @@ volumes:
   easyocr-models:
 
 
-
-
-
-# NETWORKS
+# ===== NETWORKS =====
 
 networks:
   app-network:

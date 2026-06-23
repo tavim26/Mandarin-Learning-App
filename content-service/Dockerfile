@@ -1,8 +1,9 @@
-FROM amazoncorretto:21-alpine AS build
+# ===== BUILD STAGE =====
+FROM eclipse-temurin:21-jdk-alpine AS build
 
 WORKDIR /app
 
-# Copiere pom.xml si download dependencies
+# Copiere pom.xml si download dependencies (cache layer)
 COPY pom.xml .
 COPY mvnw .
 COPY .mvn .mvn
@@ -12,11 +13,13 @@ RUN ./mvnw dependency:go-offline -B
 COPY src ./src
 RUN ./mvnw clean package -DskipTests
 
-# Runtime stage
-FROM amazoncorretto:21-alpine
+
+# ===== RUNTIME STAGE =====
+FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
+# Copiere JAR din build stage
 COPY --from=build /app/target/*.jar app.jar
 
 EXPOSE 8081
