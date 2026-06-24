@@ -106,6 +106,8 @@ services:
   user-service:
     build:
       context: ./user-service
+    ports:
+      - "8082:8082"
     environment:
       # Numele variabilelor coincid cu ${...} din application.properties
       DB_URL: jdbc:postgresql://user-db:5432/user_database
@@ -140,6 +142,8 @@ services:
   progress-service:
     build:
       context: ./progress-service
+    ports:
+      - "8083:8083"
     environment:
       DB_URL: jdbc:postgresql://progress-db:5432/progress_database
       DB_USERNAME: postgres
@@ -156,6 +160,8 @@ services:
   chatbot-service:
     build:
       context: ./chatbot-service
+    ports:
+      - "8084:8084"
     environment:
       DB_URL: jdbc:postgresql://chatbot-db:5432/chatbot_database
       DB_USERNAME: postgres
@@ -170,6 +176,8 @@ services:
   flashcard-service:
     build:
       context: ./flashcard-service
+    ports:
+      - "8086:8086"
     environment:
       DB_URL: jdbc:postgresql://flashcard-db:5432/flashcard_database
       DB_USERNAME: postgres
