@@ -9,6 +9,7 @@ public class TeacherEntity
     @Id
     private Long userId;
 
+    @Column(name = "title", length = 100)
     private String title;
 
     @OneToOne(fetch = FetchType.LAZY)

@@ -30,18 +30,16 @@ public class UserDao implements IUserDao
     @Override
     public User save(User user)
     {
-        if (user.getId() != null && jpaRepository.existsById(user.getId()))
+        Optional<UserEntity> existing = jpaRepository.findById(user.getId());
+
+        if (existing.isPresent())
         {
-            // Preluam entitatea deja manageriata de Hibernate si actualizam doar campurile necesare
-            UserEntity managed = jpaRepository.findById(user.getId()).get();
+            UserEntity managed = existing.get();
             managed.setFullName(user.getFullName());
-            UserEntity saved = jpaRepository.save(managed);
-            return toDomain(saved);
+            return toDomain(jpaRepository.save(managed));
         }
 
-        UserEntity entity = toEntity(user);
-        UserEntity saved = jpaRepository.save(entity);
-        return toDomain(saved);
+        return toDomain(jpaRepository.save(toEntity(user)));
     }
 
     @Override
@@ -127,7 +125,6 @@ public class UserDao implements IUserDao
         user.setId(entity.getId());
         user.setFullName(entity.getFullName());
 
-        // Setam Credential pe User pentru a putea accesa role-ul in service
         if (entity.getCredential() != null)
         {
             Credential credential = new Credential();
@@ -136,6 +133,7 @@ public class UserDao implements IUserDao
             credential.setPasswordHash(entity.getCredential().getPasswordHash());
             credential.setRole(entity.getCredential().getRole());
             credential.setCreatedAt(entity.getCredential().getCreatedAt());
+            credential.setActive(entity.getCredential().isActive());
             user.setCredential(credential);
         }
 

@@ -20,6 +20,16 @@ public class TeacherDao implements ITeacherDao
     @Override
     public Teacher save(Teacher teacher)
     {
+        Optional<TeacherEntity> existing = jpaRepository.findById(teacher.getUserId());
+
+        if (existing.isPresent())
+        {
+            TeacherEntity managed = existing.get();
+            managed.setTitle(teacher.getTitle());
+            TeacherEntity saved = jpaRepository.save(managed);
+            return toDomain(saved);
+        }
+
         TeacherEntity entity = toEntity(teacher);
         TeacherEntity saved = jpaRepository.save(entity);
         return toDomain(saved);

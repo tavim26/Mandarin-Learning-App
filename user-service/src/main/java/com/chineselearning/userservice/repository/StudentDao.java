@@ -23,6 +23,16 @@ public class StudentDao implements IStudentDao
     @Override
     public Student save(Student student)
     {
+        Optional<StudentEntity> existing = jpaRepository.findById(student.getUserId());
+
+        if (existing.isPresent())
+        {
+            StudentEntity managed = existing.get();
+            managed.setNickname(student.getNickname());
+            StudentEntity saved = jpaRepository.save(managed);
+            return toDomain(saved);
+        }
+
         StudentEntity entity = toEntity(student);
         StudentEntity saved = jpaRepository.save(entity);
         return toDomain(saved);

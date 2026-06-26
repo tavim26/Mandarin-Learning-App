@@ -90,6 +90,7 @@ public class UserService
         return mapToUserDto(savedCredential.getUser());
     }
 
+    @Transactional(readOnly = true)
     public List<UserDto> getAllUsers()
     {
         return userDao.findAll().stream()
@@ -97,6 +98,7 @@ public class UserService
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public UserDto getUserById(Long id)
     {
         User user = userDao.findById(id)
@@ -104,6 +106,7 @@ public class UserService
         return mapToUserDto(user);
     }
 
+    @Transactional(readOnly = true)
     public List<UserDto> searchUsersByName(String nameFragment)
     {
         return userDao.findByFullNameContaining(nameFragment).stream()
@@ -140,7 +143,7 @@ public class UserService
 
 
 
-
+    @Transactional(readOnly = true)
     public StudentDto getStudentById(Long userId)
     {
         Student student = studentDao.findById(userId)
@@ -168,7 +171,7 @@ public class UserService
 
 
 
-
+    @Transactional(readOnly = true)
     public TeacherDto getTeacherById(Long userId)
     {
         Teacher teacher = teacherDao.findById(userId)
@@ -235,6 +238,7 @@ public class UserService
         credentialDao.save(credential);
     }
 
+    @Transactional(readOnly = true)
     public List<StudentProfileDto> getAllStudents()
     {
         return userDao.findByRole("STUDENT").stream()
@@ -242,6 +246,7 @@ public class UserService
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public List<TeacherProfileDto> getAllTeachers()
     {
         return userDao.findByRole("TEACHER").stream()
@@ -249,6 +254,7 @@ public class UserService
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public UserDto getUserByEmail(String email)
     {
         User user = userDao.findById(
@@ -260,6 +266,7 @@ public class UserService
         return mapToUserDto(user);
     }
 
+    @Transactional(readOnly = true)
     public List<StudentDto> searchStudentsByNickname(String nicknameFragment)
     {
         return studentDao.findByNicknameContaining(nicknameFragment).stream()
@@ -303,14 +310,7 @@ public class UserService
 
 
 
-
-
-
-
-
-
-
-
+    
 
     private StudentProfileDto mapToStudentProfileDto(User user)
     {

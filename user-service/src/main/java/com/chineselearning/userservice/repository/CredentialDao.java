@@ -34,6 +34,7 @@ public class CredentialDao implements ICredentialDao
             managed.setEmail(credential.getEmail());
             managed.setPasswordHash(credential.getPasswordHash());
             managed.setRole(credential.getRole());
+            managed.setActive(credential.isActive());
             CredentialEntity saved = jpaRepository.save(managed);
             return toDomain(saved);
         }
@@ -78,8 +79,6 @@ public class CredentialDao implements ICredentialDao
 
 
 
-
-    // Conversie domain -> entity (pentru scriere in DB)
     private CredentialEntity toEntity(Credential credential)
     {
         CredentialEntity entity = new CredentialEntity();
@@ -116,7 +115,7 @@ public class CredentialDao implements ICredentialDao
         return entity;
     }
 
-    // Conversie entity -> domain (pentru returnare catre service)
+
     private Credential toDomain(CredentialEntity entity)
     {
         Credential credential = new Credential();

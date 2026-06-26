@@ -101,6 +101,7 @@ services:
       retries: 5
 
 
+
   # ===== MICROSERVICII JAVA =====
 
   user-service:
@@ -109,7 +110,6 @@ services:
     ports:
       - "8082:8082"
     environment:
-      # Numele variabilelor coincid cu ${...} din application.properties
       DB_URL: jdbc:postgresql://user-db:5432/user_database
       DB_USERNAME: postgres
       DB_PASSWORD: ${POSTGRES_PASSWORD}
@@ -124,12 +124,11 @@ services:
     build:
       context: ./content-service
     ports:
-      - "8081:8081"   # expus direct — URL-urile fisierelor uploadate sunt accesate din browser
+      - "8081:8081"   
     environment:
       DB_URL: jdbc:postgresql://content-db:5432/content_database
       DB_USERNAME: postgres
       DB_PASSWORD: ${POSTGRES_PASSWORD}
-      # http://localhost:8081 — accesibil din browser deoarece portul e expus pe host
       STORAGE_BASE_URL: http://localhost:8081
     volumes:
       - content-uploads:/app/uploads
@@ -189,6 +188,7 @@ services:
       - app-network
 
 
+
   # ===== TEXT ANALYSIS SERVICE — Python / FastAPI =====
 
   text-analysis-service:
@@ -197,16 +197,16 @@ services:
     ports:
       - "8085:8085"
     environment:
-      # Suprascrie .env local — docker-compose are prioritate fata de fisierul .env al serviciului
       DATABASE_URL: postgresql+psycopg2://postgres:${POSTGRES_PASSWORD}@analysis-db:5432/text_analysis_database
       GOOGLE_TRANSLATE_API_KEY: ${GOOGLE_TRANSLATE_API_KEY}
     volumes:
-      - easyocr-models:/root/.EasyOCR   # modele EasyOCR cache-uite dupa primul start
+      - easyocr-models:/root/.EasyOCR   
     depends_on:
       analysis-db:
         condition: service_healthy
     networks:
       - app-network
+
 
 
   # ===== API GATEWAY =====
@@ -224,7 +224,6 @@ services:
       CHATBOT_SERVICE_URL: http://chatbot-service:8084
       ANALYSIS_SERVICE_URL: http://text-analysis-service:8085
       FLASHCARD_SERVICE_URL: http://flashcard-service:8086
-      # Forteaza excluderea UserDetailsServiceAutoConfiguration ca env var
       SPRING_AUTOCONFIGURE_EXCLUDE: org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration
     depends_on:
       - user-service
@@ -235,6 +234,8 @@ services:
       - text-analysis-service
     networks:
       - app-network
+
+
 
 
   # ===== FRONTEND — Nginx =====
@@ -248,6 +249,8 @@ services:
       - api-gateway
     networks:
       - app-network
+
+
 
 
 # ===== VOLUMES =====
