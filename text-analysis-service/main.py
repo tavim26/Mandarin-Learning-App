@@ -22,14 +22,12 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Middleware temporar — printeaza TOATE headerele primite
+# Middleware temporar
 @app.middleware("http")
-async def log_headers(request: Request, call_next):
-    logger.debug("=== REQUEST HEADERS ===")
-    for name, value in request.headers.items():
-        logger.debug(f"  {name}: {value}")
-    logger.debug("======================")
+async def log_requests(request: Request, call_next):
+    logger.debug(f">>> {request.method} {request.url.path}")
     response = await call_next(request)
+    logger.debug(f"<<< {response.status_code}")
     return response
 
 app.include_router(analysis_router)

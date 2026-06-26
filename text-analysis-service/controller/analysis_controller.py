@@ -19,16 +19,15 @@ def _verify_student_access(x_user_id: int, x_user_role: str, target_student_id: 
     if x_user_role == "TEACHER":
         raise HTTPException(
             status_code=403,
-            detail="Acces interzis: profesorii nu pot accesa modulul de analiza text"
+            detail="Access denied: teachers cannot access the text analysis module"
         )
     if x_user_role == "STUDENT" and x_user_id != target_student_id:
         raise HTTPException(
             status_code=403,
-            detail="Acces interzis: nu poti accesa resursele altui student"
+            detail="Access denied: you cannot access another student's resources"
         )
 
 
-# --- endpoints POST ---
 
 @router.post("/text", response_model=TextAnalysisDto, status_code=201)
 def analyze_text(
@@ -65,9 +64,7 @@ async def analyze_image(
         raise HTTPException(status_code=503, detail=str(e))
 
 
-# --- endpoints GET cu path /student/... ---
-# IMPORTANT: toate rutele /student/... trebuie declarate INAINTEA rutei /{analysis_id}
-# altfel FastAPI ar putea interpreta "student" ca valoare pentru analysis_id
+
 
 @router.get("/student/{student_id}/stats", response_model=StudentStatsDtoResponse)
 def get_student_stats(
@@ -103,7 +100,6 @@ def get_analyses_by_student(
     )
 
 
-# --- endpoints GET/DELETE cu path /{analysis_id} ---
 
 @router.get("/{analysis_id}", response_model=TextAnalysisDto)
 def get_analysis_by_id(
@@ -115,7 +111,7 @@ def get_analysis_by_id(
     result = service.get_analysis_by_id(analysis_id)
     if result is None:
         raise HTTPException(status_code=404, detail="Analiza nu a fost gasita")
-    # ownership-ul se verifica dupa ce obtinem analiza si cunoastem student_id-ul real
+
     _verify_student_access(x_user_id, x_user_role, result.student_id)
     return result
 

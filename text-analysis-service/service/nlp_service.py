@@ -3,7 +3,6 @@ from pypinyin import pinyin, Style
 
 from service.hsk_service import HskService
 
-# mapare tag-uri spaCy universale catre etichete lizibile
 # https://universaldependencies.org/u/pos/
 _POS_LABELS: dict[str, str] = {
     "NOUN":  "substantiv",
@@ -42,7 +41,6 @@ class NlpService:
         for token in doc:
             hanzi = token.text.strip()
 
-            # ignora tokenii goi, spatiile si punctuatia pura
             if not hanzi:
                 continue
 

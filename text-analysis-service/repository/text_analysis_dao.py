@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, noload
 
 from domain.analysis_token import AnalysisToken
 from domain.dao.i_text_analysis_dao import ITextAnalysisDao
@@ -34,15 +34,7 @@ class TextAnalysisDao(ITextAnalysisDao):
             return None
         return self._to_domain(entity)
 
-    def find_all_by_student_id(self, student_id: int) -> list[TextAnalysis]:
-        entities = (
-            self.db.query(TextAnalysisEntity)
-            .options(joinedload(TextAnalysisEntity.tokens))
-            .filter(TextAnalysisEntity.student_id == student_id)
-            .order_by(TextAnalysisEntity.created_at.desc())
-            .all()
-        )
-        return [self._to_domain(e) for e in entities]
+
 
     def delete(self, analysis: TextAnalysis) -> None:
         entity = (
@@ -51,7 +43,7 @@ class TextAnalysisDao(ITextAnalysisDao):
             .first()
         )
         if entity is None:
-            raise ValueError(f"Analiza cu id={analysis.id} nu exista in baza de date")
+            raise ValueError(f"Analysis with id={analysis.id} does not exist in the database")
         try:
             self.db.delete(entity)
             self.db.commit()
@@ -70,22 +62,20 @@ class TextAnalysisDao(ITextAnalysisDao):
     ) -> tuple[list[TextAnalysis], int]:
         base_query = (
             self.db.query(TextAnalysisEntity)
+            .options(noload(TextAnalysisEntity.tokens))  # <-- suprima lazy loading
             .filter(TextAnalysisEntity.student_id == student_id)
         )
 
-        # filtru optional dupa source_type — MANUAL sau OCR
         if source_type is not None:
             base_query = base_query.filter(
                 TextAnalysisEntity.source_type == source_type
             )
 
-        # filtru optional dupa overall_hsk_level
         if hsk_level is not None:
             base_query = base_query.filter(
                 TextAnalysisEntity.overall_hsk_level == hsk_level
             )
 
-        # sortare dupa data — newest (desc) sau oldest (asc)
         if sort_order == "oldest":
             base_query = base_query.order_by(TextAnalysisEntity.created_at.asc())
         else:
@@ -115,6 +105,22 @@ class TextAnalysisDao(ITextAnalysisDao):
             .all()
         )
         return {row.source_type: row.count for row in rows}
+
+
+
+    def delete_by_id(self, analysis_id: int) -> None:
+        try:
+            deleted_count = (
+                self.db.query(TextAnalysisEntity)
+                .filter(TextAnalysisEntity.id == analysis_id)
+                .delete(synchronize_session=False)
+            )
+            if deleted_count == 0:
+                raise ValueError(f"Analysis with id={analysis_id} does not exist in the database")
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
 
 
 

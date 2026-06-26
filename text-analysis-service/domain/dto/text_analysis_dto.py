@@ -13,7 +13,6 @@ class TextAnalysisDto(BaseModel):
     overall_hsk_level: int | None
     created_at: datetime
     translated_text: str | None
-    # non-nullable — serviciul garanteaza intotdeauna o limba de traducere (default "en")
     translation_language: str
     tokens: list[AnalysisTokenDto]
 

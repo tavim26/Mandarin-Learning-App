@@ -62,9 +62,8 @@ class AnalysisService:
     ) -> TextAnalysisDto:
         raw_text = self._ocr.extract_text(image_bytes)
 
-        # text gol inseamna ca imaginea nu contine text chinezesc recognoscibil
         if not raw_text.strip():
-            raise ValueError("Nu s-a putut extrage text din imaginea furnizata.")
+            raise ValueError("No text could be extracted from the provided image.")
 
         return self._run_pipeline(
             student_id=student_id,
@@ -76,12 +75,6 @@ class AnalysisService:
 
 
 
-    def get_analyses_by_student(self, student_id: int) -> list[TextAnalysisDto]:
-        analyses = self._text_analysis_dao.find_all_by_student_id(student_id)
-        return [self._to_dto(a) for a in analyses]
-
-
-
     def get_analysis_by_id(self, analysis_id: int) -> TextAnalysisDto | None:
         analysis = self._text_analysis_dao.find_by_id(analysis_id)
         if analysis is None:
@@ -89,13 +82,10 @@ class AnalysisService:
         return self._to_dto(analysis)
 
 
+    def delete_analysis(self, analysis_id: int) -> None:
+        self._text_analysis_dao.delete_by_id(analysis_id)
 
-    def delete_analysis(self, analysis_id: int) -> bool:
-        analysis = self._text_analysis_dao.find_by_id(analysis_id)
-        if analysis is None:
-            return False
-        self._text_analysis_dao.delete(analysis)
-        return True
+
 
     def get_analyses_by_student_paginated(
             self,
@@ -125,6 +115,8 @@ class AnalysisService:
             "total_pages": total_pages,
         }
 
+
+
     def get_student_stats(self, student_id: int) -> StudentStatsDto:
 
         # statistica 1 — distributie tokeni pe nivel HSK
@@ -136,11 +128,8 @@ class AnalysisService:
                 key=lambda x: (x[0] is None, x[0])  # None merge la final
             )
         ]
-
-        # statistica 2 — split MANUAL vs OCR
         source_type_split = self._text_analysis_dao.get_source_type_split(student_id)
 
-        # statistica 3 — caractere unice per nivel HSK
         totals_per_level = self._hsk.get_total_per_level()
         raw_unique = self._analysis_token_dao.get_unique_chars_per_hsk_level(student_id)
         unique_chars_per_hsk_level = [
@@ -161,6 +150,8 @@ class AnalysisService:
             unique_chars_per_hsk_level=unique_chars_per_hsk_level,
         )
 
+
+
     def preview_text(self, text: str) -> PreviewResponseDto:
         from domain.dto.preview_dto import PreviewResponseDto, PreviewTokenDto
 
@@ -179,10 +170,6 @@ class AnalysisService:
             ]
         )
 
-
-
-    # --- metode helper ---
-
     def _run_pipeline(
             self,
             student_id: int,
@@ -192,12 +179,8 @@ class AnalysisService:
     ) -> TextAnalysisDto:
         processed_tokens = self._nlp.process(raw_text)
         overall_hsk_level = self._calculate_overall_hsk(processed_tokens)
-
         translated_text = self._translation.translate(raw_text, translation_language)
-
         hanzi_list = [t["hanzi"] for t in processed_tokens]
-
-        # translate_bulk cu lista goala returneaza [] fara apel API
         token_translations = self._translation.translate_bulk(hanzi_list, translation_language)
 
         analysis = TextAnalysis(
@@ -225,15 +208,18 @@ class AnalysisService:
                 )
                 for i, t in enumerate(processed_tokens)
             ]
-            self._analysis_token_dao.save_all(tokens)
+
+            saved_tokens = self._analysis_token_dao.save_all(tokens)
             self._db.commit()
 
         except Exception:
             self._db.rollback()
             raise
 
-        saved_analysis = self._text_analysis_dao.find_by_id(saved_analysis.id)
+        saved_analysis.tokens = saved_tokens
         return self._to_dto(saved_analysis)
+
+
 
 
 
@@ -243,13 +229,10 @@ class AnalysisService:
         if not levels:
             return None
 
-        # numara aparitiile fiecarui nivel HSK
         frequency: dict[int, int] = {}
         for level in levels:
             frequency[level] = frequency.get(level, 0) + 1
 
-        # returneaza nivelul cu frecventa maxima
-        # la egalitate, max() pe chei alege nivelul HSK mai mare (tie-breaker)
         return max(frequency, key=lambda level: (frequency[level], level))
 
 
@@ -279,6 +262,7 @@ class AnalysisService:
                 for t in analysis.tokens
             ]
         )
+
 
     def _to_summary_dto(self, analysis: TextAnalysis) -> TextAnalysisSummaryDto:
         from domain.dto.text_analysis_summary_dto import TextAnalysisSummaryDto

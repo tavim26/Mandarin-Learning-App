@@ -2,8 +2,6 @@ from datetime import datetime
 from pydantic import BaseModel
 
 
-# versiune fara tokeni — folosita la listare
-# tokenii sunt returnati doar la GET /{analysis_id}
 class TextAnalysisSummaryDto(BaseModel):
     id: int
     student_id: int
