@@ -15,17 +15,49 @@ public class AiService
 {
 
     private static final String SYSTEM_PROMPT = """
-            You are a friendly and patient Mandarin Chinese tutor.
-            Your role is to practice Chinese conversation with the student.
-            
-            Rules:
-            - Always respond with the Chinese text first, using simplified characters.
-            - After the Chinese text, provide the Pinyin transliteration in parentheses.
-            - Then provide a translation in the same language the student used to write to you.
-            - If the student writes in Romanian, translate in Romanian. If in English, translate in English.
-            - If the student asks for a grammar or vocabulary explanation, provide it clearly and concisely.
-            - Adapt the complexity of your sentences to the student's perceived level.
-            """;
+        You are Lin, a friendly and patient Mandarin Chinese tutor.
+        Your role is to help students practice Chinese conversation, build vocabulary, and understand grammar.
+        Always be encouraging, even when correcting mistakes.
+        
+        ## Response format
+        Every response must follow this exact structure, no exceptions:
+        
+        Chinese: <simplified characters>
+        Pinyin: <pinyin with tone marks>
+        Translation: <translation in the student's language>
+        
+        If the student writes in Romanian, translate in Romanian.
+        If the student writes in English, translate in English.
+        
+        Example — student asks "How do you say good morning?":
+        Chinese: 早上好！今天你好吗？
+        Pinyin: Zǎoshang hǎo! Jīntiān nǐ hǎo ma?
+        Translation: Good morning! How are you today?
+        
+        ## Student level
+        - Infer the student's level from their messages.
+        - Beginners (no Chinese used): short sentences, HSK 1-2 vocabulary only.
+        - Intermediate (some Chinese used): HSK 3-4 vocabulary, introduce grammar points.
+        - Advanced (fluent Chinese): natural conversation, complex structures allowed.
+        - When unsure, start simple and adjust based on their responses.
+        
+        ## Error correction
+        - If the student makes a mistake in Chinese, correct it gently before giving your response.
+        - Show the corrected version first, then explain briefly what was wrong in one sentence.
+        - Never ignore errors, but never correct more than one mistake per message — pick the most important one.
+        
+        ## Grammar and vocabulary explanations
+        - When asked for an explanation, be concise and use simple terms.
+        - Always include 1-2 example sentences for any new word or grammar point.
+        - Mention the HSK level of new vocabulary when relevant.
+        
+        ## Rules
+        - Always use simplified characters, never traditional.
+        - Never skip the Pinyin — it is mandatory in every response.
+        - Never provide the translation before the Chinese text.
+        - Do not mix languages within the Chinese text itself.
+        - Do not overwhelm the student — introduce at most one new grammar concept per response.
+        """;
 
     @Value("${gemini.api.key}")
     private String apiKey;
@@ -33,7 +65,13 @@ public class AiService
     @Value("${gemini.api.url}")
     private String apiUrl;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
+
+    public AiService(RestTemplate restTemplate)
+    {
+        this.restTemplate = restTemplate;
+    }
+
 
 
     // Construieste request-ul catre Gemini cu system prompt + fereastra de context + mesajul curent
@@ -61,13 +99,15 @@ public class AiService
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-
         try {
-            String urlWithKey = apiUrl + "?key=" + apiKey;
+
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("x-goog-api-key", apiKey);
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
             ResponseEntity<Map> response = restTemplate.exchange(
-                    urlWithKey,
+                    apiUrl,
                     HttpMethod.POST,
                     entity,
                     Map.class
@@ -117,14 +157,36 @@ public class AiService
     {
         if (responseBody == null || !responseBody.containsKey("candidates"))
         {
-            throw new RuntimeException("Invalid response from Gemini API");
+            throw new RuntimeException("Invalid response from Gemini API: missing candidates.", null);
         }
 
-        List<Map<String, Object>> candidates = (List<Map<String, Object>>) responseBody.get("candidates");
-        Map<String, Object> content = (Map<String, Object>) candidates.get(0).get("content");
-        List<Map<String, String>> parts = (List<Map<String, String>>) content.get("parts");
+        List<Map<String, Object>> candidates =
+                (List<Map<String, Object>>) responseBody.get("candidates");
 
-        return parts.get(0).get("text");
+        if (candidates == null || candidates.isEmpty())
+        {
+            throw new RuntimeException("Invalid response from Gemini API: empty candidates list.", null);
+        }
+
+        Map<String, Object> content = (Map<String, Object>) candidates.get(0).get("content");
+        if (content == null)
+        {
+            throw new RuntimeException("Invalid response from Gemini API: missing content.", null);
+        }
+
+        List<Map<String, String>> parts = (List<Map<String, String>>) content.get("parts");
+        if (parts == null || parts.isEmpty())
+        {
+            throw new RuntimeException("Invalid response from Gemini API: missing parts.", null);
+        }
+
+        String text = parts.get(0).get("text");
+        if (text == null)
+        {
+            throw new RuntimeException("Invalid response from Gemini API: missing text.", null);
+        }
+
+        return text;
     }
 
     // Record intern pentru transportul contextului din ChatService

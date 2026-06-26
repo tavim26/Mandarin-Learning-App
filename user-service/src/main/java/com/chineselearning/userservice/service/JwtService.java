@@ -22,7 +22,6 @@ public class JwtService {
     private long jwtExpiration;
 
 
-    // Aici adaugam extraClaims (ID, Role etc) in payload-ul token-ului
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails)
     {
         return Jwts.builder()

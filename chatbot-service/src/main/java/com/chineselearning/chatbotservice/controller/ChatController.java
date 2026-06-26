@@ -12,7 +12,7 @@ import java.nio.file.AccessDeniedException;
 import java.util.List;
 
 
-// // http://localhost:8084/swagger-ui/index.html
+// http://localhost:8084/swagger-ui/index.html
 
 @RestController
 @RequestMapping("/api/chatbot")

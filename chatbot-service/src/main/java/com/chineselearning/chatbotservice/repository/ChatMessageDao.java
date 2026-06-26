@@ -57,7 +57,7 @@ public class ChatMessageDao implements IChatMessageDao
     }
 
     @Override
-    public int countBySessionId(Long sessionId)
+    public long countBySessionId(Long sessionId)
     {
         return jpaRepository.countBySessionId(sessionId);
     }
@@ -68,6 +68,15 @@ public class ChatMessageDao implements IChatMessageDao
     {
         Pageable pageable = PageRequest.of(page, size);
         return jpaRepository.findBySessionIdOrderByCreatedAtAsc(sessionId, pageable)
+                .stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<ChatMessage> findLastMessageBySessionId(Long sessionId)
+    {
+        return jpaRepository.findLastMessageBySessionId(sessionId)
                 .stream()
                 .map(this::toDomain)
                 .toList();

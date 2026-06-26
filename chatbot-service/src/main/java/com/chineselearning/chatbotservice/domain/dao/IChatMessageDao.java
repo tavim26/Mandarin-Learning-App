@@ -14,7 +14,9 @@ public interface IChatMessageDao
 
     List<ChatMessage> findRecentBySessionId(Long sessionId, int limit);
 
-    int countBySessionId(Long sessionId);
+    List<ChatMessage> findLastMessageBySessionId(Long sessionId);
+
+    long countBySessionId(Long sessionId);
 
     long countTotalBySessionId(Long sessionId);
 }
