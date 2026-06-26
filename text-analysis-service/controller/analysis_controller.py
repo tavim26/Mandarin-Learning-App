@@ -12,6 +12,8 @@ from service.translation_service import TranslationException
 
 from utils.dependencies import get_analysis_service
 
+# http://localhost:8085/docs
+
 router = APIRouter(prefix="/api/analysis", tags=["analysis"])
 
 
@@ -36,7 +38,6 @@ def analyze_text(
     x_user_role: str = Header(..., alias="X-User-Role"),
     service: AnalysisService = Depends(get_analysis_service),
 ):
-    # student_id este preluat exclusiv din headerul injectat de API Gateway
     _verify_student_access(x_user_id, x_user_role, x_user_id)
     try:
         return service.analyze_text(request, student_id=x_user_id)

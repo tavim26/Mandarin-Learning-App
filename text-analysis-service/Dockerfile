@@ -40,6 +40,5 @@ RUN rm -f .env
 
 EXPOSE 8085
 
-# NOTA: EasyOCR isi descarca modelul ch_sim la primul apel OCR (lazy init)
 # primul request OCR va dura 30-60 secunde — comportament asteptat
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8085", "--proxy-headers", "--forwarded-allow-ips", "*"]

@@ -1,4 +1,5 @@
 import io
+import threading
 
 import easyocr
 import numpy as np
@@ -14,6 +15,7 @@ class OcrService:
 
     def __init__(self):
         self._reader: easyocr.Reader | None = None
+        self._lock = threading.Lock()
 
 
     def _get_reader(self) -> easyocr.Reader:
