@@ -48,4 +48,8 @@ public class JwtUtil {
         return extractAllClaims(token).get("role", String.class);
     }
 
+    // ADAUGĂ după extractRole():
+    public String extractEmail(String token) {
+        return extractAllClaims(token).getSubject(); // claim "sub"
+    }
 }

@@ -37,6 +37,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return PUBLIC_PATHS.stream().anyMatch(path::startsWith);
     }
 
+    // ÎNLOCUIEȘTE întreaga metodă doFilterInternal CU:
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -48,7 +49,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             response.setStatus(HttpStatus.UNAUTHORIZED.value());
-            response.getWriter().write("Token JWT lipsa sau invalid");
+            response.setContentType("application/json");
+            response.getWriter().write("{\"error\": \"Token JWT lipsa sau invalid\"}");
             return;
         }
 
@@ -56,29 +58,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (!jwtUtil.isTokenValid(token)) {
             response.setStatus(HttpStatus.UNAUTHORIZED.value());
-            response.getWriter().write("Token JWT expirat sau corupt");
+            response.setContentType("application/json");
+            response.getWriter().write("{\"error\": \"Token JWT expirat sau corupt\"}");
             return;
         }
 
         Long userId = jwtUtil.extractUserId(token);
         String role = jwtUtil.extractRole(token);
+        String email = jwtUtil.extractEmail(token);
 
-        // Valideaza ca token-ul contine claims obligatorii
-        if (userId == null || role == null) {
+        if (userId == null || role == null || email == null) {
             response.setStatus(HttpStatus.UNAUTHORIZED.value());
-            response.getWriter().write("Token JWT incomplet");
+            response.setContentType("application/json");
+            response.getWriter().write("{\"error\": \"Token JWT incomplet\"}");
             return;
         }
 
-        // Injecteaza headerele pentru serviciile downstream
         MutableHttpServletRequest mutableRequest = new MutableHttpServletRequest(request);
         mutableRequest.putHeader("X-User-Id", String.valueOf(userId));
         mutableRequest.putHeader("X-User-Role", role);
-
-        mutableRequest.removeHeader("Connection");
-        mutableRequest.removeHeader("Upgrade");
-        mutableRequest.removeHeader("HTTP2-Settings");
-        mutableRequest.removeHeader("Transfer-Encoding");
+        mutableRequest.putHeader("X-User-Email", email);
 
         filterChain.doFilter(mutableRequest, response);
     }

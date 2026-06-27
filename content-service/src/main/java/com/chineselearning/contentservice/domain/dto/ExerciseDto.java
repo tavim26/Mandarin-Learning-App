@@ -1,13 +1,22 @@
 package com.chineselearning.contentservice.domain.dto;
 
+import jakarta.validation.constraints.NotBlank;
+
 import java.util.Map;
 
 public class ExerciseDto {
 
     private Long id;
+
+    @NotBlank(message = "Lesson id is mandatory")
     private Long lessonId;
+
+    @NotBlank(message = "Exercise type is mandatory")
     private String type;
+
+    @NotBlank(message = "Exercise prompt is mandatory")
     private String prompt;
+
     private Integer difficulty;
     private Map<String, Object> contentData;
 

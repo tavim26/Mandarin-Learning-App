@@ -6,6 +6,7 @@ import com.chineselearning.progressservice.service.ProgressService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -33,6 +34,7 @@ public class ProgressController
             description = "Evalueaza raspunsul studentului si actualizeaza progresul lectiei. Creeaza automat replica studentului la prima incercare."
     )
     public ResponseEntity<?> submitAttempt(
+            @Valid
             @RequestBody SubmitAttemptRequest request,
             @RequestHeader("X-User-Id") Long authenticatedUserId,
             @RequestHeader("X-User-Role") String role)

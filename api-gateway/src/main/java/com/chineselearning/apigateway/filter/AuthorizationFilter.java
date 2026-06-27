@@ -30,8 +30,6 @@ public class AuthorizationFilter extends OncePerRequestFilter {
             "/api/chatbot/"
     );
 
-    // Regex precis pentru a evita coliziuni intre rute cu prefix comun
-    // Ex: GET /api/users/students (ADMIN) vs GET /api/users/students/{id} (own)
     private static final List<AdminRule> ADMIN_ONLY_ROUTES = List.of(
             new AdminRule(HttpMethod.POST,   "^/api/users$"),
             new AdminRule(HttpMethod.GET,    "^/api/users$"),
@@ -39,6 +37,8 @@ public class AuthorizationFilter extends OncePerRequestFilter {
             new AdminRule(HttpMethod.GET,    "^/api/users/search.*$"),
             new AdminRule(HttpMethod.PUT,    "^/api/users/\\d+/name.*$"),
             new AdminRule(HttpMethod.PUT,    "^/api/users/\\d+/password/reset.*$"),
+            new AdminRule(HttpMethod.PUT,    "^/api/users/\\d+/ban$"),
+            new AdminRule(HttpMethod.PUT,    "^/api/users/\\d+/unban$"),
             new AdminRule(HttpMethod.DELETE, "^/api/users/\\d+.*$"),
             new AdminRule(HttpMethod.GET,    "^/api/users/students$"),
             new AdminRule(HttpMethod.GET,    "^/api/users/teachers$"),
@@ -50,7 +50,6 @@ public class AuthorizationFilter extends OncePerRequestFilter {
             Pattern.compile("^/api/progress/students/(\\d+).*$"),
             Pattern.compile("^/api/progress/lessons/student/(\\d+).*$"),
             Pattern.compile("^/api/progress/attempts/student/(\\d+).*$"),
-            // unitId este primul grup, studentId este al doilea — capturam al doilea
             Pattern.compile("^/api/progress/units/\\d+/student/(\\d+).*$"),
             Pattern.compile("^/api/analysis/student/(\\d+).*$"),
             Pattern.compile("^/api/users/students/(\\d+).*$"),

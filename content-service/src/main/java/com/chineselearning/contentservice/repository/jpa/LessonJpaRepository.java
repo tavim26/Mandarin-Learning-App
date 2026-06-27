@@ -8,4 +8,6 @@ import java.util.List;
 public interface LessonJpaRepository extends JpaRepository<LessonEntity, Long> {
 
     List<LessonEntity> findByUnitIdOrderByOrderIndexAsc(Long unitId);
+
+    long countByUnitId(Long unitId);
 }

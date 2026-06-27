@@ -1,9 +1,14 @@
 package com.chineselearning.contentservice.domain.dto;
 
+import jakarta.validation.constraints.NotBlank;
+
 public class CourseUnitDto {
 
     private Long id;
+
+    @NotBlank(message = "Unit title is mandatory")
     private String title;
+
     private String description;
     private Integer hskLevel;
     private Integer orderIndex;

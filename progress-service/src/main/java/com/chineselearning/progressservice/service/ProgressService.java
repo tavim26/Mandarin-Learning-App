@@ -48,6 +48,8 @@ public class ProgressService
     }
 
 
+
+    @Transactional
     public ExerciseAttemptDto submitAttempt(Long studentId, SubmitAttemptRequest request)
     {
         Long exerciseId = request.getExerciseId();
@@ -67,8 +69,7 @@ public class ProgressService
 
     // Metoda separata pentru a permite @Transactional pe un bean proxy-izat de Spring.
     // Apelata exclusiv din submitAttempt() — nu este parte din API-ul public al serviciului.
-    @Transactional
-    public ExerciseAttemptDto saveAttemptAndUpdateProgress(Long studentId, Long exerciseId,
+    private ExerciseAttemptDto saveAttemptAndUpdateProgress(Long studentId, Long exerciseId,
                                                            LessonResponseDto lesson,
                                                            SubmitAttemptRequest request,
                                                            EvaluationResultDto result)
@@ -223,7 +224,7 @@ public class ProgressService
     {
         if (lesson.getExercises() == null || lesson.getExercises().isEmpty())
         {
-            log.warn("Lectia {} nu are exercitii, progresul nu va fi actualizat", lesson.getId());
+            log.warn("Lesson {} does not have exercises, progress will not be updated", lesson.getId());
             return;
         }
 
@@ -234,7 +235,7 @@ public class ProgressService
         handleStatusTransition(progress, completionPct, studentId, lesson);
 
         lessonProgressDao.save(progress);
-        log.info("Progres actualizat: studentId={}, lessonId={}, completionPct={}, status={}",
+        log.info("Progress updated: studentId={}, lessonId={}, completionPct={}, status={}",
                 studentId, lesson.getId(), completionPct, progress.getStatus());
     }
 
@@ -294,14 +295,19 @@ public class ProgressService
 
             if (progress.getXpAwarded() == null || progress.getXpAwarded() == 0)
             {
-                int xpReward = lesson.getXpReward();
+                Integer xpReward = lesson.getXpReward();
+                if (xpReward == null)
+                {
+                    log.warn("Lesson {} has no xpReward configured in content-service, 0 XP given", lesson.getId());
+                    xpReward = 0;
+                }
                 progress.setXpAwarded(xpReward);
                 awardXpToStudent(studentId, xpReward);
-                log.info("XP acordat: studentId={}, lessonId={}, xp={}", studentId, lesson.getId(), xpReward);
+                log.info("XP given: studentId={}, lessonId={}, xp={}", studentId, lesson.getId(), xpReward);
             }
             else
             {
-                log.info("XP deja acordat pentru lectia {}, se omite acordarea duplicata", lesson.getId());
+                log.info("XP already given {}. It can be given one time only", lesson.getId());
             }
         }
     }
@@ -319,10 +325,10 @@ public class ProgressService
     {
         StudentReplica student = studentReplicaDao.findById(studentId)
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Student replica negasita pentru studentId=" + studentId));
+                        "Student replica not found for studentId=" + studentId));
         student.addXp(xpToAdd);
         studentReplicaDao.save(student);
-        log.info("Student {} are acum {} XP (nivel {})", studentId, student.getXpTotal(), student.getLevel());
+        log.info("Student {} now has {} XP (level {})", studentId, student.getXpTotal(), student.getLevel());
     }
 
 

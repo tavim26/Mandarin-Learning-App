@@ -90,8 +90,6 @@ public class EvaluationService
             }
         }
 
-        // Credit partial bazat pe procentul de cuvinte cheie comune
-        // Se calculeaza fata de primul raspuns acceptat (considerat referinta principala)
         BigDecimal overlapScore = calculateWordOverlapScore(normalizedUser, normalize(acceptedAnswers.get(0)));
 
         if (overlapScore.compareTo(new BigDecimal("40")) >= 0)
@@ -213,7 +211,6 @@ public class EvaluationService
             return new EvaluationResultDto(new BigDecimal("100"), "Correct! The sentence order is right.");
         }
 
-        // Credit partial: numar de cuvinte plasate pe pozitia corecta
         int correctPositions = 0;
         for (int i = 0; i < correctOrder.size(); i++)
         {
@@ -239,15 +236,11 @@ public class EvaluationService
     }
 
 
-    // Normalizare string pentru comparatie: lowercase + eliminare spatii multiple
     private String normalize(String input)
     {
         return input.toLowerCase().trim().replaceAll("\\s+", " ");
     }
 
-
-    // Calculeaza procentul de cuvinte comune intre doua stringuri normalizate
-    // Folosit pentru credit partial la exercitii de tip TRANSLATION
     private BigDecimal calculateWordOverlapScore(String userAnswer, String referenceAnswer)
     {
         Set<String> userWords = Arrays.stream(userAnswer.split("\\s+"))

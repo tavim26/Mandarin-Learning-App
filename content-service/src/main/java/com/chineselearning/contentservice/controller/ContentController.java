@@ -7,6 +7,7 @@ import com.chineselearning.contentservice.service.ContentService;
 import com.chineselearning.contentservice.service.StorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -63,14 +64,8 @@ public class ContentController {
     @Operation(summary = "Creeaza o unitate noua", description = "Adauga un nou modul/capitol in structura cursului.")
     @PostMapping("/units")
     public ResponseEntity<CourseUnitDto> createUnit(
-            @RequestBody CourseUnitDto dto,
+            @Valid @RequestBody CourseUnitDto dto,
             @RequestHeader("X-User-Id") Long teacherId) {
-        if (dto.getTitle() == null || dto.getTitle().isBlank()) {
-            return ResponseEntity.badRequest().build();
-        }
-        if (dto.getOrderIndex() == null) {
-            return ResponseEntity.badRequest().build();
-        }
         return ResponseEntity.status(201).body(contentService.createCourseUnit(dto, teacherId));
     }
 
@@ -158,7 +153,7 @@ public class ContentController {
         }
     }
 
-    @Operation(summary = "Sterge o lectie")
+    @Operation(summary = "Sterge o lectie", description = "Sterge lectia si toate exercitiile si materialele asociate.")
     @DeleteMapping("/lessons/{id}")
     public ResponseEntity<Void> deleteLesson(@PathVariable Long id) {
         try {
@@ -197,7 +192,7 @@ public class ContentController {
         }
     }
 
-    @Operation(summary = "Sterge un material")
+    @Operation(summary = "Sterge un material", description = "Sterge materialul si fisierul asociat de pe disk, daca exista.")
     @DeleteMapping("/materials/{id}")
     public ResponseEntity<Void> deleteMaterial(@PathVariable Long id) {
         try {
@@ -209,18 +204,22 @@ public class ContentController {
     }
 
 
-    @Operation(summary = "Incarca un fisier", description = "Incarca un fisier in MinIO si returneaza URL-ul.")
+    @Operation(summary = "Incarca un fisier", description = "Incarca un fisier pe server si returneaza URL-ul de acces. Tipuri acceptate: JPEG, PNG, GIF, PDF, DOC, DOCX, MP3, WAV, MP4.")
     @PostMapping("/materials/upload")
     public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
         try {
             String url = storageService.upload(file);
             return ResponseEntity.status(201).body(url);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         } catch (IOException e) {
             return ResponseEntity.status(500).build();
         }
     }
 
 
+
+    @Operation(summary = "Serveste un fisier", description = "Returneaza continutul unui fisier incarcat anterior, identificat prin numele sau.")
     @GetMapping("/files/{fileName}")
     public ResponseEntity<byte[]> serveFile(@PathVariable String fileName) {
         try {
@@ -288,7 +287,7 @@ public class ContentController {
         }
     }
 
-    @Operation(summary = "Sterge un exercitiu")
+    @Operation(summary = "Sterge un exercitiu", description = "Sterge exercitiul din lectia asociata.")
     @DeleteMapping("/exercises/{id}")
     public ResponseEntity<Void> deleteExercise(@PathVariable Long id) {
         try {

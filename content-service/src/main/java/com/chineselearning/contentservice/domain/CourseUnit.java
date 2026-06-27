@@ -1,8 +1,5 @@
 package com.chineselearning.contentservice.domain;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class CourseUnit {
 
     private Long id;
@@ -11,8 +8,6 @@ public class CourseUnit {
     private Integer hskLevel;
     private Integer orderIndex;
     private Long createdByTeacherId;
-
-    private List<Lesson> lessons = new ArrayList<>();
 
     public CourseUnit() {}
 
@@ -33,7 +28,4 @@ public class CourseUnit {
 
     public Long getCreatedByTeacherId() { return createdByTeacherId; }
     public void setCreatedByTeacherId(Long createdByTeacherId) { this.createdByTeacherId = createdByTeacherId; }
-
-    public List<Lesson> getLessons() { return lessons; }
-    public void setLessons(List<Lesson> lessons) { this.lessons = lessons; }
 }

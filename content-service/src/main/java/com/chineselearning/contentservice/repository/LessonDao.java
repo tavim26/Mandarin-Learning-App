@@ -79,6 +79,11 @@ public class LessonDao implements ILessonDao
     }
 
 
+    @Override
+    public long countByUnitId(Long unitId) {
+        return lessonJpaRepository.countByUnitId(unitId);
+    }
+
 
 
     private Lesson toDomain(LessonEntity entity)

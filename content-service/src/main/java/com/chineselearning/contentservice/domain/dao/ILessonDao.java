@@ -15,5 +15,7 @@ public interface ILessonDao {
 
     void deleteById(Long id);
 
+    long countByUnitId(Long unitId);
+
     boolean existsById(Long id);
 }

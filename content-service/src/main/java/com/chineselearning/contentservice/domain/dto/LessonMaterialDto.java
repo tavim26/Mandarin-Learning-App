@@ -1,11 +1,20 @@
 package com.chineselearning.contentservice.domain.dto;
 
+import jakarta.validation.constraints.NotBlank;
+
 public class LessonMaterialDto {
 
     private Long id;
+
+    @NotBlank(message = "Lesson id is mandatory")
     private Long lessonId;
+
+    @NotBlank(message = "Material title is mandatory")
     private String title;
+
+    @NotBlank(message = "Material type is mandatory")
     private String type;
+
     private String url;
 
     public LessonMaterialDto() {}

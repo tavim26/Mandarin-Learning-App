@@ -1,8 +1,5 @@
 package com.chineselearning.contentservice.domain;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class Lesson {
 
     private Long id;
@@ -11,8 +8,6 @@ public class Lesson {
     private String description;
     private Integer xpReward;
     private Integer orderIndex;
-    private List<Exercise> exercises = new ArrayList<>();
-    private List<LessonMaterial> materials = new ArrayList<>();
 
     public Lesson() {}
 
@@ -33,10 +28,4 @@ public class Lesson {
 
     public Integer getOrderIndex() { return orderIndex; }
     public void setOrderIndex(Integer orderIndex) { this.orderIndex = orderIndex; }
-
-    public List<Exercise> getExercises() { return exercises; }
-    public void setExercises(List<Exercise> exercises) { this.exercises = exercises; }
-
-    public List<LessonMaterial> getMaterials() { return materials; }
-    public void setMaterials(List<LessonMaterial> materials) { this.materials = materials; }
 }

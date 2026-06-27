@@ -19,6 +19,8 @@ FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
+VOLUME /app/uploads
+
 # Copiere JAR din build stage
 COPY --from=build /app/target/*.jar app.jar
 

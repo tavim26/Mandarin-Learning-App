@@ -1,86 +1,123 @@
-# progress-service
+# Progress Service — Documentație API pentru Frontend
 
-Microserviciu responsabil pentru gestionarea tentativelor la exercitii, progresul lectiilor si XP-ul studentilor.
+## Prezentare generală
 
-- **Port:** `8083`
-- **Baza de date:** PostgreSQL — `progress_database`
-- **Emite JWT:** Nu — validarea JWT este responsabilitatea API Gateway
-- **Swagger UI:** `http://localhost:8083/swagger-ui/index.html`
+Microserviciul `progress-service` gestionează:
+- Trimiterea și evaluarea răspunsurilor la exerciții
+- Urmărirea progresului studenților per lecție și per unitate
+- XP-ul și nivelul studenților
+- Clasamentele globale și per lecție
 
----
-
-## Tech Stack
-
-- Java 21, Spring Boot, Spring Data JPA
-- PostgreSQL, Hibernate (JSONB support via `@JdbcTypeCode`)
-- RestTemplate (comunicare sincrona cu `content-service`)
+**Port:** `8083`  
+**Base URL (local):** `http://localhost:8083`  
+**Base URL (Docker):** `http://progress-service:8083`  
+**Swagger UI:** `http://localhost:8083/swagger-ui/index.html`
 
 ---
 
-## Dependente inter-servicii
+## Autentificare și autorizare
 
-| Serviciu | Endpoint apelat | Scop |
-|---|---|---|
-| `content-service` (8081) | `GET /api/content/exercises/{id}` | Obtine tipul si datele exercitiului pentru evaluare |
-| `content-service` (8081) | `GET /api/content/lessons/{id}` | Obtine lista exercitiilor si XP reward-ul lectiei |
-| `content-service` (8081) | `GET /api/content/units/{unitId}/lessons` | Obtine lista lectiilor dintr-o unitate pentru calculul progresului per unitate |
+Fiecare request necesită două headere setate de API Gateway. **Nu există excepții**, cu excepția celor două endpoint-uri de leaderboard marcate explicit ca publice.
 
-`user-service` nu este apelat direct. `studentId` este preluat exclusiv din header-ul `X-User-Id` injectat de API Gateway.
+| Header | Tip | Valori posibile |
+|--------|-----|-----------------|
+| `X-User-Id` | `Long` | ID-ul utilizatorului autentificat curent |
+| `X-User-Role` | `String` | `STUDENT` sau `ADMIN` |
 
----
+### Reguli de acces
 
-## Schema bazei de date
+| Rol | Poate accesa |
+|-----|-------------|
+| `STUDENT` | Exclusiv propriile date (`studentId == X-User-Id`) |
+| `ADMIN` | Datele oricărui student |
 
-```
-students_replica
-├── student_id    BIGINT PK (provine din user-service, nu auto-generat)
-├── xp_total      INTEGER (not null, default 0)
-└── level         INTEGER (not null, default 1)
-
-student_lesson_progress
-├── id                BIGINT PK (auto-generated)
-├── student_id        BIGINT (not null)
-├── lesson_id         BIGINT (not null)
-├── status            VARCHAR(20) (not null) — NOT_STARTED | IN_PROGRESS | COMPLETED
-├── completion_pct    DECIMAL(5,2) (not null, default 0)
-├── xp_awarded        INTEGER (nullable — null pana la completare)
-├── started_at        TIMESTAMP (nullable)
-├── last_accessed_at  TIMESTAMP (nullable)
-└── completed_at      TIMESTAMP (nullable — null pana la completare)
-UNIQUE CONSTRAINT: (student_id, lesson_id)
-
-exercise_attempts
-├── id                BIGINT PK (auto-generated)
-├── student_id        BIGINT (not null)
-├── exercise_id       BIGINT (not null)
-├── attempt_number    INTEGER (not null)
-├── submitted_at      TIMESTAMP (not null)
-├── submitted_answer  JSONB (not null)
-├── is_correct        BOOLEAN (not null)
-├── score             DECIMAL(5,2) (not null)
-└── feedback_text     TEXT (nullable)
-```
-
-**Logica de nivel:** `level = (xpTotal / 100) + 1`
-**Logica de corectitudine:** o tentativa este corecta daca `score >= 70`
+Violarea regulii returnează `403 Forbidden` cu body-ul `"Acces interzis"`.
 
 ---
 
-## Modele de date (DTO-uri)
+## Modele de date (Response DTOs)
 
-### `StudentReplicaDto`
+### ExerciseAttemptDto
+Reprezintă o singură încercare a unui student la un exercițiu.
+
 ```json
 {
-  "studentId": 1,
+  "id": 15,
+  "studentId": 42,
+  "exerciseId": 7,
+  "attemptNumber": 2,
+  "submittedAt": "2024-01-15T10:30:00",
+  "submittedAnswer": { "selectedIndex": 1 },
+  "isCorrect": true,
+  "score": 100.00,
+  "feedbackText": "Correct!"
+}
+```
+
+| Câmp | Tip | Descriere |
+|------|-----|-----------|
+| `id` | `Long` | ID-ul încercării |
+| `studentId` | `Long` | ID-ul studentului |
+| `exerciseId` | `Long` | ID-ul exercițiului |
+| `attemptNumber` | `Integer` | Numărul încercării (1, 2, 3...) |
+| `submittedAt` | `LocalDateTime` | Momentul trimiterii |
+| `submittedAnswer` | `Object` | Răspunsul trimis (format variabil — vezi secțiunea de formate) |
+| `isCorrect` | `Boolean` | `true` dacă `score >= 70` |
+| `score` | `BigDecimal` | Scor 0.00 – 100.00 |
+| `feedbackText` | `String` | Mesaj de feedback pentru student |
+
+---
+
+### StudentLessonProgressDto
+Reprezintă progresul unui student la o lecție.
+
+```json
+{
+  "id": 3,
+  "studentId": 42,
+  "lessonId": 5,
+  "status": "IN_PROGRESS",
+  "completionPct": 66.67,
+  "xpAwarded": null,
+  "startedAt": "2024-01-15T09:00:00",
+  "lastAccessedAt": "2024-01-15T10:30:00",
+  "completedAt": null
+}
+```
+
+| Câmp | Tip | Descriere |
+|------|-----|-----------|
+| `id` | `Long` | ID-ul înregistrării de progres |
+| `studentId` | `Long` | ID-ul studentului |
+| `lessonId` | `Long` | ID-ul lecției |
+| `status` | `String` | `NOT_STARTED` / `IN_PROGRESS` / `COMPLETED` |
+| `completionPct` | `BigDecimal` | Procent de completare 0.00 – 100.00 |
+| `xpAwarded` | `Integer` | XP acordat la completare; `null` dacă lecția nu e completă |
+| `startedAt` | `LocalDateTime` | Prima accesare; `null` dacă nu a început |
+| `lastAccessedAt` | `LocalDateTime` | Ultima activitate |
+| `completedAt` | `LocalDateTime` | Momentul completării; `null` dacă nu e completă |
+
+---
+
+### StudentReplicaDto
+Reprezintă profilul de XP și nivel al unui student.
+
+```json
+{
+  "studentId": 42,
   "xpTotal": 250,
   "level": 3
 }
 ```
 
-### `StudentSummaryDto`
+---
+
+### StudentSummaryDto
+Rezumat complet pentru dashboard-ul studentului.
+
 ```json
 {
-  "studentId": 1,
+  "studentId": 42,
   "xpTotal": 250,
   "level": 3,
   "completedLessonsCount": 5,
@@ -88,254 +125,396 @@ exercise_attempts
 }
 ```
 
-### `StudentUnitProgressDto`
+> Dacă studentul nu a trimis nicio încercare, `xpTotal` = `0`, `level` = `1`, contoarele = `0`.
+
+---
+
+### StudentUnitProgressDto
+Reprezintă progresul unui student la o unitate de lecții.
+
 ```json
 {
   "unitId": 1,
-  "studentId": 1,
-  "totalLessons": 5,
+  "studentId": 42,
+  "totalLessons": 10,
   "completedLessons": 3,
-  "inProgressLessons": 1,
-  "notStartedLessons": 1,
-  "unitCompletionPct": 60.00
+  "inProgressLessons": 2,
+  "notStartedLessons": 5,
+  "unitCompletionPct": 30.00
 }
 ```
-> `unitCompletionPct` este calculat exclusiv pe baza lectiilor cu status `COMPLETED` din totalul lectiilor unitatii.
 
-### `StudentLessonProgressDto`
+> `unitCompletionPct` se calculează exclusiv pe baza lecțiilor cu status `COMPLETED` (nu `IN_PROGRESS`).
+
+---
+
+## Valori posibile și logică de business
+
+### Lesson Status
+
+| Valoare | Când apare |
+|---------|-----------|
+| `NOT_STARTED` | Studentul nu a rezolvat corect niciun exercițiu din lecție |
+| `IN_PROGRESS` | Cel puțin un exercițiu rezolvat corect, dar nu toate |
+| `COMPLETED` | Toate exercițiile din lecție au cel puțin o încercare corectă |
+
+> O lecție trece în `COMPLETED` automat la trimiterea încercării care completează ultimul exercițiu. Nu există un endpoint separat de "completare".
+
+### Logica score / isCorrect
+
+```
+isCorrect = (score >= 70)
+```
+
+Un exercițiu este considerat corect indiferent de câte încercări a necesitat — contează ca studentul să fi obținut cel puțin o dată `isCorrect = true`. Odată rezolvat corect, exercițiul rămâne marcat ca rezolvat chiar dacă studentul mai încearcă și greșește ulterior.
+
+### Calculul nivelului
+
+```
+level = (xpTotal / 100) + 1
+```
+
+| XP | Nivel |
+|----|-------|
+| 0 – 99 | 1 |
+| 100 – 199 | 2 |
+| 200 – 299 | 3 |
+| ... | ... |
+
+### Acordarea XP
+
+XP-ul este acordat o singură dată, la prima completare a lecției. La completări ulterioare (dacă este posibil scenariul), XP-ul **nu** se mai acordă din nou. `xpAwarded` din `StudentLessonProgressDto` reflectă XP-ul efectiv acordat pentru acea lecție.
+
+---
+
+## Formate submittedAnswer per tip de exercițiu
+
+Câmpul `submittedAnswer` din request variază în funcție de câmpul `type` al exercițiului (furnizat de `content-service`).
+
+### MULTIPLE_CHOICE
+
 ```json
 {
-  "id": 1,
-  "studentId": 1,
-  "lessonId": 1,
-  "status": "IN_PROGRESS",
-  "completionPct": 66.67,
-  "xpAwarded": null,
-  "startedAt": "2024-01-01T10:00:00",
-  "lastAccessedAt": "2024-01-01T10:05:00",
-  "completedAt": null
+  "selectedIndex": 2
 }
 ```
-> `xpAwarded` si `completedAt` sunt `null` pana cand `status` devine `COMPLETED`.
 
-### `ExerciseAttemptDto`
+`selectedIndex`: indexul 0-based al opțiunii selectate din lista de opțiuni a exercițiului.
+
+**Scorare:** 100 dacă corect, 0 dacă incorect.
+
+**Feedback posibil:**
+- `"Correct!"`
+- `"Incorrect. The correct answer was: {optiunea_corecta}"`
+
+---
+
+### TRANSLATION
+
 ```json
 {
-  "id": 1,
-  "studentId": 1,
-  "exerciseId": 1,
-  "attemptNumber": 1,
-  "submittedAt": "2024-01-01T10:00:00",
-  "submittedAnswer": {},
-  "isCorrect": true,
-  "score": 100.00,
-  "feedbackText": "Correct!"
+  "translation": "buna ziua"
 }
 ```
 
-### `SubmitAttemptRequest` (request body)
+**Scorare:**
+- 100 — răspuns identic cu unul din răspunsurile acceptate (case-insensitive, fără spații multiple)
+- 50 — overlap de cuvinte ≥ 40% față de răspunsul principal (credit parțial)
+- 0 — overlap < 40%
+
+**Feedback posibil:**
+- `"Correct translation!"`
+- `"Partially correct (X% words matched). Expected: {raspuns_corect}"`
+- `"Incorrect. Correct translation: {raspuns_corect}"`
+
+---
+
+### FILL_BLANK
+
 ```json
 {
-  "exerciseId": 1,
-  "submittedAnswer": {}
+  "answers": ["raspuns1", "raspuns2"]
 }
 ```
-> `studentId` este absent din request body — este extras din header-ul `X-User-Id`.
+
+Ordinea elementelor din array trebuie să corespundă ordinii blank-urilor din exercițiu. Comparația este case-insensitive și ignoră spațiile de la capete.
+
+**Scorare:** proporțional — `(blank-uri_corecte / total_blank-uri) * 100`
+
+**Feedback posibil:**
+- `"All answers are correct!"`
+- `"You filled X out of Y blanks correctly."`
 
 ---
 
-## Structura `submittedAnswer` per tip de exercitiu
+### MATCHING
 
-| Tip exercitiu | Structura `submittedAnswer` |
-|---|---|
-| `MULTIPLE_CHOICE` | `{ "selectedIndex": 2 }` |
-| `TRANSLATION` | `{ "translation": "string" }` |
-| `FILL_BLANK` | `{ "answers": ["raspuns1", "raspuns2"] }` |
-| `MATCHING` | `{ "matches": { "stanga1": "dreapta1", "stanga2": "dreapta2" } }` |
-| `ORDERING` | `{ "order": ["今", "天", "会", "下", "雨"] }` |
+```json
+{
+  "matches": {
+    "你好": "buna ziua",
+    "谢谢": "multumesc",
+    "再见": "la revedere"
+  }
+}
+```
 
----
+Cheia este termenul din coloana stângă, valoarea este perechea selectată din coloana dreaptă. Comparația este exactă (case-sensitive).
 
-## Endpoint-uri
+**Scorare:** proporțional — `(perechi_corecte / total_perechi) * 100`
 
-### Progress & Tentative — `/api/progress`
-
-#### `POST /api/progress/attempts`
-- **Autorizare:** STUDENT (own), ADMIN
-- **Headers obligatorii:** `X-User-Id`, `X-User-Role`
-- **Request body:** `SubmitAttemptRequest`
-- **Comportament:** evalueaza raspunsul, salveaza tentativa, actualizeaza progresul lectiei, acorda XP la completare. Creeaza automat replica studentului la prima tentativa.
-- **Response `201`:** `ExerciseAttemptDto`
-- **Response `400`:** exercitiu inexistent sau date invalide
-- **Response `503`:** `content-service` indisponibil
+**Feedback posibil:**
+- `"All pairs matched correctly!"`
+- `"You matched X out of Y pairs correctly."`
 
 ---
 
-#### `GET /api/progress/attempts/student/{studentId}/exercise/{exerciseId}`
-- **Autorizare:** STUDENT (own), ADMIN
-- **Headers obligatorii:** `X-User-Id`, `X-User-Role`
-- **Response `200`:** lista de `ExerciseAttemptDto` ordonata dupa `attemptNumber` ascending
-- **Response `403`:** STUDENT incearca sa acceseze datele altui student
-- **Response `404`:** nu exista tentative
+### ORDERING
+
+```json
+{
+  "order": ["我", "叫", "李明"]
+}
+```
+
+Array-ul conține toate cuvintele exercițiului în ordinea aleasă de student. Trebuie să conțină exact același număr de elemente ca exercițiul.
+
+**Scorare:** proporțional după poziții corecte — `(cuvinte_pe_pozitie_corecta / total_cuvinte) * 100`
+
+**Feedback posibil:**
+- `"Correct! The sentence order is right."` (score = 100)
+- `"Almost correct! X out of Y words in the right position."` (score ≥ 70)
+- `"Incorrect. You placed X out of Y words correctly. Correct order: ..."` (score < 70)
 
 ---
 
-#### `GET /api/progress/lessons/student/{studentId}/lesson/{lessonId}`
-- **Autorizare:** STUDENT (own), ADMIN
-- **Headers obligatorii:** `X-User-Id`, `X-User-Role`
-- **Response `200`:** `StudentLessonProgressDto`
-- **Response `403`:** STUDENT incearca sa acceseze datele altui student
-- **Response `404`:** nu exista progres inregistrat
+## Endpointuri
 
----
-
-#### `GET /api/progress/lessons/student/{studentId}`
-- **Autorizare:** STUDENT (own), ADMIN
-- **Headers obligatorii:** `X-User-Id`, `X-User-Role`
-- **Response `200`:** lista de `StudentLessonProgressDto` pentru toate lectiile incepute
-
----
-
-#### `GET /api/progress/lessons/student/{studentId}/in-progress`
-- **Autorizare:** STUDENT (own), ADMIN
-- **Headers obligatorii:** `X-User-Id`, `X-User-Role`
-- **Response `200`:** lista de `StudentLessonProgressDto` cu `status = IN_PROGRESS`
-
----
-
-#### `GET /api/progress/lessons/{lessonId}/leaderboard`
-- **Autorizare:** STUDENT, TEACHER, ADMIN
-- **Response `200`:** lista de maxim 10 `StudentLessonProgressDto` ordonata dupa `completionPct` descrescator
-
----
-
-#### `GET /api/progress/students/{studentId}/summary`
-- **Autorizare:** STUDENT (own), ADMIN
-- **Headers obligatorii:** `X-User-Id`, `X-User-Role`
-- **Response `200`:** `StudentSummaryDto` — XP, nivel, numar lectii completate si in progres intr-un singur apel
-- **Response `403`:** STUDENT incearca sa acceseze datele altui student
-
----
-
-#### `GET /api/progress/units/{unitId}/student/{studentId}/progress`
-- **Autorizare:** STUDENT (own), ADMIN
-- **Headers obligatorii:** `X-User-Id`, `X-User-Role`
-- **Response `200`:** `StudentUnitProgressDto` — numar lectii completate, in progres, neincepute si procentul de completare al unitatii
-- **Response `400`:** unitatea nu exista in `content-service`
-- **Response `403`:** STUDENT incearca sa acceseze datele altui student
-- **Response `503`:** `content-service` indisponibil
-
----
-
-### Student XP & Nivel — `/api/progress/students`
-
-#### `GET /api/progress/students/leaderboard`
-- **Autorizare:** STUDENT, TEACHER, ADMIN
-- **Response `200`:** lista de maxim 10 `StudentReplicaDto` ordonata dupa `xpTotal` descrescator
-
----
-
-#### `GET /api/progress/students/{studentId}`
-- **Autorizare:** STUDENT (own), ADMIN
-- **Headers obligatorii:** `X-User-Id`, `X-User-Role`
-- **Response `200`:** `StudentReplicaDto`
-- **Response `403`:** STUDENT incearca sa acceseze datele altui student
-- **Response `404`:** studentul nu a trimis nicio tentativa inca
-
----
-
-#### `GET /api/progress/students/{studentId}/exists`
-- **Autorizare:** STUDENT (own), ADMIN
-- **Headers obligatorii:** `X-User-Id`, `X-User-Role`
-- **Response `200`:** `true` / `false`
-- **Response `403`:** STUDENT incearca sa acceseze datele altui student
-
----
-
-#### `GET /api/progress/students/admin/all`
-- **Autorizare:** ADMIN only
-- **Headers obligatorii:** `X-User-Role`
-- **Response `200`:** lista completa de `StudentReplicaDto` ordonata dupa `xpTotal` descrescator
-- **Response `403`:** rol non-ADMIN
-
----
-
-## Autorizare per endpoint (pentru API Gateway)
-
-| Method | Path | PUBLIC | STUDENT | TEACHER | ADMIN |
-|---|---|---|---|---|---|
-| POST | /api/progress/attempts | | own | | ✓ |
-| GET | /api/progress/attempts/student/{studentId}/exercise/{exerciseId} | | own | | ✓ |
-| GET | /api/progress/lessons/student/{studentId}/lesson/{lessonId} | | own | | ✓ |
-| GET | /api/progress/lessons/student/{studentId} | | own | | ✓ |
-| GET | /api/progress/lessons/student/{studentId}/in-progress | | own | | ✓ |
-| GET | /api/progress/lessons/{lessonId}/leaderboard | | ✓ | ✓ | ✓ |
-| GET | /api/progress/students/{studentId}/summary | | own | | ✓ |
-| GET | /api/progress/units/{unitId}/student/{studentId}/progress | | own | | ✓ |
-| GET | /api/progress/students/leaderboard | | ✓ | ✓ | ✓ |
-| GET | /api/progress/students/{studentId} | | own | | ✓ |
-| GET | /api/progress/students/{studentId}/exists | | own | | ✓ |
-| GET | /api/progress/students/admin/all | | | | ✓ |
-
-> **own** = API Gateway verifica daca `userId` din path coincide cu `userId` din JWT claims.
-> Toate endpoint-urile marcate cu `own` sau `✓` necesita headerele `X-User-Id` si `X-User-Role` injectate de API Gateway.
-
----
-
-## Headers injectate de API Gateway
-
-| Header | Tip | Descriere |
-|---|---|---|
-| `X-User-Id` | `Long` | `userId` din JWT claims |
-| `X-User-Role` | `String` | `STUDENT` / `TEACHER` / `ADMIN` |
-
----
-
-## Structura pachetelor
+### 1. Trimite o încercare la un exercițiu
 
 ```
-progressservice/
-├── domain/
-│   ├── ExerciseAttempt.java
-│   ├── StudentLessonProgress.java
-│   ├── StudentReplica.java
-│   ├── ports/
-│   │   └── IContentServicePort.java
-│   ├── dao/
-│   │   ├── IExerciseAttemptDao.java
-│   │   ├── IStudentLessonProgressDao.java
-│   │   └── IStudentReplicaDao.java
-│   └── dto/
-│       ├── EvaluationResultDto.java
-│       ├── ExerciseAttemptDto.java
-│       ├── ExerciseResponseDto.java
-│       ├── LessonResponseDto.java
-│       ├── StudentLessonProgressDto.java
-│       ├── StudentReplicaDto.java
-│       ├── StudentSummaryDto.java
-│       ├── StudentUnitProgressDto.java
-│       └── SubmitAttemptRequest.java
-├── repository/
-│   ├── entities/
-│   │   ├── ExerciseAttemptEntity.java
-│   │   ├── StudentLessonProgressEntity.java
-│   │   └── StudentReplicaEntity.java
-│   ├── jpa/
-│   │   ├── ExerciseAttemptJpaRepository.java
-│   │   ├── StudentLessonProgressJpaRepository.java
-│   │   └── StudentReplicaJpaRepository.java
-│   ├── ExerciseAttemptDao.java
-│   ├── StudentLessonProgressDao.java
-│   └── StudentReplicaDao.java
-├── service/
-│   ├── EvaluationService.java
-│   ├── ProgressService.java
-│   └── StudentReplicaService.java
-├── controller/
-│   ├── ProgressController.java
-│   └── StudentReplicaController.java
-├── clients/
-│   └── ContentServiceClient.java
-└── config/
-    └── AppConfig.java
+POST /api/progress/attempts
+Headers: X-User-Id, X-User-Role
 ```
+
+**Request body:**
+```json
+{
+  "exerciseId": 7,
+  "submittedAnswer": {
+    "selectedIndex": 1
+  }
+}
+```
+
+Studentul trimite întotdeauna pentru propriul ID (preluat din `X-User-Id`). Nu există câmp `studentId` în request.
+
+**Responses:**
+
+| Status | Body | Când |
+|--------|------|------|
+| `201 Created` | `ExerciseAttemptDto` | Încercare procesată cu succes |
+| `400 Bad Request` | `String` | `exerciseId` lipsă sau exercițiu inexistent |
+| `503 Service Unavailable` | `String` | `content-service` indisponibil |
+
+---
+
+### 2. Istoricul încercărilor unui student la un exercițiu
+
+```
+GET /api/progress/attempts/student/{studentId}/exercise/{exerciseId}
+Headers: X-User-Id, X-User-Role
+```
+
+**Responses:**
+
+| Status | Body | Când |
+|--------|------|------|
+| `200 OK` | `ExerciseAttemptDto[]` | Succes — array ordonat după `attemptNumber` ASC |
+| `403 Forbidden` | `"Acces interzis"` | STUDENT accesează datele altui student |
+| `404 Not Found` | — | Nicio încercare găsită |
+
+---
+
+### 3. Progresul unui student la o lecție
+
+```
+GET /api/progress/lessons/student/{studentId}/lesson/{lessonId}
+Headers: X-User-Id, X-User-Role
+```
+
+**Responses:**
+
+| Status | Body | Când |
+|--------|------|------|
+| `200 OK` | `StudentLessonProgressDto` | Succes |
+| `403 Forbidden` | `"Acces interzis"` | Acces la datele altui student |
+| `404 Not Found` | — | Studentul nu a început lecția |
+
+---
+
+### 4. Tot progresul unui student (toate lecțiile)
+
+```
+GET /api/progress/lessons/student/{studentId}
+Headers: X-User-Id, X-User-Role
+```
+
+**Responses:**
+
+| Status | Body | Când |
+|--------|------|------|
+| `200 OK` | `StudentLessonProgressDto[]` | Succes — array poate fi `[]` dacă nu a început nicio lecție |
+| `403 Forbidden` | `"Acces interzis"` | Acces la datele altui student |
+
+---
+
+### 5. Lecțiile în curs ale unui student
+
+```
+GET /api/progress/lessons/student/{studentId}/in-progress
+Headers: X-User-Id, X-User-Role
+```
+
+Returnează doar înregistrările cu `status = "IN_PROGRESS"`.
+
+**Responses:**
+
+| Status | Body | Când |
+|--------|------|------|
+| `200 OK` | `StudentLessonProgressDto[]` | Succes — array poate fi `[]` |
+| `403 Forbidden` | `"Acces interzis"` | Acces la datele altui student |
+
+---
+
+### 6. Clasamentul unei lecții (top 10)
+
+```
+GET /api/progress/lessons/{lessonId}/leaderboard
+```
+
+**Public — nu necesită headere.**
+
+**Responses:**
+
+| Status | Body | Când |
+|--------|------|------|
+| `200 OK` | `StudentLessonProgressDto[]` | Succes — maxim 10 înregistrări, ordonat după `completionPct` DESC |
+
+---
+
+### 7. Rezumatul dashboard-ului unui student
+
+```
+GET /api/progress/students/{studentId}/summary
+Headers: X-User-Id, X-User-Role
+```
+
+**Responses:**
+
+| Status | Body | Când |
+|--------|------|------|
+| `200 OK` | `StudentSummaryDto` | Succes |
+| `403 Forbidden` | `"Acces interzis"` | Acces la datele altui student |
+
+---
+
+### 8. Progresul unui student la o unitate
+
+```
+GET /api/progress/units/{unitId}/student/{studentId}/progress
+Headers: X-User-Id, X-User-Role
+```
+
+**Responses:**
+
+| Status | Body | Când |
+|--------|------|------|
+| `200 OK` | `StudentUnitProgressDto` | Succes |
+| `400 Bad Request` | `String` | Unitatea nu există în `content-service` |
+| `403 Forbidden` | `"Acces interzis"` | Acces la datele altui student |
+| `503 Service Unavailable` | `String` | `content-service` indisponibil |
+
+---
+
+### 9. Clasamentul global după XP (top 10)
+
+```
+GET /api/progress/students/leaderboard
+```
+
+**Public — nu necesită headere.**
+
+**Responses:**
+
+| Status | Body | Când |
+|--------|------|------|
+| `200 OK` | `StudentReplicaDto[]` | Succes — maxim 10 studenți, ordonat după `xpTotal` DESC |
+
+---
+
+### 10. Profilul XP al unui student
+
+```
+GET /api/progress/students/{studentId}
+Headers: X-User-Id, X-User-Role
+```
+
+**Responses:**
+
+| Status | Body | Când |
+|--------|------|------|
+| `200 OK` | `StudentReplicaDto` | Succes |
+| `403 Forbidden` | `"Acces interzis"` | Acces la datele altui student |
+| `404 Not Found` | — | Studentul nu a trimis nicio încercare (nu există în sistem) |
+
+---
+
+### 11. Verifică dacă un student există în sistem
+
+```
+GET /api/progress/students/{studentId}/exists
+Headers: X-User-Id, X-User-Role
+```
+
+**Responses:**
+
+| Status | Body | Când |
+|--------|------|------|
+| `200 OK` | `true` / `false` | `false` dacă studentul nu a trimis nicio încercare |
+| `403 Forbidden` | `"Acces interzis"` | Acces la datele altui student |
+
+---
+
+### 12. Toți studenții — doar ADMIN
+
+```
+GET /api/progress/students/admin/all
+Headers: X-User-Role (trebuie să fie "ADMIN")
+```
+
+**Responses:**
+
+| Status | Body | Când |
+|--------|------|------|
+| `200 OK` | `StudentReplicaDto[]` | Succes — toți studenții, ordonat după `xpTotal` DESC |
+| `403 Forbidden` | `"Acces interzis"` | Utilizatorul nu este ADMIN |
+
+---
+
+## Referință rapidă
+
+| Metodă | Path | Descriere | Acces |
+|--------|------|-----------|-------|
+| `POST` | `/api/progress/attempts` | Trimite o încercare | Autentificat |
+| `GET` | `/api/progress/attempts/student/{studentId}/exercise/{exerciseId}` | Istoricul încercărilor | Propriu / ADMIN |
+| `GET` | `/api/progress/lessons/student/{studentId}/lesson/{lessonId}` | Progres la o lecție | Propriu / ADMIN |
+| `GET` | `/api/progress/lessons/student/{studentId}` | Tot progresul studentului | Propriu / ADMIN |
+| `GET` | `/api/progress/lessons/student/{studentId}/in-progress` | Lecții în curs | Propriu / ADMIN |
+| `GET` | `/api/progress/lessons/{lessonId}/leaderboard` | Clasament lecție top 10 | **Public** |
+| `GET` | `/api/progress/students/{studentId}/summary` | Dashboard summary | Propriu / ADMIN |
+| `GET` | `/api/progress/units/{unitId}/student/{studentId}/progress` | Progres la o unitate | Propriu / ADMIN |
+| `GET` | `/api/progress/students/leaderboard` | Clasament global XP top 10 | **Public** |
+| `GET` | `/api/progress/students/{studentId}` | Profil XP student | Propriu / ADMIN |
+| `GET` | `/api/progress/students/{studentId}/exists` | Verifică existența studentului | Propriu / ADMIN |
+| `GET` | `/api/progress/students/admin/all` | Toți studenții | **Doar ADMIN** |

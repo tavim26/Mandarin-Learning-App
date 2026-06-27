@@ -105,6 +105,7 @@ services:
   # ===== MICROSERVICII JAVA =====
 
   user-service:
+    container_name: user-service
     build:
       context: ./user-service
     ports:
@@ -121,6 +122,7 @@ services:
       - app-network
 
   content-service:
+    container_name: content-service
     build:
       context: ./content-service
     ports:
@@ -139,6 +141,7 @@ services:
       - app-network
 
   progress-service:
+    container_name: progress-service
     build:
       context: ./progress-service
     ports:
@@ -157,6 +160,7 @@ services:
       - app-network
 
   chatbot-service:
+    container_name: chatbot-service
     build:
       context: ./chatbot-service
     ports:
@@ -173,6 +177,7 @@ services:
       - app-network
 
   flashcard-service:
+    container_name: flashcard-service
     build:
       context: ./flashcard-service
     ports:
@@ -192,6 +197,7 @@ services:
   # ===== TEXT ANALYSIS SERVICE — Python / FastAPI =====
 
   text-analysis-service:
+    container_name: text-analysis-service
     build:
       context: ./text-analysis-service
     ports:
@@ -212,6 +218,7 @@ services:
   # ===== API GATEWAY =====
 
   api-gateway:
+    container_name: api-gateway
     build:
       context: ./api-gateway
     ports:
@@ -241,6 +248,7 @@ services:
   # ===== FRONTEND — Nginx =====
 
   frontend:
+    container_name: frontend
     build:
       context: ./frontend
     ports:
