@@ -53,6 +53,16 @@ public class FlashcardDao implements IFlashcardDao
     }
 
     @Override
+    @Transactional
+    public List<Flashcard> findBySetIdIn(List<Long> setIds)
+    {
+        return flashcardJpaRepository.findBySetIdIn(setIds)
+                .stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
     public void delete(Flashcard flashcard)
     {
         flashcardJpaRepository.deleteById(flashcard.getId());

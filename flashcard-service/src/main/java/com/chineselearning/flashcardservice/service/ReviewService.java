@@ -88,10 +88,19 @@ public class ReviewService
 
     // Returneaza cardurile scadente + cardurile nevazute niciodata din setul specificat
     @Transactional(readOnly = true)
-    public List<FlashcardProgressDto> getDueFlashcards(Long studentId, Long setId)
+    public List<FlashcardProgressDto> getDueFlashcards(Long userId, Long studentId, Long setId)
     {
+
+        verifyStudentAccess(userId, studentId);
+
         // Toti cardii din set
         List<Flashcard> allCards = flashcardDao.findBySetId(setId);
+
+        if (allCards.isEmpty())
+        {
+            return List.of();
+        }
+
         List<Long> allCardIds = allCards.stream()
                 .map(Flashcard::getId)
                 .toList();
@@ -125,8 +134,10 @@ public class ReviewService
 
     // Returneaza istoricul complet al recenziilor unui student pentru un card specific
     @Transactional(readOnly = true)
-    public List<FlashcardReviewDto> getReviewHistory(Long studentId, Long flashcardId)
+    public List<FlashcardReviewDto> getReviewHistory(Long userId, Long studentId, Long flashcardId)
     {
+        verifyStudentAccess(userId, studentId);
+
         return flashcardReviewDao
                 .findByStudentIdAndFlashcardIdOrderByReviewedAtAsc(studentId, flashcardId)
                 .stream()
@@ -136,12 +147,14 @@ public class ReviewService
 
     // Returneaza starea SM-2 curenta a unui student pentru un card specific
     @Transactional(readOnly = true)
-    public FlashcardProgressDto getProgress(Long studentId, Long flashcardId)
+    public FlashcardProgressDto getProgress(Long userId, Long studentId, Long flashcardId)
     {
+        verifyStudentAccess(userId, studentId);
+
         FlashcardProgress progress = flashcardProgressDao
                 .findByStudentIdAndFlashcardId(studentId, flashcardId)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Nu exista progres pentru studentul " + studentId + " si flashcard-ul " + flashcardId));
+                        HttpStatus.NOT_FOUND, "There is not progress for student " + studentId + " and flashcard " + flashcardId));
         return toProgressDto(progress);
     }
 
@@ -149,6 +162,16 @@ public class ReviewService
 
 
     // METODE HELPER
+
+    private void verifyStudentAccess(Long userId, Long studentId)
+    {
+        if (!userId.equals(studentId))
+        {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Acces interzis: nu poti accesa datele altui student");
+        }
+    }
 
     // Creeaza o inregistrare initiala de progres cu valorile default SM-2
     private FlashcardProgress createInitialProgress(Long studentId, Long flashcardId)

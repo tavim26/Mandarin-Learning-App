@@ -15,5 +15,8 @@ public interface IFlashcardDao
     // Toate cardurile dintr-un set
     List<Flashcard> findBySetId(Long setId);
 
+    // Toate cardurile din mai multe seturi dintr-o singura interogare
+    List<Flashcard> findBySetIdIn(List<Long> setIds);
+
     void delete(Flashcard flashcard);
 }

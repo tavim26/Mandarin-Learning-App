@@ -32,7 +32,8 @@ public class FlashcardController
         this.reviewService = reviewService;
     }
 
-    // SETURI DE FLASHCARD-URI
+
+
 
     @Operation(
             summary = "Creare set nou",
@@ -47,16 +48,21 @@ public class FlashcardController
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
+
+
     @Operation(
             summary = "Seturi ale unui student",
             description = "Returneaza toate seturile de flashcard-uri apartinand unui student, ordonate descrescator dupa id."
     )
     @GetMapping("/sets/student/{studentId}")
-    public ResponseEntity<List<FlashcardSetDto>> getSetsByStudent(@PathVariable Long studentId)
+    public ResponseEntity<List<FlashcardSetDto>> getSetsByStudent(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable Long studentId)
     {
-        List<FlashcardSetDto> sets = flashcardSetService.getSetsByStudent(studentId);
+        List<FlashcardSetDto> sets = flashcardSetService.getSetsByStudent(userId, studentId);
         return ResponseEntity.ok(sets);
     }
+
 
     @Operation(
             summary = "Obtinere set dupa id",
@@ -68,6 +74,9 @@ public class FlashcardController
         FlashcardSetDto set = flashcardSetService.getSetById(setId);
         return ResponseEntity.ok(set);
     }
+
+
+
 
     @Operation(
             summary = "Actualizare set",
@@ -234,13 +243,13 @@ public class FlashcardController
     )
     @GetMapping("/reviews/due/{studentId}")
     public ResponseEntity<List<FlashcardProgressDto>> getDueFlashcards(
+            @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long studentId,
             @RequestParam Long setId)
     {
-        List<FlashcardProgressDto> due = reviewService.getDueFlashcards(studentId, setId);
+        List<FlashcardProgressDto> due = reviewService.getDueFlashcards(userId, studentId, setId);
         return ResponseEntity.ok(due);
     }
-
 
 
 
@@ -252,10 +261,11 @@ public class FlashcardController
     )
     @GetMapping("/reviews/history/{studentId}/{flashcardId}")
     public ResponseEntity<List<FlashcardReviewDto>> getReviewHistory(
+            @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long studentId,
             @PathVariable Long flashcardId)
     {
-        List<FlashcardReviewDto> history = reviewService.getReviewHistory(studentId, flashcardId);
+        List<FlashcardReviewDto> history = reviewService.getReviewHistory(userId, studentId, flashcardId);
         return ResponseEntity.ok(history);
     }
 
@@ -269,10 +279,11 @@ public class FlashcardController
     )
     @GetMapping("/reviews/progress/{studentId}/{flashcardId}")
     public ResponseEntity<FlashcardProgressDto> getProgress(
+            @RequestHeader("X-User-Id") Long userId,
             @PathVariable Long studentId,
             @PathVariable Long flashcardId)
     {
-        FlashcardProgressDto progress = reviewService.getProgress(studentId, flashcardId);
+        FlashcardProgressDto progress = reviewService.getProgress(userId, studentId, flashcardId);
         return ResponseEntity.ok(progress);
     }
 }

@@ -21,6 +21,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class FlashcardSetService
@@ -54,8 +57,9 @@ public class FlashcardSetService
     }
 
     @Transactional(readOnly = true)
-    public List<FlashcardSetDto> getSetsByStudent(Long studentId)
+    public List<FlashcardSetDto> getSetsByStudent(Long userId, Long studentId)
     {
+        verifyStudentAccess(userId, studentId);
         return flashcardSetDao.findByStudentIdOrderByIdDesc(studentId)
                 .stream()
                 .map(this::toSetDto)
@@ -157,6 +161,20 @@ public class FlashcardSetService
         findSetOrThrow(setId);
 
         List<Flashcard> allCards = flashcardDao.findBySetId(setId);
+
+        if (allCards.isEmpty())
+        {
+            FlashcardSetStatsDto dto = new FlashcardSetStatsDto();
+            dto.setSetId(setId);
+            dto.setTotalCards(0);
+            dto.setNewCards(0);
+            dto.setLearningCards(0);
+            dto.setMatureCards(0);
+            dto.setDueToday(0);
+            dto.setAverageEasinessFactor(new BigDecimal("2.5"));
+            return dto;
+        }
+
         List<Long> allCardIds = allCards.stream()
                 .map(Flashcard::getId)
                 .toList();
@@ -169,7 +187,7 @@ public class FlashcardSetService
         int totalCards = allCards.size();
         int newCards = totalCards - existingProgress.size();
         int learningCards = (int) existingProgress.stream()
-                .filter(p -> p.getRepetitionCount() < 3)
+                .filter(p -> p.getIntervalDays() < 21)
                 .count();
 
         int matureCards   = (int) existingProgress.stream()
@@ -205,24 +223,50 @@ public class FlashcardSetService
     public TotalDueStatsDto getTotalDueStats(Long studentId)
     {
         List<FlashcardSet> allSets = flashcardSetDao.findByStudentIdOrderByIdDesc(studentId);
-        LocalDateTime now = LocalDateTime.now();
 
+        if (allSets.isEmpty())
+        {
+            TotalDueStatsDto empty = new TotalDueStatsDto();
+            empty.setTotalDue(0);
+            empty.setBySet(List.of());
+            return empty;
+        }
+
+        // Query 1: toate cardurile din toate seturile studentului dintr-o singura interogare
+        List<Long> allSetIds = allSets.stream().map(FlashcardSet::getId).toList();
+        List<Flashcard> allCards = flashcardDao.findBySetIdIn(allSetIds);
+
+        // Grupam cardurile dupa setId in memorie — fara query suplimentar
+        Map<Long, List<Long>> cardIdsBySetId = allCards.stream()
+                .collect(Collectors.groupingBy(
+                        Flashcard::getSetId,
+                        Collectors.mapping(Flashcard::getId, Collectors.toList())
+                ));
+
+        // Query 2: tot progresul relevant dintr-o singura interogare
+        List<Long> allCardIds = allCards.stream().map(Flashcard::getId).toList();
+        List<FlashcardProgress> allProgress = allCardIds.isEmpty()
+                ? List.of()
+                : flashcardProgressDao.findByStudentIdAndFlashcardIdIn(studentId, allCardIds);
+
+        // Indexam in memorie cardurile vazute si cardurile scadente
+        Set<Long> seenCardIds = allProgress.stream()
+                .map(FlashcardProgress::getFlashcardId)
+                .collect(Collectors.toSet());
+
+        LocalDateTime now = LocalDateTime.now();
+        Set<Long> dueCardIds = allProgress.stream()
+                .filter(p -> p.getNextReviewAt() != null && !p.getNextReviewAt().isAfter(now))
+                .map(FlashcardProgress::getFlashcardId)
+                .collect(Collectors.toSet());
+
+        // Calculam due count per set exclusiv din structurile in memorie — fara query suplimentar
         List<DueCountBySetDto> bySet = allSets.stream()
                 .map(set -> {
-                    List<Flashcard> cards = flashcardDao.findBySetId(set.getId());
-                    List<Long> cardIds = cards.stream()
-                            .map(Flashcard::getId)
-                            .toList();
-
-                    List<FlashcardProgress> progress = flashcardProgressDao
-                            .findByStudentIdAndFlashcardIdIn(studentId, cardIds);
-
-                    int seenIds   = progress.size();
-                    int newCards  = cards.size() - seenIds;
-                    int dueFromExisting = (int) progress.stream()
-                            .filter(p -> p.getNextReviewAt() != null && !p.getNextReviewAt().isAfter(now))
-                            .count();
-                    int dueCount  = dueFromExisting + newCards;
+                    List<Long> cardIds = cardIdsBySetId.getOrDefault(set.getId(), List.of());
+                    int newCards        = (int) cardIds.stream().filter(id -> !seenCardIds.contains(id)).count();
+                    int dueFromExisting = (int) cardIds.stream().filter(dueCardIds::contains).count();
+                    int dueCount        = newCards + dueFromExisting;
 
                     DueCountBySetDto dto = new DueCountBySetDto();
                     dto.setSetId(set.getId());
@@ -233,9 +277,7 @@ public class FlashcardSetService
                 .filter(dto -> dto.getDueCount() > 0)
                 .toList();
 
-        int totalDue = bySet.stream()
-                .mapToInt(DueCountBySetDto::getDueCount)
-                .sum();
+        int totalDue = bySet.stream().mapToInt(DueCountBySetDto::getDueCount).sum();
 
         TotalDueStatsDto result = new TotalDueStatsDto();
         result.setTotalDue(totalDue);
@@ -247,18 +289,28 @@ public class FlashcardSetService
 
     // METODE HELPER
 
+    private void verifyStudentAccess(Long userId, Long studentId)
+    {
+        if (!userId.equals(studentId))
+        {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Access denied: you cannot access other students cards.");
+        }
+    }
+
     private FlashcardSet findSetOrThrow(Long setId)
     {
         return flashcardSetDao.findById(setId)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Setul cu id " + setId + " nu exista"));
+                        HttpStatus.NOT_FOUND, "Set with it " + setId + " does not exist."));
     }
 
     private Flashcard findFlashcardOrThrow(Long flashcardId)
     {
         return flashcardDao.findById(flashcardId)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Flashcard-ul cu id " + flashcardId + " nu exista"));
+                        HttpStatus.NOT_FOUND, "Flashcard with id " + flashcardId + " does not exist."));
     }
 
     private void verifySetOwnership(FlashcardSet set, Long studentId)
@@ -266,7 +318,7 @@ public class FlashcardSetService
         if (!set.getStudentId().equals(studentId))
         {
             throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN, "Studentul " + studentId + " nu are acces la setul " + set.getId());
+                    HttpStatus.FORBIDDEN, "Student " + studentId + " does not have access to the set with ID " + set.getId());
         }
     }
 

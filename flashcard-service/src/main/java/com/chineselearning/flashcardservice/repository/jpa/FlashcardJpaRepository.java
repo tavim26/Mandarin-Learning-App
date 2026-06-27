@@ -9,4 +9,6 @@ public interface FlashcardJpaRepository extends JpaRepository<FlashcardEntity, L
 {
 
     List<FlashcardEntity> findBySetId(Long setId);
+
+    List<FlashcardEntity> findBySetIdIn(List<Long> setIds);
 }

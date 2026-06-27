@@ -18,7 +18,7 @@ public class FlashcardReviewEntity
     @Column(name = "student_id", nullable = false)
     private Long studentId;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "flashcard_id", nullable = false)
     private FlashcardEntity flashcard;
 
