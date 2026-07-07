@@ -99,16 +99,16 @@ export const useAnalysis = () => {
     try {
       const result = await analysisApi.analyzeText(rawText, language);
       setCurrentAnalysis(result);
-      // Invalideaza lista — va fi reincarcata la urmatoarea vizita
+      
       setAnalysisList(null);
       return result;
     } catch (err: unknown) {
       const status =
         (err as { response?: { status?: number } })?.response?.status;
       if (status === 503) {
-        setError('Serviciul de traducere este indisponibil momentan.');
+        setError('Translation service is currently not available.');
       } else {
-        setError('Analiza textului a esuat.');
+        setError('Text analyze failed.');
       }
       return null;
     } finally {
@@ -131,11 +131,11 @@ export const useAnalysis = () => {
       const status =
         (err as { response?: { status?: number } })?.response?.status;
       if (status === 422) {
-        setError('Imaginea nu contine text chinezesc detectabil.');
+        setError('Image does not contain detectable chinese text.');
       } else if (status === 503) {
-        setError('Serviciul de traducere este indisponibil momentan.');
+        setError('Translation service is currently not available.');
       } else {
-        setError('Analiza imaginii a esuat.');
+        setError('Image analyze failed');
       }
       return null;
     } finally {
@@ -143,7 +143,6 @@ export const useAnalysis = () => {
     }
   };
 
-  // Preview fara salvare — pentru tooltip-uri pe orice text chinezesc
   const previewText = useCallback(async (text: string) => {
     if (!text.trim()) return;
     setIsPreviewing(true);
@@ -174,7 +173,7 @@ export const useAnalysis = () => {
       }
       return true;
     } catch {
-      setError('Stergerea analizei a esuat.');
+      setError('Analyze deletion has failed.');
       return false;
     }
   };

@@ -40,21 +40,17 @@ public class ReviewService
         this.flashcardReviewDao = flashcardReviewDao;
     }
 
-    // Fluxul principal: primeste scorul studentului, ruleaza SM-2, salveaza recenzia si actualizeaza progresul
     @Transactional
     public ReviewResultDto submitReview(Long studentId, SubmitReviewRequest request)
     {
-        // Verificam ca flashcard-ul exista inainte de orice operatie
         Flashcard flashcard = flashcardDao.findById(request.getFlashcardId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Flashcard-ul cu id " + request.getFlashcardId() + " nu exista"));
 
-        // Incarcam starea SM-2 existenta sau cream una noua daca studentul vede cardul prima data
         FlashcardProgress progress = flashcardProgressDao
                 .findByStudentIdAndFlashcardId(studentId, request.getFlashcardId())
                 .orElseGet(() -> createInitialProgress(studentId, flashcard.getId()));
 
-        // Rulam calculul SM-2 cu starea curenta si scorul primit de la student
         Sm2Result result = Sm2Algorithm.calculate(
                 progress.getEasinessFactor(),
                 progress.getIntervalDays(),
@@ -62,7 +58,6 @@ public class ReviewService
                 request.getQuality()
         );
 
-        // Actualizam starea SM-2 cu valorile calculate de algoritm
         progress.setEasinessFactor(result.getEasinessFactor());
         progress.setIntervalDays(result.getIntervalDays());
         progress.setRepetitionCount(result.getRepetitionCount());
@@ -70,7 +65,6 @@ public class ReviewService
         progress.setLastReviewedAt(LocalDateTime.now());
         FlashcardProgress savedProgress = flashcardProgressDao.save(progress);
 
-        // Salvam recenzia in istoricul de audit
         FlashcardReview review = new FlashcardReview();
         review.setStudentId(studentId);
         review.setFlashcardId(request.getFlashcardId());
@@ -86,14 +80,12 @@ public class ReviewService
 
 
 
-    // Returneaza cardurile scadente + cardurile nevazute niciodata din setul specificat
     @Transactional(readOnly = true)
     public List<FlashcardProgressDto> getDueFlashcards(Long userId, Long studentId, Long setId)
     {
 
         verifyStudentAccess(userId, studentId);
 
-        // Toti cardii din set
         List<Flashcard> allCards = flashcardDao.findBySetId(setId);
 
         if (allCards.isEmpty())
@@ -105,25 +97,21 @@ public class ReviewService
                 .map(Flashcard::getId)
                 .toList();
 
-        // Progresul existent pentru cardurile din set
         List<FlashcardProgress> existingProgress = flashcardProgressDao
                 .findByStudentIdAndFlashcardIdIn(studentId, allCardIds);
 
-        // ID-urile cardurilor care au deja un progress record
         Set<Long> seenCardIds = existingProgress.stream()
                 .map(FlashcardProgress::getFlashcardId)
                 .collect(Collectors.toSet());
 
         List<FlashcardProgressDto> result = new ArrayList<>();
 
-        // Cardurile cu progress record si scadente (next_review_at <= acum)
         LocalDateTime now = LocalDateTime.now();
         existingProgress.stream()
                 .filter(p -> p.getNextReviewAt() != null && !p.getNextReviewAt().isAfter(now))
                 .map(this::toProgressDto)
                 .forEach(result::add);
 
-        // Cardurile nevazute niciodata — progress record absent — reprezentate cu valori default SM-2
         allCards.stream()
                 .filter(card -> !seenCardIds.contains(card.getId()))
                 .map(card -> toDefaultProgressDto(studentId, card.getId()))
@@ -132,7 +120,6 @@ public class ReviewService
         return result;
     }
 
-    // Returneaza istoricul complet al recenziilor unui student pentru un card specific
     @Transactional(readOnly = true)
     public List<FlashcardReviewDto> getReviewHistory(Long userId, Long studentId, Long flashcardId)
     {
@@ -145,7 +132,6 @@ public class ReviewService
                 .toList();
     }
 
-    // Returneaza starea SM-2 curenta a unui student pentru un card specific
     @Transactional(readOnly = true)
     public FlashcardProgressDto getProgress(Long userId, Long studentId, Long flashcardId)
     {
@@ -161,7 +147,6 @@ public class ReviewService
 
 
 
-    // METODE HELPER
 
     private void verifyStudentAccess(Long userId, Long studentId)
     {
@@ -173,7 +158,6 @@ public class ReviewService
         }
     }
 
-    // Creeaza o inregistrare initiala de progres cu valorile default SM-2
     private FlashcardProgress createInitialProgress(Long studentId, Long flashcardId)
     {
         FlashcardProgress progress = new FlashcardProgress();
@@ -185,7 +169,6 @@ public class ReviewService
         return progress;
     }
 
-    // ProgressDto cu valori default pentru un card nevazut niciodata — id null semnaleaza frontend-ului absenta unui progress record
     private FlashcardProgressDto toDefaultProgressDto(Long studentId, Long flashcardId)
     {
         FlashcardProgressDto dto = new FlashcardProgressDto();

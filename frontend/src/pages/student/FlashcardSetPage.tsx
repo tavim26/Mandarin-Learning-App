@@ -27,9 +27,7 @@ import { useFlashcards } from '@/hooks/useFlashcards';
 import { useTTS } from '@/hooks/useTTS';
 import type { FlashcardDto } from '@/hooks/useFlashcards';
 
-// ============================================================
-// Mini flip card — vizualizare in lista
-// ============================================================
+// Mini flip card 
 const FlipCardItem = ({
   card,
   onDelete,
@@ -122,9 +120,7 @@ const FlipCardItem = ({
   );
 };
 
-// ============================================================
-// Modal adaugare card — inline
-// ============================================================
+// Modal adaugare card
 interface AddCardContentProps {
   setId: number;
   onClose: () => void;
@@ -193,9 +189,10 @@ const AddCardContent = ({ setId, onClose, onSuccess }: AddCardContentProps) => {
   );
 };
 
-// ============================================================
+
+
+
 // FlashcardSetPage
-// ============================================================
 const FlashcardSetPage = () => {
   const { setId } = useParams<{ setId: string }>();
   const navigate = useNavigate();

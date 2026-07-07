@@ -18,7 +18,6 @@ import { MessageBubble } from '@/components/chat/MessageBubble';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { useChatSession } from '@/hooks/useChatSession';
 
-// Modal creare sesiune — inline, nu justifica fisier separat
 interface CreateSessionModalProps {
   open: boolean;
   onClose: () => void;
@@ -95,9 +94,7 @@ const CreateSessionModal = ({
   );
 };
 
-// ============================================================
 // ChatPage
-// ============================================================
 const ChatPage = () => {
   const {
     sessions,

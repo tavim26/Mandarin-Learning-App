@@ -30,7 +30,6 @@ class NlpService:
 
     def __init__(self, hsk_service: HskService):
         self._hsk = hsk_service
-        # modelul spaCy este incarcat o singura data la instantiere
         self._nlp = spacy.load("zh_core_web_md")
 
     def process(self, text: str) -> list[dict]:

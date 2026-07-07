@@ -36,9 +36,6 @@ public class UserController
     }
 
 
-
-    // ========== USER ENDPOINTS ==========
-
     @PostMapping
     @Operation(summary = "Create new user", description = "Creates a new user with role STUDENT or TEACHER (admin only)")
     public ResponseEntity<?> createUser(@RequestBody RegisterRequestDto request)
@@ -104,7 +101,6 @@ public class UserController
 
 
 
-    // ========== STUDENT ENDPOINTS ==========
 
     @GetMapping("/students/{userId}")
     @Operation(summary = "Get student details", description = "Returns student-specific information (nickname)")
@@ -133,7 +129,6 @@ public class UserController
 
 
 
-    // ========== TEACHER ENDPOINTS ==========
 
     @GetMapping("/teachers/{userId}")
     @Operation(summary = "Get teacher details", description = "Returns teacher-specific information")

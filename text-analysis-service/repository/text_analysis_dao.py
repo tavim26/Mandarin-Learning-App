@@ -15,7 +15,6 @@ class TextAnalysisDao(ITextAnalysisDao):
         entity = self._to_entity(analysis)
         try:
             self.db.add(entity)
-            # flush fara commit — tranzactia ramane deschisa pentru operatiile ulterioare
             self.db.flush()
             self.db.refresh(entity)
             return self._to_domain(entity)
@@ -62,7 +61,7 @@ class TextAnalysisDao(ITextAnalysisDao):
     ) -> tuple[list[TextAnalysis], int]:
         base_query = (
             self.db.query(TextAnalysisEntity)
-            .options(noload(TextAnalysisEntity.tokens))  # <-- suprima lazy loading
+            .options(noload(TextAnalysisEntity.tokens))
             .filter(TextAnalysisEntity.student_id == student_id)
         )
 

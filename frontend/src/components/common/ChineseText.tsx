@@ -5,21 +5,17 @@ import { useTTS } from '@/hooks/useTTS';
 import { CreateFlashcardFromTokenModal } from '@/components/modals/CreateFlashcardFromTokenModal';
 import { createPortal } from 'react-dom';
 
-// ============================================================
 // Tip token unificat — compatibil cu PreviewTokenDto si AnalysisTokenDto
-// ============================================================
 export interface RichTokenDto {
   hanzi: string;
   pinyin: string;
   hsk_level: number | null;
   position_index: number;
   pos: string | null;
-  translation?: string; // prezent in AnalysisTokenDto, absent in PreviewTokenDto
+  translation?: string; 
 }
 
-// ============================================================
 // Culori HSK
-// ============================================================
 const hskTextClass: Record<number, string> = {
   1: 'text-hsk-1',
   2: 'text-hsk-2',
@@ -38,9 +34,9 @@ const hskBgClass: Record<number, string> = {
   6: 'bg-hsk-6',
 };
 
-// ============================================================
+
+
 // TokenTooltip
-// ============================================================
 interface TokenTooltipProps {
   token: RichTokenDto;
   onClose: () => void;
@@ -166,9 +162,9 @@ const TokenTooltip = ({
   );
 };
 
-// ============================================================
+
+
 // InteractiveToken
-// ============================================================
 interface InteractiveTokenProps {
   token: RichTokenDto;
   showPinyin: boolean;
@@ -234,9 +230,9 @@ const InteractiveToken = ({
   );
 };
 
-// ============================================================
+
+
 // ChineseText — componenta principala
-// ============================================================
 interface Props {
   text: string;
   className?: string;

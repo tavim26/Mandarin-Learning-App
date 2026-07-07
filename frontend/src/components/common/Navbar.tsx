@@ -1,5 +1,5 @@
 import { LogOut, User, Menu, Zap } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -35,15 +35,16 @@ const roleLabel: Record<string, string> = {
 export const Navbar = ({ onMenuToggle }: Props) => {
   const { fullName, role, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // XP si level — doar pentru studenti
+  // XP si level
   const { replica, fetchReplica } = useProgress();
 
   useEffect(() => {
     if (role === 'STUDENT') {
       fetchReplica();
     }
-  }, [role, fetchReplica]);
+  }, [role, fetchReplica, location.pathname]);
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-card/80 backdrop-blur-sm px-4 md:px-6">
@@ -62,7 +63,7 @@ export const Navbar = ({ onMenuToggle }: Props) => {
         </span>
       </div>
 
-      {/* XP + Level badge — doar pentru studenti */}
+      {/* XP + Level badge*/}
       {role === 'STUDENT' && replica && (
         <div className="hidden sm:flex items-center gap-3 ml-auto mr-3">
           <div className="flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/8 px-3 py-1">

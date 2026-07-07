@@ -305,7 +305,7 @@ const TeacherLessonPage = () => {
         </div>
       </div>
 
-      {/* Audio/Video preview — ocupa toata latimea */}
+      {/* Audio/Video preview */}
       {isAudioVideo && (
         <MaterialPreview material={material} />
       )}

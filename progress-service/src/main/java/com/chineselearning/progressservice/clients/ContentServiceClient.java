@@ -30,6 +30,7 @@ public class ContentServiceClient implements IContentServicePort
         this.restTemplate = restTemplate;
     }
 
+
     public ExerciseResponseDto getExercise(Long exerciseId)
     {
         String url = contentServiceUrl + "/api/content/exercises/" + exerciseId;
@@ -41,7 +42,7 @@ public class ContentServiceClient implements IContentServicePort
 
             if (exercise == null)
             {
-                throw new IllegalArgumentException("Exercitiul nu a fost gasit: " + exerciseId);
+                throw new IllegalArgumentException("Exercise was not found: " + exerciseId);
             }
 
             log.debug("Exercise fetched successfully: exerciseId={}, type={}", exerciseId, exercise.getType());
@@ -49,20 +50,19 @@ public class ContentServiceClient implements IContentServicePort
 
         } catch (HttpClientErrorException e) {
 
-            // Diferentiere 404 (exercitiu inexistent) de alte erori HTTP
             if (e.getStatusCode() == HttpStatus.NOT_FOUND)
             {
-                throw new IllegalArgumentException("Exercitiul nu exista in content-service: " + exerciseId);
+                throw new IllegalArgumentException("Exercise does not exist in content-service: " + exerciseId);
             }
             log.error("HTTP error fetching exercise: exerciseId={}, status={}", exerciseId, e.getStatusCode());
-            throw new IllegalStateException("Eroare la comunicarea cu content-service: " + e.getMessage());
+            throw new IllegalStateException("Communication error with content-service: " + e.getMessage());
 
         } catch (IllegalArgumentException e) {
             throw e;
 
         } catch (Exception e) {
             log.error("Unexpected error fetching exercise: exerciseId={}, error={}", exerciseId, e.getMessage());
-            throw new IllegalStateException("Content-service indisponibil: " + e.getMessage());
+            throw new IllegalStateException("Content-service unavailable: " + e.getMessage());
         }
     }
 
@@ -89,18 +89,18 @@ public class ContentServiceClient implements IContentServicePort
         {
             if (e.getStatusCode() == HttpStatus.NOT_FOUND)
             {
-                throw new IllegalArgumentException("Lectia nu exista in content-service: " + lessonId);
+                throw new IllegalArgumentException("Lesson does not exist in content-service: " + lessonId);
             }
 
             log.error("HTTP error fetching lesson: lessonId={}, status={}", lessonId, e.getStatusCode());
-            throw new IllegalStateException("Eroare la comunicarea cu content-service: " + e.getMessage());
+            throw new IllegalStateException("Communication error with content-service: " + e.getMessage());
 
         } catch (IllegalArgumentException e) {
             throw e;
 
         } catch (Exception e) {
             log.error("Unexpected error fetching lesson: lessonId={}, error={}", lessonId, e.getMessage());
-            throw new IllegalStateException("Content-service indisponibil: " + e.getMessage());
+            throw new IllegalStateException("Content-service unavailable: " + e.getMessage());
         }
     }
 
@@ -128,17 +128,17 @@ public class ContentServiceClient implements IContentServicePort
 
             if (e.getStatusCode() == HttpStatus.NOT_FOUND)
             {
-                throw new IllegalArgumentException("Unitatea nu exista in content-service: " + unitId);
+                throw new IllegalArgumentException("Unit does not exist in content-service: " + unitId);
             }
             log.error("HTTP error fetching lessons for unit: unitId={}, status={}", unitId, e.getStatusCode());
-            throw new IllegalStateException("Eroare la comunicarea cu content-service: " + e.getMessage());
+            throw new IllegalStateException("Communication error with content-service: " + e.getMessage());
 
         } catch (IllegalArgumentException e) {
             throw e;
 
         } catch (Exception e) {
             log.error("Unexpected error fetching lessons for unit: unitId={}, error={}", unitId, e.getMessage());
-            throw new IllegalStateException("Content-service indisponibil: " + e.getMessage());
+            throw new IllegalStateException("Content-service unavailable: " + e.getMessage());
         }
     }
 }

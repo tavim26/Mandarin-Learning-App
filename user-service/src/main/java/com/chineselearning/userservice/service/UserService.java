@@ -43,35 +43,30 @@ public class UserService
     @Transactional
     public UserDto createUser(RegisterRequestDto request)
     {
-        // 1. Validate: Check if email already exists
         if (credentialDao.existsByEmail(request.getEmail()))
         {
             throw new IllegalArgumentException("Email already registered");
         }
 
-        // 2. Validate: Check role (only STUDENT or TEACHER)
         if (!request.getRole().equals("STUDENT") && !request.getRole().equals("TEACHER"))
         {
             throw new IllegalArgumentException("Role must be STUDENT or TEACHER");
         }
 
-        // 3. Create Credential entity
         Credential credential = new Credential();
         credential.setEmail(request.getEmail());
         credential.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         credential.setRole(request.getRole());
         credential.setCreatedAt(LocalDateTime.now());
 
-        // 4. Create User entity
         User user = new User();
         user.setFullName(request.getFullName());
         user.setCredential(credential);
         credential.setUser(user);
 
-        // 5. Create Student or Teacher entity
         if (request.getRole().equals("STUDENT")) {
             Student student = new Student();
-            student.setNickname(null); // Nickname can be set later
+            student.setNickname(null);
             student.setUser(user);
             user.setStudent(student);
         }
@@ -83,10 +78,8 @@ public class UserService
             user.setTeacher(teacher);
         }
 
-        // 6. Save (cascade saves all entities)
         Credential savedCredential = credentialDao.save(credential);
 
-        // 7. Return UserDto
         return mapToUserDto(savedCredential.getUser());
     }
 
@@ -135,8 +128,6 @@ public class UserService
             throw new IllegalArgumentException("User not found with id: " + id);
         }
 
-        // Stergem din agregatul root (Credential)
-        // CascadeType.ALL pe Credential -> User -> Student/Teacher se sterge automat
         credentialDao.deleteById(id);
     }
 
@@ -337,7 +328,6 @@ public class UserService
 
 
 
-    // ========== PRIVATE MAPPING METHODS ==========
 
     private UserDto mapToUserDto(User user) {
         return new UserDto(

@@ -12,6 +12,7 @@ import {
   Video,
   File,
   ExternalLink,
+  RotateCcw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/common/PageHeader';
@@ -27,9 +28,8 @@ import type {
 } from '@/hooks/useProgress';
 import type { LessonMaterialDto } from '@/hooks/useContent';
 
-// ============================================================
+
 // Panoul de materiale — collapsibil
-// ============================================================
 const MaterialTypeIcon = ({ type }: { type: string }) => {
   const t = type.toLowerCase();
   if (t === 'audio') return <Music className="h-4 w-4 text-purple-500" />;
@@ -129,9 +129,9 @@ const MaterialsPanel = ({
   );
 };
 
-// ============================================================
+
+
 // StudentLessonPage
-// ============================================================
 const StudentLessonPage = () => {
   const { lessonId } = useParams<{ lessonId: string }>();
   const navigate = useNavigate();
@@ -144,7 +144,7 @@ const StudentLessonPage = () => {
     fetchLesson,
   } = useContent();
 
-  const { lessonProgress, submitAttempt, fetchLessonProgress } = useProgress();
+  const { lessonProgress, submitAttempt, fetchLessonProgress, getLatestLessonProgress } = useProgress();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [attemptResult, setAttemptResult] =
@@ -154,14 +154,11 @@ const StudentLessonPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
-  // Resume din ultima pozitie.
-  // lessonProgress === undefined = fetch in curs, nu initializam inca
-  // lessonProgress === null = fetch terminat, lectia nu a fost inceputa
-  // lessonProgress = dto = fetch terminat, avem progres real
+ 
   if (
     !initialized &&
     currentLesson?.exercises?.length &&
-    lessonProgress !== undefined // asteptam explicit ca fetch-ul sa se termine
+    lessonProgress !== undefined 
   ) {
     setInitialized(true);
     if (lessonProgress?.status === 'IN_PROGRESS') {
@@ -204,9 +201,19 @@ const StudentLessonPage = () => {
     setIsSubmitting(false);
   };
 
-  const handleNext = () => {
-    if (isLast) {
-      navigate(-1);
+  const handleNext = async () => {
+    if (isLast && currentLesson && lessonId) {
+      const id = Number(lessonId);
+      
+      const latestProgress = await getLatestLessonProgress(id);
+      
+      navigate(`/lessons/${id}/complete`, {
+        state: {
+          lessonTitle: currentLesson.title,
+          unitId: currentLesson.unitId,
+          xpAwarded: latestProgress?.xpAwarded ?? null
+        }
+      });
     } else {
       setAttemptResult(null);
       setSubmittedAnswer(null);
@@ -219,6 +226,12 @@ const StudentLessonPage = () => {
     setAttemptResult(null);
     setSubmittedAnswer(null);
     setCurrentIndex((prev) => prev - 1);
+  };
+
+
+  const handleTryAgain = () => {
+    setAttemptResult(null);
+    
   };
 
   if (isLoadingContent) {
@@ -277,7 +290,7 @@ const StudentLessonPage = () => {
         </div>
       </div>
 
-      {/* Materiale lectie — collapsibil */}
+      {/* Materiale lectie  */}
       <MaterialsPanel materials={materials} />
 
       {exercises.length === 0 ? (
@@ -319,10 +332,24 @@ const StudentLessonPage = () => {
             </Button>
 
             {attemptResult ? (
-              <Button onClick={handleNext} className="btn-brand gap-2">
-                {isLast ? 'Finish Lesson' : 'Next Exercise'}
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-3">
+                {/* Butonul de Try Again apare doar dacă răspunsul este greșit */}
+                {!attemptResult.isCorrect && (
+                  <Button 
+                    onClick={handleTryAgain} 
+                    variant="outline" 
+                    className="border-destructive text-destructive hover:bg-destructive/10 gap-2"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Try Again
+                  </Button>
+                )}
+                
+                <Button onClick={handleNext} className="btn-brand gap-2">
+                  {isLast ? 'Finish Lesson' : 'Next Exercise'}
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             ) : (
               <Button
                 onClick={handleSubmit}

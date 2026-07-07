@@ -20,7 +20,7 @@ export const MultipleChoice = ({
 
   const handleSelect = (index: number) => {
     if (disabled) return;
-    // Click pe optiunea deja selectata o deselecteaza
+    
     if (selected === index) {
       setSelected(null);
       return;

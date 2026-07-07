@@ -40,12 +40,15 @@ public class CourseUnitDao implements ICourseUnitDao
     public CourseUnit save(CourseUnit unit) {
         CourseUnitEntity entity;
 
-        if (unit.getId() != null) {
-            // UPDATE — incarca entitatea existenta din DB pentru a pastra lessons intacte
+        if (unit.getId() != null)
+        {
+
             entity = jpaRepository.findById(unit.getId())
                     .orElse(new CourseUnitEntity());
-        } else {
-            // CREATE — entitate noua
+        }
+        else
+        {
+
             entity = new CourseUnitEntity();
         }
 

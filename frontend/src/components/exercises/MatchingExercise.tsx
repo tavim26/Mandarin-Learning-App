@@ -24,7 +24,7 @@ export const MatchingExercise = ({ data, onAnswer, disabled = false }: Props) =>
         setSelectedLeft(null);
         return;
       }
-      // Daca e deja matched, il deselecteaza din matches
+      
       if (matches[left]) {
         const updated = { ...matches };
         delete updated[left];
@@ -41,7 +41,6 @@ export const MatchingExercise = ({ data, onAnswer, disabled = false }: Props) =>
     (right: string) => {
       if (disabled || !selectedLeft) return;
 
-      // Daca right-ul e deja folosit intr-un alt match, il elibereaza
       const existingLeftForRight = Object.entries(matches).find(
         ([, r]) => r === right
       )?.[0];

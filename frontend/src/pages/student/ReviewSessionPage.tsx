@@ -9,7 +9,7 @@ import { Sm2QualityButtons } from '@/components/flashcards/Sm2QualityButtons';
 import { useReviewSession } from '@/hooks/useReviewSession';
 import type { ReviewQuality } from '@/hooks/useFlashcards';
 
-// ReviewSession este full-screen intentionat — fara sidebar
+
 const ReviewSessionPage = () => {
   const { setId } = useParams<{ setId: string }>();
   const navigate = useNavigate();

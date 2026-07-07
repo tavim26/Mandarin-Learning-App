@@ -25,9 +25,9 @@ import type {
   OrderingData,
 } from '@/hooks/useContent';
 
-// ============================================================
+
+
 // Tipuri exercitii
-// ============================================================
 interface ExerciseTypeOption {
   type: ExerciseType;
   label: string;
@@ -75,9 +75,10 @@ const baseSchema = z.object({
 
 type BaseForm = z.infer<typeof baseSchema>;
 
-// ============================================================
-// Pasul 1 — Selectie tip (doar la creare)
-// ============================================================
+
+
+// Pasul 1 — Selectie tip 
+
 const StepSelectType = ({
   onSelect,
 }: {
@@ -113,9 +114,9 @@ const StepSelectType = ({
   </div>
 );
 
-// ============================================================
+
+
 // MULTIPLE CHOICE FORM
-// ============================================================
 interface MultipleChoiceFormProps {
   initial?: { prompt: string; difficulty: number | null; data: MultipleChoiceData };
   onSubmit: (data: {
@@ -224,9 +225,9 @@ const MultipleChoiceForm = ({
   );
 };
 
-// ============================================================
+
+
 // TRANSLATION FORM
-// ============================================================
 interface TranslationFormProps {
   initial?: { prompt: string; difficulty: number | null; data: TranslationData };
   onSubmit: (data: {
@@ -344,9 +345,9 @@ const TranslationForm = ({
   );
 };
 
-// ============================================================
+
+
 // FILL BLANK FORM
-// ============================================================
 interface FillBlankFormProps {
   initial?: { prompt: string; difficulty: number | null; data: FillBlankData };
   onSubmit: (data: {
@@ -472,9 +473,9 @@ const FillBlankForm = ({
   );
 };
 
-// ============================================================
+
+
 // MATCHING FORM
-// ============================================================
 interface MatchingFormProps {
   initial?: { prompt: string; difficulty: number | null; data: MatchingData };
   onSubmit: (data: {
@@ -617,9 +618,10 @@ const MatchingForm = ({
   );
 };
 
-// ============================================================
+
+
+
 // ORDERING FORM
-// ============================================================
 interface OrderingFormProps {
   initial?: { prompt: string; difficulty: number | null; data: OrderingData };
   onSubmit: (data: {
@@ -749,9 +751,10 @@ const OrderingForm = ({
   );
 };
 
-// ============================================================
-// ExerciseModalContent — orchestreaza pasii
-// ============================================================
+
+
+
+// ExerciseModalContent 
 interface ContentProps {
   lessonId: number;
   exercise?: ExerciseDto | null;
@@ -768,7 +771,7 @@ const ExerciseModalContent = ({
   const { createExercise, updateExercise, isSaving, error } = useContent();
   const isEditing = !!exercise;
 
-  // La editare sarim direct la form-ul specific — tipul nu se poate schimba
+  
   const [selectedType, setSelectedType] = useState<ExerciseType | null>(
     exercise?.type ?? null
   );
@@ -841,7 +844,7 @@ const ExerciseModalContent = ({
           )}
         </DialogTitle>
 
-        {/* Badge tip exercitiu la editare — nu poate fi schimbat */}
+        {/* Badge tip exercitiu la editare */}
         {isEditing && (
           <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1">
             <span className="rounded-full bg-muted px-2 py-0.5 font-medium">
@@ -854,7 +857,7 @@ const ExerciseModalContent = ({
 
       {error && <ErrorBanner message={error} />}
 
-      {/* Pasul 1 — selectie tip (doar la creare) */}
+      {/* Pasul 1 — selectie tip */}
       {!selectedType && !isEditing && (
         <>
           <StepSelectType onSelect={setSelectedType} />
@@ -951,9 +954,10 @@ const ExerciseModalContent = ({
   );
 };
 
-// ============================================================
+
+
+
 // ExerciseModal
-// ============================================================
 interface Props {
   open: boolean;
   lessonId: number;

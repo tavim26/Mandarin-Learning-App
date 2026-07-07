@@ -60,7 +60,7 @@ export const ReviewCard = ({ card, progress, isFlipped, onFlip }: Props) => {
             {card.frontText}
           </p>
 
-          {/* Buton TTS pe fata — daca contine chineza */}
+          {/* Buton TTS pe fata */}
           {hasChinese(card.frontText) && (
             <button
               onClick={(e) => {
@@ -99,7 +99,7 @@ export const ReviewCard = ({ card, progress, isFlipped, onFlip }: Props) => {
             {card.backText}
           </p>
 
-          {/* Buton TTS pe spate — daca contine chineza */}
+          {/* Buton TTS pe spate  */}
           {hasChinese(card.backText) && (
             <button
               onClick={(e) => {

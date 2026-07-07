@@ -25,7 +25,7 @@ export const useProfile = () => {
           setTeacherProfile(tp);
         }
       } catch {
-        // Profilul extins poate sa nu existe inca
+        // ignore
       } finally {
         setIsLoading(false);
       }
@@ -95,7 +95,6 @@ export const useProfile = () => {
   };
 
   return {
-    // fullName si role vin direct din store — intotdeauna disponibile
     fullName,
     role,
     studentProfile,

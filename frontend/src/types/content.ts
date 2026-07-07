@@ -1,4 +1,3 @@
-// --- Tipuri de exercitii ---
 export type ExerciseType =
   | 'MULTIPLE_CHOICE'
   | 'TRANSLATION'
@@ -6,7 +5,6 @@ export type ExerciseType =
   | 'MATCHING'
   | 'ORDERING';
 
-// --- contentData polimorfic per tip ---
 export interface MultipleChoiceData {
   options: string[];
   correctIndex: number;
@@ -42,7 +40,6 @@ export type ExerciseContentData =
   | MatchingData
   | OrderingData;
 
-// --- submittedAnswer polimorfic per tip (folosit in progress-service) ---
 export interface MultipleChoiceAnswer {
   selectedIndex: number;
 }
@@ -70,7 +67,7 @@ export type SubmittedAnswer =
   | MatchingAnswer
   | OrderingAnswer;
 
-// --- DTO-uri ---
+
 export interface CourseUnitDto {
   id: number;
   title: string;
@@ -87,7 +84,7 @@ export interface LessonDto {
   description: string | null;
   xpReward: number;
   orderIndex: number;
-  exercises: ExerciseDto[] | null; // populat DOAR la GET /lessons/{id}
+  exercises: ExerciseDto[] | null; 
 }
 
 export interface CourseUnitFullDto extends CourseUnitDto {

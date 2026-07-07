@@ -15,7 +15,7 @@ import type {
 } from '@/types';
 
 export const flashcardApi = {
-  // --- Seturi ---
+  
   createSet: async (
     data: CreateFlashcardSetRequest
   ): Promise<FlashcardSetDto> => {
@@ -62,7 +62,7 @@ export const flashcardApi = {
     return res.data;
   },
 
-  // --- Carduri ---
+  
   createCard: async (data: CreateFlashcardRequest): Promise<FlashcardDto> => {
     const res = await apiClient.post<FlashcardDto>(
       '/api/flashcards/cards',
@@ -100,7 +100,7 @@ export const flashcardApi = {
     await apiClient.delete(`/api/flashcards/cards/${flashcardId}`);
   },
 
-  // --- Recenzii SM-2 ---
+  
   submitReview: async (data: SubmitReviewRequest): Promise<ReviewResultDto> => {
     const res = await apiClient.post<ReviewResultDto>(
       '/api/flashcards/reviews',

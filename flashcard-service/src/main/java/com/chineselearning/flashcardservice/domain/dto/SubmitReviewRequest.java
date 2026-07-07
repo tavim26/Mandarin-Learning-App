@@ -9,7 +9,6 @@ public class SubmitReviewRequest {
     @NotNull
     private Long flashcardId;
 
-    // SM-2: scala 0-5
     @NotNull
     @Min(0)
     @Max(5)

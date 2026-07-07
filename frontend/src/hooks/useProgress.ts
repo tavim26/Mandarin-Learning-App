@@ -51,7 +51,7 @@ export const useProgress = () => {
       const data = await progressApi.getStudentSummary(userId);
       setSummary(data);
     } catch {
-      setError('Nu s-a putut incarca rezumatul studentului.');
+      setError('Could not load student summary.');
     } finally {
       setIsLoading(false);
     }
@@ -60,14 +60,13 @@ export const useProgress = () => {
   const fetchReplica = useCallback(async () => {
     if (!userId) return;
     try {
-      // Replica poate sa nu existe daca studentul nu a trimis nicio tentativa
       const exists = await progressApi.studentExists(userId);
       if (exists) {
         const data = await progressApi.getStudentReplica(userId);
         setReplica(data);
       }
     } catch {
-      // Ignoram silentios — replica nu e critica pentru toate paginile
+      // ignore
     }
   }, [userId]);
 
@@ -79,7 +78,7 @@ export const useProgress = () => {
         const data = await progressApi.getLessonProgress(userId, lessonId);
         setLessonProgress(data);
       } catch {
-        // 404 inseamna ca studentul nu a inceput lectia — stare valida
+        // ignore
         setLessonProgress(null);
       } finally {
         setIsLoading(false);
@@ -95,7 +94,7 @@ export const useProgress = () => {
       const data = await progressApi.getAllLessonProgress(userId);
       setAllLessonProgress(data);
     } catch {
-      setError('Nu s-a putut incarca progresul lectiilor.');
+      setError('Could not load lesson progress');
     } finally {
       setIsLoading(false);
     }
@@ -119,7 +118,7 @@ export const useProgress = () => {
         const data = await progressApi.getUnitProgress(unitId, userId);
         setUnitProgress(data);
       } catch {
-        setError('Nu s-a putut incarca progresul unitatii.');
+        setError('Could not load unit progress.');
       } finally {
         setIsLoading(false);
       }
@@ -141,18 +140,16 @@ export const useProgress = () => {
   ): Promise<ExerciseAttemptDto | null> => {
     try {
       const result = await progressApi.submitAttempt(data);
-      // Dupa o tentativa reusita, actualizeaza replica local daca exista
       if (replica) {
         fetchReplica();
       }
       return result;
     } catch {
-      setError('Trimiterea tentativei a esuat.');
+      setError('Sending has failed.');
       return null;
     }
   };
 
-  // Determina progresul unei lectii din lista deja incarcata — fara request nou
   const getLessonProgressFromCache = useCallback(
     (lessonId: number): StudentLessonProgressDto | undefined => {
       return allLessonProgress.find(
@@ -161,6 +158,16 @@ export const useProgress = () => {
     },
     [allLessonProgress]
   );
+
+
+  const getLatestLessonProgress = async (lessonId: number): Promise<StudentLessonProgressDto | null> => {
+    if (!userId) return null;
+    try {
+      return await progressApi.getLessonProgress(userId, lessonId);
+    } catch {
+      return null;
+    }
+  };
 
   return {
     summary,
@@ -181,5 +188,6 @@ export const useProgress = () => {
     fetchLeaderboard,
     submitAttempt,
     getLessonProgressFromCache,
+    getLatestLessonProgress
   };
 };

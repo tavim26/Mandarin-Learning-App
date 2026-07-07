@@ -19,10 +19,9 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
 import type { OrderingData, OrderingAnswer } from '@/hooks/useContent';
 
-// Item cu ID unic — rezolva problema cuvintelor duplicate
 interface WordItem {
-  id: string;   // unic: `word-0`, `word-1`, etc.
-  word: string; // textul efectiv
+  id: string;   
+  word: string; 
 }
 
 interface SortableWordProps {
@@ -114,7 +113,6 @@ export const OrderingExercise = ({
       const oldIndex = prev.findIndex((item) => item.id === active.id);
       const newIndex = prev.findIndex((item) => item.id === over.id);
       const reordered = arrayMove(prev, oldIndex, newIndex);
-      // Emite ordinea cuvintelor (textele, nu ID-urile)
       onAnswer({ order: reordered.map((item) => item.word) });
       return reordered;
     });

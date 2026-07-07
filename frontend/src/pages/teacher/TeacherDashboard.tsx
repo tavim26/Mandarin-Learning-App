@@ -39,11 +39,9 @@ const TeacherDashboard = () => {
 
   useEffect(() => {
     if (!userId) return;
-    // Incarca doar unitatile create de acest profesor
     fetchUnits();
   }, [userId, fetchUnits]);
 
-  // Filtreaza client-side unitatile proprii
   const myUnits = units.filter((u) => u.createdByTeacherId === userId);
 
   const handleDelete = async () => {

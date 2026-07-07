@@ -128,7 +128,6 @@ public class EvaluationService
         int correct = 0;
         for (int i = 0; i < correctAnswers.size(); i++)
         {
-            // trim() previne penalizarea pentru spatii accidentale la inceput/sfarsit
             if (correctAnswers.get(i).trim().equalsIgnoreCase(userAnswers.get(i).trim()))
             {
                 correct++;

@@ -70,12 +70,6 @@ public class UserDao implements IUserDao
         return jpaRepository.existsById(id);
     }
 
-    @Override
-    public void deleteById(Long id)
-    {
-        jpaRepository.deleteById(id);
-    }
-
 
     @Override
     public List<User> findByRole(String role)

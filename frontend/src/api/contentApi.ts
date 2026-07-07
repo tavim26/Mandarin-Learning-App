@@ -11,7 +11,7 @@ import type {
 } from '@/types';
 
 export const contentApi = {
-  // --- Units ---
+  
   getUnits: async (hskLevel?: number): Promise<CourseUnitDto[]> => {
     const res = await apiClient.get<CourseUnitDto[]>('/api/content/units', {
       params: hskLevel !== undefined ? { hskLevel } : {},
@@ -74,7 +74,7 @@ export const contentApi = {
     await apiClient.delete(`/api/content/units/${id}`);
   },
 
-  // --- Lessons ---
+  
   getLessonsByUnit: async (unitId: number): Promise<LessonDto[]> => {
     const res = await apiClient.get<LessonDto[]>(
       `/api/content/units/${unitId}/lessons`
@@ -82,11 +82,13 @@ export const contentApi = {
     return res.data;
   },
 
+  
   getLessonById: async (id: number): Promise<LessonDto> => {
-    // Singurul endpoint care populeaza exercises[]
+    
     const res = await apiClient.get<LessonDto>(`/api/content/lessons/${id}`);
     return res.data;
   },
+
 
   getLessonExerciseTypes: async (
     id: number
@@ -96,6 +98,7 @@ export const contentApi = {
     );
     return res.data;
   },
+
 
   createLesson: async (
     data: Omit<LessonDto, 'id' | 'exercises'>
@@ -119,7 +122,9 @@ export const contentApi = {
     await apiClient.delete(`/api/content/lessons/${id}`);
   },
 
-  // --- Exercises ---
+ 
+
+
   getExercisesByLesson: async (lessonId: number): Promise<ExerciseDto[]> => {
     const res = await apiClient.get<ExerciseDto[]>(
       `/api/content/lessons/${lessonId}/exercises`
@@ -159,7 +164,9 @@ export const contentApi = {
     await apiClient.delete(`/api/content/exercises/${id}`);
   },
 
-  // --- Materials ---
+
+
+
   getMaterialsByLesson: async (
     lessonId: number
   ): Promise<LessonMaterialDto[]> => {
@@ -179,7 +186,8 @@ export const contentApi = {
     return res.data;
   },
 
-  // Pasul 1 din fluxul de upload: trimite fisierul, primeste URL MinIO
+
+
   uploadMaterialFile: async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append('file', file);

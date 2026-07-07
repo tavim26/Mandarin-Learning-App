@@ -36,8 +36,7 @@ public class ProgressController
     public ResponseEntity<?> submitAttempt(
             @Valid
             @RequestBody SubmitAttemptRequest request,
-            @RequestHeader("X-User-Id") Long authenticatedUserId,
-            @RequestHeader("X-User-Role") String role)
+            @RequestHeader("X-User-Id") Long authenticatedUserId)
     {
         try {
             ExerciseAttemptDto result = progressService.submitAttempt(authenticatedUserId, request);
@@ -48,6 +47,8 @@ public class ProgressController
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(e.getMessage());
         }
     }
+
+
 
     @GetMapping("/attempts/student/{studentId}/exercise/{exerciseId}")
     @Operation(
@@ -61,7 +62,7 @@ public class ProgressController
             @RequestHeader("X-User-Role") String role)
     {
         if (isForbidden(studentId, authenticatedUserId, role)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Acces interzis");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access forbidden");
         }
 
         try {
@@ -71,6 +72,8 @@ public class ProgressController
             return ResponseEntity.notFound().build();
         }
     }
+
+
 
     @GetMapping("/lessons/student/{studentId}/lesson/{lessonId}")
     @Operation(
@@ -84,7 +87,7 @@ public class ProgressController
             @RequestHeader("X-User-Role") String role)
     {
         if (isForbidden(studentId, authenticatedUserId, role)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Acces interzis");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access forbidden");
         }
 
         try {
@@ -94,6 +97,7 @@ public class ProgressController
             return ResponseEntity.notFound().build();
         }
     }
+
 
     @GetMapping("/lessons/student/{studentId}")
     @Operation(
@@ -106,12 +110,15 @@ public class ProgressController
             @RequestHeader("X-User-Role") String role)
     {
         if (isForbidden(studentId, authenticatedUserId, role)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Acces interzis");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access forbidden");
         }
 
         List<StudentLessonProgressDto> progressList = progressService.getAllProgressForStudent(studentId);
         return ResponseEntity.ok(progressList);
     }
+
+
+
 
     @GetMapping("/lessons/student/{studentId}/in-progress")
     @Operation(
@@ -124,12 +131,14 @@ public class ProgressController
             @RequestHeader("X-User-Role") String role)
     {
         if (isForbidden(studentId, authenticatedUserId, role)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Acces interzis");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access forbidden");
         }
 
         List<StudentLessonProgressDto> inProgress = progressService.getInProgressLessons(studentId);
         return ResponseEntity.ok(inProgress);
     }
+
+
 
     @GetMapping("/lessons/{lessonId}/leaderboard")
     @Operation(
@@ -155,7 +164,7 @@ public class ProgressController
             @RequestHeader("X-User-Role") String role)
     {
         if (isForbidden(studentId, authenticatedUserId, role)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Acces interzis");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access forbidden");
         }
 
         StudentSummaryDto summary = progressService.getStudentSummary(studentId);
@@ -176,7 +185,7 @@ public class ProgressController
             @RequestHeader("X-User-Role") String role)
     {
         if (isForbidden(studentId, authenticatedUserId, role)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Acces interzis");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access forbidden");
         }
 
         try {
@@ -190,7 +199,7 @@ public class ProgressController
     }
 
 
-    // STUDENT poate accesa doar propriile date; ADMIN poate accesa orice
+
     private boolean isForbidden(Long requestedStudentId, Long authenticatedUserId, String role)
     {
         return "STUDENT".equals(role) && !authenticatedUserId.equals(requestedStudentId);

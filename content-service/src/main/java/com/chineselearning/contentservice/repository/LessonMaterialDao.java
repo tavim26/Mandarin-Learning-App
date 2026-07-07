@@ -50,12 +50,6 @@ public class LessonMaterialDao implements ILessonMaterialDao
     }
 
     @Override
-    public boolean existsById(Long id)
-    {
-        return lessonMaterialJpaRepository.existsById(id);
-    }
-
-    @Override
     public Optional<LessonMaterial> findById(Long id) {
         return lessonMaterialJpaRepository.findById(id).map(this::toDomain);
     }

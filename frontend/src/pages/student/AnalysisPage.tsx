@@ -198,7 +198,6 @@ const AnalysisPage = () => {
               <div className="divider" />
 
               {/* Tokeni */}
-              {/* DUPA — un singur ChineseText cu toate feature-urile activate */}
 <ChineseText
   text={currentAnalysis.raw_text}
   showPinyin={true}
@@ -290,10 +289,10 @@ const AnalysisPage = () => {
             </Button>
           </div>
 
-          {/* Rezultat OCR — acelasi layout ca Text */}
+          {/* Rezultat OCR */}
           {currentAnalysis && currentAnalysis.source_type === 'OCR' && (
   <div className="card-base p-5 space-y-4 animate-slide-up">
-    {/* Traducere — identic cu tab-ul text */}
+    {/* Traducere */}
     <div className="flex items-start justify-between gap-3">
       <div className="space-y-1">
         <p className="text-xs text-muted-foreground">
@@ -423,7 +422,7 @@ const AnalysisPage = () => {
               </button>
             </div>
 
-            {/* Detalii inline — apar imediat sub item */}
+            {/* Detalii inline*/}
             {isSelected && currentAnalysis && (
               <div className="border border-primary/40 border-t-0 rounded-b-lg bg-card p-5 space-y-4 animate-fade-in">
                 <div className="flex items-start justify-between gap-3">

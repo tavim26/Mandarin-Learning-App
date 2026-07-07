@@ -10,6 +10,5 @@ public interface StudentReplicaJpaRepository extends JpaRepository<StudentReplic
 
     boolean existsByStudentId(Long studentId);
 
-    // Primii 10 studenti ordonati dupa XP descrescator — limitat la nivel de query
     List<StudentReplicaEntity> findTop10ByOrderByXpTotalDesc();
 }

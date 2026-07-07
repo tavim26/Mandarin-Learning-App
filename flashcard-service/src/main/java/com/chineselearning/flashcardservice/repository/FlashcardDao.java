@@ -70,11 +70,9 @@ public class FlashcardDao implements IFlashcardDao
 
 
 
-    // Conversie domain -> entity
     private FlashcardEntity toEntity(Flashcard domain)
     {
-        // La update (id != null), incarcam entitatea existenta din DB
-        // pentru a pastra progressRecords si reviews intacte
+
         FlashcardEntity entity = domain.getId() != null
                 ? flashcardJpaRepository.findById(domain.getId())
                 .orElse(new FlashcardEntity())
@@ -92,7 +90,6 @@ public class FlashcardDao implements IFlashcardDao
         return entity;
     }
 
-    // Conversie entity -> domain
     private Flashcard toDomain(FlashcardEntity entity)
     {
         Flashcard domain = new Flashcard();

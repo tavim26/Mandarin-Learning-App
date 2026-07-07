@@ -47,7 +47,7 @@ public class StudentReplicaController
             @RequestHeader("X-User-Role") String role)
     {
         if (isForbidden(studentId, authenticatedUserId, role)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Acces interzis");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access forbidden");
         }
 
         Optional<StudentReplicaDto> student = studentReplicaService.getStudentById(studentId);
@@ -67,7 +67,7 @@ public class StudentReplicaController
             @RequestHeader("X-User-Role") String role)
     {
         if (isForbidden(studentId, authenticatedUserId, role)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Acces interzis");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access forbidden");
         }
 
         return ResponseEntity.ok(studentReplicaService.studentExists(studentId));
@@ -80,14 +80,15 @@ public class StudentReplicaController
     )
     public ResponseEntity<?> getAllStudents(@RequestHeader("X-User-Role") String role)
     {
-        if (!"ADMIN".equals(role)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Acces interzis");
+        if (!"ADMIN".equals(role))
+        {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access forbidden");
         }
 
         return ResponseEntity.ok(studentReplicaService.getAllStudents());
     }
 
-    // STUDENT poate accesa doar propriile date; ADMIN poate accesa orice
+
     private boolean isForbidden(Long requestedStudentId, Long authenticatedUserId, String role)
     {
         return "STUDENT".equals(role) && !authenticatedUserId.equals(requestedStudentId);

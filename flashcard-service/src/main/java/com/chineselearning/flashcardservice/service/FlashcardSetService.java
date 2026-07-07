@@ -42,7 +42,6 @@ public class FlashcardSetService
         this.flashcardProgressDao = flashcardProgressDao;
     }
 
-    // OPERATII PE SETURI
 
     @Transactional
     public FlashcardSetDto createSet(Long studentId, CreateFlashcardSetRequest request)
@@ -96,8 +95,6 @@ public class FlashcardSetService
 
 
 
-
-    // OPERATII PE FLASHCARD-URI
 
     @Transactional
     public FlashcardDto createFlashcard(Long studentId, CreateFlashcardRequest request)
@@ -232,24 +229,20 @@ public class FlashcardSetService
             return empty;
         }
 
-        // Query 1: toate cardurile din toate seturile studentului dintr-o singura interogare
         List<Long> allSetIds = allSets.stream().map(FlashcardSet::getId).toList();
         List<Flashcard> allCards = flashcardDao.findBySetIdIn(allSetIds);
 
-        // Grupam cardurile dupa setId in memorie — fara query suplimentar
         Map<Long, List<Long>> cardIdsBySetId = allCards.stream()
                 .collect(Collectors.groupingBy(
                         Flashcard::getSetId,
                         Collectors.mapping(Flashcard::getId, Collectors.toList())
                 ));
 
-        // Query 2: tot progresul relevant dintr-o singura interogare
         List<Long> allCardIds = allCards.stream().map(Flashcard::getId).toList();
         List<FlashcardProgress> allProgress = allCardIds.isEmpty()
                 ? List.of()
                 : flashcardProgressDao.findByStudentIdAndFlashcardIdIn(studentId, allCardIds);
 
-        // Indexam in memorie cardurile vazute si cardurile scadente
         Set<Long> seenCardIds = allProgress.stream()
                 .map(FlashcardProgress::getFlashcardId)
                 .collect(Collectors.toSet());
@@ -260,7 +253,6 @@ public class FlashcardSetService
                 .map(FlashcardProgress::getFlashcardId)
                 .collect(Collectors.toSet());
 
-        // Calculam due count per set exclusiv din structurile in memorie — fara query suplimentar
         List<DueCountBySetDto> bySet = allSets.stream()
                 .map(set -> {
                     List<Long> cardIds = cardIdsBySetId.getOrDefault(set.getId(), List.of());
@@ -287,7 +279,6 @@ public class FlashcardSetService
 
 
 
-    // METODE HELPER
 
     private void verifyStudentAccess(Long userId, Long studentId)
     {

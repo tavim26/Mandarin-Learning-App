@@ -14,8 +14,6 @@ class AnalysisTokenDao(IAnalysisTokenDao):
         entities = [self._to_entity(t) for t in tokens]
         try:
             self.db.add_all(entities)
-            # flush trimite INSERT-urile catre DB si populeaza ID-urile
-            # fara sa inchida tranzactia — commit-ul este controlat de service
             self.db.flush()
             for entity in entities:
                 self.db.refresh(entity)
@@ -38,7 +36,6 @@ class AnalysisTokenDao(IAnalysisTokenDao):
         from repository.entities.text_analysis_entity import TextAnalysisEntity
         from sqlalchemy import func
 
-        # join cu text_analyses pentru a filtra dupa student_id
         rows = (
             self.db.query(
                 AnalysisTokenEntity.hsk_level,
@@ -59,7 +56,6 @@ class AnalysisTokenDao(IAnalysisTokenDao):
         from repository.entities.text_analysis_entity import TextAnalysisEntity
         from sqlalchemy import func
 
-        # numara hanzi distincte per nivel HSK — ignora tokenii fara nivel HSK
         rows = (
             self.db.query(
                 AnalysisTokenEntity.hsk_level,

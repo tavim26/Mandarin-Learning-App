@@ -30,7 +30,6 @@ interface Props {
   onSuccess: () => void;
 }
 
-// Continutul formularului — montat fresh prin key la fiecare deschidere
 const EditStudentContent = ({
   student,
   onClose,

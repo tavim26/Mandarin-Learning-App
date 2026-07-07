@@ -120,7 +120,7 @@ export const SessionList = ({
                   </span>
                 </div>
 
-                {/* Buton stergere — apare la hover */}
+                {/* Buton stergere */}
                 <button
                   onClick={(e) => handleDelete(e, session.id)}
                   className="

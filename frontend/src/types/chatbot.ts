@@ -8,8 +8,8 @@ export interface ChatSessionDto {
   studentId: number;
   title: string;
   startedAt: string;
-  endedAt: string | null;          // null = sesiune activa
-  lastMessagePreview: string | null; // null daca nu are mesaje; trunchiat la 60 chars
+  endedAt: string | null;         
+  lastMessagePreview: string | null; 
   messageCount: number;
   customInstructions: string | null;
 }

@@ -23,9 +23,7 @@ import { colors, hskColors } from '@/styles/tokens';
 import type { CourseUnitDto, LessonExerciseTypesDto, LessonDto } from '@/hooks/useContent';
 
 
-// ============================================================
 // Tooltip personalizat
-// ============================================================
 const CustomTooltip = ({
   active,
   payload,
@@ -49,9 +47,7 @@ const CustomTooltip = ({
   );
 };
 
-// ============================================================
 // Tipuri date agregate
-// ============================================================
 interface UnitStats {
   unit: CourseUnitDto;
   xp: number;
@@ -101,7 +97,7 @@ const TeacherStatsPage = () => {
         return;
       }
 
-      // 2. Stats per unitate — paralel
+      // 2. Stats per unitate 
       const [xpResults, lessonCountResults, lessonsResults] = await Promise.all([
         Promise.all(units.map((u) => contentApi.getUnitXpStats(u.id))),
         Promise.all(units.map((u) => contentApi.getUnitLessonCount(u.id))),
@@ -116,7 +112,7 @@ const TeacherStatsPage = () => {
       }));
       setUnitStats(stats);
 
-      // 3. Distributie tipuri exercitii — pentru toate lectiile
+      // 3. Distributie tipuri exercitii
       const allLessons = lessonsResults.flat();
       if (allLessons.length > 0) {
         const exerciseTypeResults: LessonExerciseTypesDto[] =
@@ -150,9 +146,10 @@ const TeacherStatsPage = () => {
     }
   };
 
-  // ============================================================
+
+
+
   // Date pentru grafice
-  // ============================================================
   const xpChartData = useMemo(
     () =>
       unitStats.map((s) => ({
@@ -214,7 +211,7 @@ const TeacherStatsPage = () => {
         />
       ) : (
         <>
-          {/* ---- Sumar ---- */}
+          {/* Sumar  */}
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
             <div className="card-base p-4 space-y-1.5">
               <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -258,7 +255,7 @@ const TeacherStatsPage = () => {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
-            {/* ---- XP per unitate ---- */}
+            {/*  XP per unitate*/}
             <div className="card-base p-5 space-y-4">
               <h2 className="font-display font-semibold text-foreground">
                 XP Available per Unit
@@ -304,7 +301,7 @@ const TeacherStatsPage = () => {
               )}
             </div>
 
-            {/* ---- Lectii per unitate ---- */}
+            {/* Lectii per unitate */}
             <div className="card-base p-5 space-y-4">
               <h2 className="font-display font-semibold text-foreground">
                 Lessons per Unit
@@ -346,7 +343,7 @@ const TeacherStatsPage = () => {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
-            {/* ---- Distributie tipuri exercitii ---- */}
+            {/* Distributie tipuri exercitii */}
             <div className="card-base p-5 space-y-4">
               <h2 className="font-display font-semibold text-foreground">
                 Exercise Types Distribution
@@ -403,7 +400,7 @@ const TeacherStatsPage = () => {
               )}
             </div>
 
-            {/* ---- Student leaderboard ---- */}
+            {/* Student leaderboard */}
             <div className="card-base p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="font-display font-semibold text-foreground">
@@ -458,7 +455,7 @@ const TeacherStatsPage = () => {
             </div>
           </div>
 
-          {/* ---- Detaliu per unitate ---- */}
+          {/* Detaliu per unitate */}
           <div className="card-base p-5 space-y-4">
             <h2 className="font-display font-semibold text-foreground">
               Unit Breakdown

@@ -127,7 +127,6 @@ def delete_analysis(
     analysis = service.get_analysis_by_id(analysis_id)
     if analysis is None:
         raise HTTPException(status_code=404, detail="Analiza nu a fost gasita")
-    # ownership-ul se verifica inainte de stergere
     _verify_student_access(x_user_id, x_user_role, analysis.student_id)
     service.delete_analysis(analysis_id)
 

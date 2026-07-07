@@ -33,6 +33,7 @@ import FlashcardsPage from '@/pages/student/FlashcardsPage';
 import ReviewSessionPage from '@/pages/student/ReviewSessionPage';
 import AnalysisPage from '@/pages/student/AnalysisPage';
 import FlashcardSetPage from '@/pages/student/FlashcardSetPage';
+import StudentLessonCompletePage from '@/pages/student/StudentLessonCompletePage';
 
 // --- Teacher ---
 import TeacherDashboard from '@/pages/teacher/TeacherDashboard';
@@ -52,9 +53,11 @@ import AdminProfile from '@/pages/profile/AdminProfile';
 // --- Shared ---
 import ChatPage from '@/pages/shared/ChatPage';
 
-// ============================================================
+
+
+
 // NAV ITEMS — filtrate pe rol in AppLayout
-// ============================================================
+
 const NAV_ITEMS: NavItem[] = [
   // Student
   {
@@ -136,9 +139,9 @@ const NAV_ITEMS: NavItem[] = [
   },
 ];
 
-// ============================================================
+
+
 // PROTECTED ROUTE
-// ============================================================
 interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles?: Role[];
@@ -158,9 +161,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   return <AppLayout navItems={NAV_ITEMS}>{children}</AppLayout>;
 };
 
-// ============================================================
 // ROUTER
-// ============================================================
 const AppRouter = () => {
   return (
     <BrowserRouter>
@@ -223,6 +224,14 @@ const AppRouter = () => {
           }
         />
         <Route
+          path="/lessons/:lessonId/complete"
+          element={
+            <ProtectedRoute allowedRoles={['STUDENT']}>
+              <StudentLessonCompletePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/flashcards"
           element={
             <ProtectedRoute allowedRoles={['STUDENT']}>
@@ -230,7 +239,7 @@ const AppRouter = () => {
             </ProtectedRoute>
           }
         />
-        {/* ReviewSession — full screen, fara AppLayout */}
+        {/* ReviewSession  */}
         <Route
           path="/flashcards/review/:setId"
           element={

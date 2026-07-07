@@ -23,7 +23,7 @@ export const useUsers = () => {
       const data = await usersApi.getAllUsers();
       setUsers(data);
     } catch {
-      setError('Nu s-au putut incarca utilizatorii.');
+      setError('Failed to load users');
     } finally {
       setIsLoading(false);
     }
@@ -36,7 +36,7 @@ export const useUsers = () => {
       const data = await usersApi.getAllStudents();
       setStudents(data);
     } catch {
-      setError('Nu s-au putut incarca studentii.');
+      setError('Failed to load students.');
     } finally {
       setIsLoading(false);
     }
@@ -49,7 +49,7 @@ export const useUsers = () => {
       const data = await usersApi.getAllTeachers();
       setTeachers(data);
     } catch {
-      setError('Nu s-au putut incarca profesorii.');
+      setError('Failed to load teachers.');
     } finally {
       setIsLoading(false);
     }
@@ -66,7 +66,7 @@ export const useUsers = () => {
       setUsers((prev) => [...prev, newUser]);
       return true;
     } catch {
-      setError('Crearea utilizatorului a esuat.');
+      setError('User creation has failed.');
       return false;
     }
   };
@@ -80,7 +80,7 @@ export const useUsers = () => {
       setUsers((prev) => prev.map((u) => (u.id === id ? updated : u)));
       return true;
     } catch {
-      setError('Actualizarea numelui a esuat.');
+      setError('Name update has failed.');
       return false;
     }
   };
@@ -93,7 +93,7 @@ export const useUsers = () => {
       await usersApi.resetPassword(id, newPassword);
       return true;
     } catch {
-      setError('Resetarea parolei a esuat.');
+      setError('Password reset has failed.');
       return false;
     }
   };
@@ -103,7 +103,7 @@ export const useUsers = () => {
       await usersApi.banUser(id);
       return true;
     } catch {
-      setError('Operatiunea de ban a esuat.');
+      setError('Ban operation has failed.');
       return false;
     }
   };
@@ -113,7 +113,7 @@ export const useUsers = () => {
       await usersApi.unbanUser(id);
       return true;
     } catch {
-      setError('Operatiunea de unban a esuat.');
+      setError('Unban operation has failed.');
       return false;
     }
   };
@@ -126,7 +126,7 @@ export const useUsers = () => {
       setTeachers((prev) => prev.filter((t) => t.userId !== id));
       return true;
     } catch {
-      setError('Stergerea utilizatorului a esuat.');
+      setError('User deletion has failed.');
       return false;
     }
   };

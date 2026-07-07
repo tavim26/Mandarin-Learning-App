@@ -19,8 +19,7 @@ class AnalysisTokenEntity(Base):
     hsk_level: Mapped[int | None] = mapped_column(Integer, nullable=True)
     position_index: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    # partea de vorbire — NOUN, VERB, ADJ, ADV, PART, PRON etc.
-    # nullable pentru compatibilitate cu analizele existente in DB
+
     pos: Mapped[str | None] = mapped_column(VARCHAR(50), nullable=True)
 
     analysis: Mapped["TextAnalysisEntity"] = relationship(

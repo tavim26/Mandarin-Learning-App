@@ -51,7 +51,7 @@ export interface TextAnalysisSummaryDto {
   created_at: string;
   translated_text: string;
   translation_language: TranslationLanguage;
-  // tokens ABSENTI — se cer separat la GET /{analysisId}
+ 
 }
 
 export interface TokenDistributionDto {

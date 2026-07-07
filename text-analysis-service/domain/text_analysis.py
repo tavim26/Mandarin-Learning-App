@@ -15,5 +15,4 @@ class TextAnalysis:
     translated_text: str | None = None
     created_at: datetime = field(default_factory=datetime.now)
 
-    # lista de tokeni asociati acestei analize
     tokens: list[AnalysisToken] = field(default_factory=list)

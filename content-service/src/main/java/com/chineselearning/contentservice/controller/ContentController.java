@@ -1,14 +1,11 @@
 package com.chineselearning.contentservice.controller;
 
 import com.chineselearning.contentservice.domain.dto.*;
-
 import com.chineselearning.contentservice.service.ContentService;
-
 import com.chineselearning.contentservice.service.StorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,29 +18,31 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/content")
 @Tag(name = "Content Service API")
-public class ContentController {
+public class ContentController
+{
 
     private final ContentService contentService;
     private final StorageService storageService;
 
-    public ContentController(ContentService contentService, StorageService storageService) {
+    public ContentController(ContentService contentService, StorageService storageService)
+    {
         this.contentService = contentService;
         this.storageService = storageService;
     }
 
 
-    // 1. COURSE UNITS
 
-    @Operation(summary = "Obtine toate unitatile", description = "Returneaza unitatile de curs, optional filtrate dupa nivelul HSK.")
+    @Operation(summary = "Get all course units", description = "Returns all course units, optionally filtered by HSK level.")
     @GetMapping("/units")
-    public ResponseEntity<List<CourseUnitDto>> getAllUnits(
-            @RequestParam(required = false) Integer hskLevel) {
+    public ResponseEntity<List<CourseUnitDto>> getAllUnits(@RequestParam(required = false) Integer hskLevel)
+    {
         return ResponseEntity.ok(contentService.getAllCourseUnits(hskLevel));
     }
 
-    @Operation(summary = "Gaseste o unitate", description = "Returneaza detaliile unei unitati pe baza ID-ului.")
+    @Operation(summary = "Get a course unit", description = "Returns the details of a course unit by its ID.")
     @GetMapping("/units/{id}")
-    public ResponseEntity<CourseUnitDto> getUnit(@PathVariable Long id) {
+    public ResponseEntity<CourseUnitDto> getUnit(@PathVariable Long id)
+    {
         try {
             return ResponseEntity.ok(contentService.getCourseUnit(id));
         } catch (RuntimeException e) {
@@ -51,9 +50,10 @@ public class ContentController {
         }
     }
 
-    @Operation(summary = "Unitate completa cu lectii", description = "Returneaza unitatea cu toate lectiile asociate.")
+    @Operation(summary = "Get a course unit with lessons", description = "Returns the unit along with all its associated lessons.")
     @GetMapping("/units/{id}/full")
-    public ResponseEntity<CourseUnitFullDto> getUnitFull(@PathVariable Long id) {
+    public ResponseEntity<CourseUnitFullDto> getUnitFull(@PathVariable Long id)
+    {
         try {
             return ResponseEntity.ok(contentService.getCourseUnitFull(id));
         } catch (RuntimeException e) {
@@ -61,20 +61,18 @@ public class ContentController {
         }
     }
 
-    @Operation(summary = "Creeaza o unitate noua", description = "Adauga un nou modul/capitol in structura cursului.")
+    @Operation(summary = "Create a course unit", description = "Adds a new module to the course structure.")
     @PostMapping("/units")
     public ResponseEntity<CourseUnitDto> createUnit(
-            @Valid @RequestBody CourseUnitDto dto,
-            @RequestHeader("X-User-Id") Long teacherId) {
+            @Valid @RequestBody CourseUnitDto dto, @RequestHeader("X-User-Id") Long teacherId)
+    {
         return ResponseEntity.status(201).body(contentService.createCourseUnit(dto, teacherId));
     }
 
-    @Operation(summary = "Actualizeaza o unitate", description = "Modifica detaliile unei unitati existente.")
+    @Operation(summary = "Update a course unit", description = "Updates the details of an existing course unit.")
     @PutMapping("/units/{id}")
-    public ResponseEntity<CourseUnitDto> updateUnit(@PathVariable Long id, @RequestBody CourseUnitDto dto) {
-        if (dto.getTitle() == null || dto.getTitle().isBlank()) {
-            return ResponseEntity.badRequest().build();
-        }
+    public ResponseEntity<CourseUnitDto> updateUnit(@PathVariable Long id, @Valid @RequestBody CourseUnitDto dto)
+    {
         try {
             return ResponseEntity.ok(contentService.updateCourseUnit(id, dto));
         } catch (RuntimeException e) {
@@ -82,9 +80,10 @@ public class ContentController {
         }
     }
 
-    @Operation(summary = "Sterge o unitate", description = "Sterge unitatea si toate lectiile asociate.")
+    @Operation(summary = "Delete a course unit", description = "Deletes the unit and all its associated lessons.")
     @DeleteMapping("/units/{id}")
-    public ResponseEntity<Void> deleteUnit(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteUnit(@PathVariable Long id)
+    {
         try {
             contentService.deleteCourseUnit(id);
             return ResponseEntity.noContent().build();
@@ -93,27 +92,26 @@ public class ContentController {
         }
     }
 
-
-    @Operation(summary = "Unitatile unui profesor", description = "Returneaza unitatile create de un profesor specific.")
+    @Operation(summary = "Get units by teacher", description = "Returns all course units created by a specific teacher.")
     @GetMapping("/units/teacher/{teacherId}")
-    public ResponseEntity<List<CourseUnitDto>> getUnitsByTeacher(@PathVariable Long teacherId) {
+    public ResponseEntity<List<CourseUnitDto>> getUnitsByTeacher(@PathVariable Long teacherId)
+    {
         return ResponseEntity.ok(contentService.getCourseUnitsByTeacher(teacherId));
     }
 
 
 
-
-    // 2. LESSONS
-
-    @Operation(summary = "Lectiile unei unitati", description = "Obtine toate lectiile care apartin de un Unit ID specific.")
+    @Operation(summary = "Get lessons by unit", description = "Returns all lessons belonging to a specific unit, ordered by index.")
     @GetMapping("/units/{unitId}/lessons")
-    public ResponseEntity<List<LessonDto>> getLessonsByUnit(@PathVariable Long unitId) {
+    public ResponseEntity<List<LessonDto>> getLessonsByUnit(@PathVariable Long unitId)
+    {
         return ResponseEntity.ok(contentService.getLessonsByUnitId(unitId));
     }
 
-    @Operation(summary = "Detalii lectie", description = "Returneaza detaliile complete ale unei lectii, inclusiv exercitiile.")
+    @Operation(summary = "Get a lesson", description = "Returns the full details of a lesson, including its exercises.")
     @GetMapping("/lessons/{id}")
-    public ResponseEntity<LessonDto> getLesson(@PathVariable Long id) {
+    public ResponseEntity<LessonDto> getLesson(@PathVariable Long id)
+    {
         try {
             return ResponseEntity.ok(contentService.getLesson(id));
         } catch (RuntimeException e) {
@@ -121,18 +119,10 @@ public class ContentController {
         }
     }
 
-    @Operation(summary = "Creeaza o lectie", description = "Adauga o lectie noua la o unitate existenta.")
+    @Operation(summary = "Create a lesson", description = "Adds a new lesson to an existing unit.")
     @PostMapping("/lessons")
-    public ResponseEntity<LessonDto> createLesson(@RequestBody LessonDto dto) {
-        if (dto.getUnitId() == null) {
-            return ResponseEntity.badRequest().build();
-        }
-        if (dto.getTitle() == null || dto.getTitle().isBlank()) {
-            return ResponseEntity.badRequest().build();
-        }
-        if (dto.getOrderIndex() == null) {
-            return ResponseEntity.badRequest().build();
-        }
+    public ResponseEntity<LessonDto> createLesson(@Valid @RequestBody LessonDto dto)
+    {
         try {
             return ResponseEntity.status(201).body(contentService.createLesson(dto));
         } catch (RuntimeException e) {
@@ -140,12 +130,10 @@ public class ContentController {
         }
     }
 
-    @Operation(summary = "Actualizeaza o lectie", description = "Modifica continutul unei lectii existente.")
+    @Operation(summary = "Update a lesson", description = "Updates the content of an existing lesson.")
     @PutMapping("/lessons/{id}")
-    public ResponseEntity<LessonDto> updateLesson(@PathVariable Long id, @RequestBody LessonDto dto) {
-        if (dto.getTitle() == null || dto.getTitle().isBlank()) {
-            return ResponseEntity.badRequest().build();
-        }
+    public ResponseEntity<LessonDto> updateLesson(@PathVariable Long id, @Valid @RequestBody LessonDto dto)
+    {
         try {
             return ResponseEntity.ok(contentService.updateLesson(id, dto));
         } catch (RuntimeException e) {
@@ -153,9 +141,10 @@ public class ContentController {
         }
     }
 
-    @Operation(summary = "Sterge o lectie", description = "Sterge lectia si toate exercitiile si materialele asociate.")
+    @Operation(summary = "Delete a lesson", description = "Deletes the lesson and all its associated exercises and materials.")
     @DeleteMapping("/lessons/{id}")
-    public ResponseEntity<Void> deleteLesson(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteLesson(@PathVariable Long id)
+    {
         try {
             contentService.deleteLesson(id);
             return ResponseEntity.noContent().build();
@@ -165,26 +154,18 @@ public class ContentController {
     }
 
 
-    // 3. MATERIALS
 
-    @Operation(summary = "Materialele unei lectii", description = "Lista de resurse pentru o lectie data.")
+    @Operation(summary = "Get lesson materials", description = "Returns all resources attached to a specific lesson.")
     @GetMapping("/lessons/{lessonId}/materials")
-    public ResponseEntity<List<LessonMaterialDto>> getMaterials(@PathVariable Long lessonId) {
+    public ResponseEntity<List<LessonMaterialDto>> getMaterials(@PathVariable Long lessonId)
+    {
         return ResponseEntity.ok(contentService.getMaterialsForLesson(lessonId));
     }
 
-    @Operation(summary = "Adauga material", description = "Ataseaza o resursa noua la o lectie.")
+    @Operation(summary = "Add a material", description = "Attaches a new resource to a lesson.")
     @PostMapping("/materials")
-    public ResponseEntity<LessonMaterialDto> addMaterial(@RequestBody LessonMaterialDto dto) {
-        if (dto.getLessonId() == null) {
-            return ResponseEntity.badRequest().build();
-        }
-        if (dto.getTitle() == null || dto.getTitle().isBlank()) {
-            return ResponseEntity.badRequest().build();
-        }
-        if (dto.getUrl() == null || dto.getUrl().isBlank()) {
-            return ResponseEntity.badRequest().build();
-        }
+    public ResponseEntity<LessonMaterialDto> addMaterial(@Valid @RequestBody LessonMaterialDto dto)
+    {
         try {
             return ResponseEntity.status(201).body(contentService.addLessonMaterial(dto));
         } catch (RuntimeException e) {
@@ -192,9 +173,10 @@ public class ContentController {
         }
     }
 
-    @Operation(summary = "Sterge un material", description = "Sterge materialul si fisierul asociat de pe disk, daca exista.")
+    @Operation(summary = "Delete a material", description = "Deletes the material record and its associated file from disk, if any.")
     @DeleteMapping("/materials/{id}")
-    public ResponseEntity<Void> deleteMaterial(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteMaterial(@PathVariable Long id)
+    {
         try {
             contentService.deleteLessonMaterial(id);
             return ResponseEntity.noContent().build();
@@ -203,10 +185,10 @@ public class ContentController {
         }
     }
 
-
-    @Operation(summary = "Incarca un fisier", description = "Incarca un fisier pe server si returneaza URL-ul de acces. Tipuri acceptate: JPEG, PNG, GIF, PDF, DOC, DOCX, MP3, WAV, MP4.")
+    @Operation(summary = "Upload a file", description = "Uploads a file to the server and returns its access URL. Accepted types: JPEG, PNG, GIF, PDF, DOC, DOCX, MP3, WAV, MP4. Maximum size: 50MB.")
     @PostMapping("/materials/upload")
-    public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file)
+    {
         try {
             String url = storageService.upload(file);
             return ResponseEntity.status(201).body(url);
@@ -217,11 +199,10 @@ public class ContentController {
         }
     }
 
-
-
-    @Operation(summary = "Serveste un fisier", description = "Returneaza continutul unui fisier incarcat anterior, identificat prin numele sau.")
+    @Operation(summary = "Serve a file", description = "Returns the binary content of a previously uploaded file, identified by its name.")
     @GetMapping("/files/{fileName}")
-    public ResponseEntity<byte[]> serveFile(@PathVariable String fileName) {
+    public ResponseEntity<byte[]> serveFile(@PathVariable String fileName)
+    {
         try {
             byte[] fileBytes = storageService.loadFile(fileName);
             String contentType = storageService.getContentType(fileName);
@@ -234,11 +215,11 @@ public class ContentController {
     }
 
 
-    // 4. EXERCISES
 
-    @Operation(summary = "Gaseste un exercitiu", description = "Returneaza detaliile unui exercitiu pe baza ID-ului.")
+    @Operation(summary = "Get an exercise", description = "Returns the details of an exercise by its ID.")
     @GetMapping("/exercises/{id}")
-    public ResponseEntity<ExerciseDto> getExercise(@PathVariable Long id) {
+    public ResponseEntity<ExerciseDto> getExercise(@PathVariable Long id)
+    {
         try {
             return ResponseEntity.ok(contentService.getExercise(id));
         } catch (RuntimeException e) {
@@ -246,24 +227,17 @@ public class ContentController {
         }
     }
 
-    @Operation(summary = "Exercitiile unei lectii", description = "Returneaza lista de exercitii asociate lectiei.")
+    @Operation(summary = "Get exercises by lesson", description = "Returns all exercises associated with a specific lesson.")
     @GetMapping("/lessons/{lessonId}/exercises")
-    public ResponseEntity<List<ExerciseDto>> getExercises(@PathVariable Long lessonId) {
+    public ResponseEntity<List<ExerciseDto>> getExercises(@PathVariable Long lessonId)
+    {
         return ResponseEntity.ok(contentService.getExercisesForLesson(lessonId));
     }
 
-    @Operation(summary = "Adauga exercitiu", description = "Creeaza un exercitiu nou.")
+    @Operation(summary = "Add an exercise", description = "Creates a new exercise and attaches it to a lesson.")
     @PostMapping("/exercises")
-    public ResponseEntity<ExerciseDto> addExercise(@RequestBody ExerciseDto dto) {
-        if (dto.getLessonId() == null) {
-            return ResponseEntity.badRequest().build();
-        }
-        if (dto.getType() == null || dto.getType().isBlank()) {
-            return ResponseEntity.badRequest().build();
-        }
-        if (dto.getPrompt() == null || dto.getPrompt().isBlank()) {
-            return ResponseEntity.badRequest().build();
-        }
+    public ResponseEntity<ExerciseDto> addExercise(@Valid @RequestBody ExerciseDto dto)
+    {
         try {
             return ResponseEntity.status(201).body(contentService.addExercise(dto));
         } catch (RuntimeException e) {
@@ -271,15 +245,10 @@ public class ContentController {
         }
     }
 
-    @Operation(summary = "Actualizeaza exercitiu", description = "Modifica exercitiul.")
+    @Operation(summary = "Update an exercise", description = "Updates the content of an existing exercise.")
     @PutMapping("/exercises/{id}")
-    public ResponseEntity<ExerciseDto> updateExercise(@PathVariable Long id, @RequestBody ExerciseDto dto) {
-        if (dto.getType() == null || dto.getType().isBlank()) {
-            return ResponseEntity.badRequest().build();
-        }
-        if (dto.getPrompt() == null || dto.getPrompt().isBlank()) {
-            return ResponseEntity.badRequest().build();
-        }
+    public ResponseEntity<ExerciseDto> updateExercise(@PathVariable Long id, @Valid @RequestBody ExerciseDto dto)
+    {
         try {
             return ResponseEntity.ok(contentService.updateExercise(id, dto));
         } catch (RuntimeException e) {
@@ -287,9 +256,10 @@ public class ContentController {
         }
     }
 
-    @Operation(summary = "Sterge un exercitiu", description = "Sterge exercitiul din lectia asociata.")
+    @Operation(summary = "Delete an exercise", description = "Deletes an exercise from its associated lesson.")
     @DeleteMapping("/exercises/{id}")
-    public ResponseEntity<Void> deleteExercise(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteExercise(@PathVariable Long id)
+    {
         try {
             contentService.deleteExercise(id);
             return ResponseEntity.noContent().build();
@@ -300,9 +270,10 @@ public class ContentController {
 
 
 
-    @Operation(summary = "XP total al unei unitati", description = "Returneaza suma XP din toate lectiile unitatii.")
+    @Operation(summary = "Get unit XP stats", description = "Returns the total XP earned across all lessons in a unit.")
     @GetMapping("/units/{id}/stats/xp")
-    public ResponseEntity<UnitXpStatsDto> getUnitXpStats(@PathVariable Long id) {
+    public ResponseEntity<UnitXpStatsDto> getUnitXpStats(@PathVariable Long id)
+    {
         try {
             return ResponseEntity.ok(contentService.getUnitXpStats(id));
         } catch (RuntimeException e) {
@@ -310,9 +281,10 @@ public class ContentController {
         }
     }
 
-    @Operation(summary = "Numarul de lectii al unei unitati", description = "Returneaza numarul total de lectii din unitate.")
+    @Operation(summary = "Get unit lesson count", description = "Returns the total number of lessons in a unit.")
     @GetMapping("/units/{id}/stats/lessons")
-    public ResponseEntity<UnitLessonCountDto> getUnitLessonCount(@PathVariable Long id) {
+    public ResponseEntity<UnitLessonCountDto> getUnitLessonCount(@PathVariable Long id)
+    {
         try {
             return ResponseEntity.ok(contentService.getUnitLessonCount(id));
         } catch (RuntimeException e) {
@@ -320,9 +292,10 @@ public class ContentController {
         }
     }
 
-    @Operation(summary = "Tipuri de exercitii dintr-o lectie", description = "Returneaza numarul de exercitii grupate pe tip, util pentru piechart.")
+    @Operation(summary = "Get exercise type distribution", description = "Returns the count of exercises grouped by type, useful for rendering a pie chart.")
     @GetMapping("/lessons/{id}/stats/exercise-types")
-    public ResponseEntity<LessonExerciseTypesDto> getLessonExerciseTypes(@PathVariable Long id) {
+    public ResponseEntity<LessonExerciseTypesDto> getLessonExerciseTypes(@PathVariable Long id)
+    {
         try {
             return ResponseEntity.ok(contentService.getLessonExerciseTypes(id));
         } catch (RuntimeException e) {

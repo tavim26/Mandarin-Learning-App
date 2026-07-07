@@ -7,16 +7,12 @@ public class FlashcardSetStatsDto {
     private Long setId;
     private Integer totalCards;
 
-    // Carduri fara niciun progress record
     private Integer newCards;
 
-    // repetitionCount < 3
     private Integer learningCards;
 
-    // intervalDays >= 21
     private Integer matureCards;
 
-    // nextReviewAt <= now + carduri fara progress record
     private Integer dueToday;
 
     private BigDecimal averageEasinessFactor;

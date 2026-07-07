@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 
 class HskTokenDistributionDto(BaseModel):
-    hsk_level: int | None  # None = caracter necunoscut in HSK
+    hsk_level: int | None
     token_count: int
 
 

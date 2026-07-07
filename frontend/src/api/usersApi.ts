@@ -8,7 +8,7 @@ import type {
 } from '@/types';
 
 export const usersApi = {
-  // --- Users (ADMIN) ---
+ 
   createUser: async (data: {
     email: string;
     password: string;
@@ -83,7 +83,7 @@ export const usersApi = {
     await apiClient.delete(`/api/users/${id}`);
   },
 
-  // --- Students ---
+  
   getAllStudents: async (): Promise<StudentProfileDto[]> => {
     const res = await apiClient.get<StudentProfileDto[]>('/api/users/students');
     return res.data;
@@ -113,7 +113,7 @@ export const usersApi = {
     return res.data;
   },
 
-  // --- Teachers ---
+  
   getAllTeachers: async (): Promise<TeacherProfileDto[]> => {
     const res = await apiClient.get<TeacherProfileDto[]>('/api/users/teachers');
     return res.data;

@@ -10,5 +10,6 @@ import java.util.List;
 public interface IStudentJpaRepository extends JpaRepository<StudentEntity, Long>
 {
     List<StudentEntity> findByNicknameContaining(String fragment);
+
     boolean existsByNickname(String nickname);
 }

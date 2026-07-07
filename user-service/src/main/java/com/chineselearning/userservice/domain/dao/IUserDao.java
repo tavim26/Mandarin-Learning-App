@@ -11,7 +11,6 @@ public interface IUserDao
      List<User> findAll();
      List<User> findByFullNameContaining(String fragment);
      boolean existsById(Long id);
-     void deleteById(Long id);
 
      List<User> findByRole(String role);
 }

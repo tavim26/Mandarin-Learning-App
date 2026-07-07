@@ -33,7 +33,6 @@ export const useReviewSession = () => {
   const [summary, setSummary] = useState<SessionSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Acumuleaza calitatile pe parcursul sesiunii
   const [qualityLog, setQualityLog] = useState<ReviewQuality[]>([]);
 
   const startSession = useCallback(
@@ -90,7 +89,6 @@ export const useReviewSession = () => {
           quality,
         });
 
-        // Acumuleaza calitatea in log
         const updatedLog = [...qualityLog, quality];
         setQualityLog(updatedLog);
 
@@ -136,7 +134,6 @@ export const useReviewSession = () => {
   };
 };
 
-// Calculeaza sumarul din log-ul complet de calitati
 const computeSummary = (log: ReviewQuality[]): SessionSummary => ({
   total: log.length,
   again: log.filter((q) => q <= 1).length,

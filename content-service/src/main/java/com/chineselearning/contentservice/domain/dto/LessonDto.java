@@ -20,7 +20,6 @@ public class LessonDto {
     private Integer orderIndex;
     private List<ExerciseDto> exercises;
 
-    // No-args constructor
     public LessonDto() {
     }
 
@@ -32,8 +31,6 @@ public class LessonDto {
         this.xpReward = xpReward;
         this.orderIndex = orderIndex;
     }
-
-    // Getters and setters
 
     public Long getId() {
         return id;

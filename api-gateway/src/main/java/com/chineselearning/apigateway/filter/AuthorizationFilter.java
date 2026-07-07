@@ -76,17 +76,20 @@ public class AuthorizationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         HttpMethod method = HttpMethod.valueOf(request.getMethod());
 
-        if (role == null || userIdHeader == null) {
+        if (role == null || userIdHeader == null)
+        {
             sendForbidden(response, "Date de autentificare lipsa");
             return;
         }
 
-        if ("ADMIN".equals(role)) {
+        if ("ADMIN".equals(role))
+        {
             filterChain.doFilter(request, response);
             return;
         }
 
-        if ("TEACHER".equals(role)) {
+        if ("TEACHER".equals(role))
+        {
             boolean blockedForTeacher = STUDENT_ONLY_PREFIXES.stream()
                     .anyMatch(path::startsWith);
             if (blockedForTeacher) {
@@ -102,13 +105,18 @@ public class AuthorizationFilter extends OncePerRequestFilter {
             return;
         }
 
-        if ("STUDENT".equals(role) || "TEACHER".equals(role)) {
-            for (Pattern pattern : OWN_RESOURCE_PATTERNS) {
+        if ("STUDENT".equals(role) || "TEACHER".equals(role))
+        {
+            for (Pattern pattern : OWN_RESOURCE_PATTERNS)
+            {
                 Matcher matcher = pattern.matcher(path);
-                if (matcher.matches()) {
+                if (matcher.matches())
+                {
                     Long resourceUserId = Long.parseLong(matcher.group(1));
                     Long authenticatedUserId = Long.parseLong(userIdHeader);
-                    if (!resourceUserId.equals(authenticatedUserId)) {
+
+                    if (!resourceUserId.equals(authenticatedUserId))
+                    {
                         sendForbidden(response, "Acces interzis — resursa apartine altui utilizator");
                         return;
                     }

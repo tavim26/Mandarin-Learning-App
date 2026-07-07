@@ -32,10 +32,10 @@ export interface StudentLessonProgressDto {
   lessonId: number;
   status: LessonStatus;
   completionPct: number;
-  xpAwarded: number | null;       // null pana la COMPLETED
+  xpAwarded: number | null;      
   startedAt: string | null;
   lastAccessedAt: string | null;
-  completedAt: string | null;     // null pana la COMPLETED
+  completedAt: string | null;     
 }
 
 export interface ExerciseAttemptDto {
@@ -53,5 +53,5 @@ export interface ExerciseAttemptDto {
 export interface SubmitAttemptRequest {
   exerciseId: number;
   submittedAnswer: SubmittedAnswer;
-  // studentId absent — vine din X-User-Id header
+  
 }

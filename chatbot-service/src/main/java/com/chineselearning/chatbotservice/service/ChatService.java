@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -26,6 +25,7 @@ public class ChatService
     private final IChatSessionDao chatSessionDao;
     private final IChatMessageDao chatMessageDao;
     private final AiService aiService;
+
 
     @Value("${chatbot.context.window-size}")
     private int contextWindowSize;
@@ -38,9 +38,7 @@ public class ChatService
     }
 
 
-    // SESIUNI
 
-    // studentId pasat explicit din controller, nu din request body
     @Transactional
     public ChatSessionDto createSession(Long studentId, CreateSessionRequest request)
     {
@@ -54,7 +52,6 @@ public class ChatService
 
     }
 
-    // verificare ownership: studentul poate vedea doar propriile sesiuni
     @Transactional(readOnly = true)
     public List<ChatSessionDto> getSessionsByStudent(Long requestingStudentId)
     {
@@ -64,14 +61,12 @@ public class ChatService
                 .toList();
     }
 
-    // studentId pasat din controller pentru verificarea ownership-ului
     @Transactional
     public ChatSessionDto endSession(Long sessionId, Long requestingStudentId) throws AccessDeniedException
     {
         ChatSession session = chatSessionDao.findById(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException("Session with id" + sessionId + " does not exist."));
 
-        // doar studentul proprietar poate inchide sesiunea
         if (!session.getStudentId().equals(requestingStudentId))
         {
             throw new AccessDeniedException("You don't have permission to end this session.");
@@ -84,9 +79,7 @@ public class ChatService
 
 
 
-    // MESAJE
 
-    // studentId pasat din controller pentru verificarea ownership-ului
     @Transactional
     public SendMessageResponse sendMessage(Long sessionId, Long requestingStudentId, SendMessageRequest request) throws AccessDeniedException {
         ChatSession session = chatSessionDao.findById(sessionId)
@@ -109,7 +102,6 @@ public class ChatService
         userMessage.setCreatedAt(LocalDateTime.now());
         userMessage = chatMessageDao.save(userMessage);
 
-        // daca sesiunea nu are titlu si acesta este primul mesaj, genereaza titlul automat
         if (session.getTitle() == null && chatMessageDao.countBySessionId(sessionId) == 1)
         {
             String content = request.getContent();
@@ -136,7 +128,6 @@ public class ChatService
         return response;
     }
 
-    // verificare ownership: studentul poate vedea doar mesajele din propriile sesiuni
     @Transactional(readOnly = true)
     public List<ChatMessageDto> getMessages(Long sessionId, Long requestingStudentId) throws AccessDeniedException
     {
@@ -206,7 +197,6 @@ public class ChatService
     public void deleteSession(Long sessionId, Long requestingStudentId) throws AccessDeniedException {
         if (!chatSessionDao.existsByIdAndStudentId(sessionId, requestingStudentId))
         {
-            // daca sesiunea nu exista deloc, 404; daca exista dar apartine altui student, 403
             if (!chatSessionDao.existsById(sessionId))
             {
                 throw new EntityNotFoundException("Session with id " + sessionId + " does not exist.");
@@ -218,11 +208,10 @@ public class ChatService
     }
 
 
-    // HELPER
+
 
     private List<AiService.ContextMessage> buildContextWindow(Long sessionId, Long excludeMessageId)
     {
-        // preia ultimele contextWindowSize + 1 mesaje pentru a absorbi excluderea mesajului curent
         List<ChatMessage> recent = chatMessageDao.findRecentBySessionId(sessionId, contextWindowSize + 1)
                 .stream()
                 .filter(m -> !m.getId().equals(excludeMessageId))
@@ -238,7 +227,6 @@ public class ChatService
     }
 
 
-    // DUPĂ — un singur query per sesiune
     private ChatSessionDto enrichSessionDto(ChatSessionDto dto)
     {
         List<ChatMessage> last = chatMessageDao.findLastMessageBySessionId(dto.getId());

@@ -38,7 +38,8 @@ public class LessonDao implements ILessonDao
     }
 
     @Override
-    public Optional<Lesson> findById(Long id) {
+    public Optional<Lesson> findById(Long id)
+    {
         return lessonJpaRepository.findById(id).map(this::toDomain);
     }
 
@@ -46,10 +47,13 @@ public class LessonDao implements ILessonDao
     public Lesson save(Lesson lesson) {
         LessonEntity entity;
 
-        if (lesson.getId() != null) {
+        if (lesson.getId() != null)
+        {
             entity = lessonJpaRepository.findById(lesson.getId())
                     .orElse(new LessonEntity());
-        } else {
+        }
+        else
+        {
             entity = new LessonEntity();
         }
 
@@ -80,7 +84,8 @@ public class LessonDao implements ILessonDao
 
 
     @Override
-    public long countByUnitId(Long unitId) {
+    public long countByUnitId(Long unitId)
+    {
         return lessonJpaRepository.countByUnitId(unitId);
     }
 

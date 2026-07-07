@@ -8,8 +8,8 @@ import java.util.List;
 public interface IContentServicePort
 {
     ExerciseResponseDto getExercise(Long exerciseId);
+
     LessonResponseDto getLesson(Long lessonId);
 
-    // Returneaza lista lectiilor dintr-o unitate (fara exercises populate)
     List<LessonResponseDto> getLessonsForUnit(Long unitId);
 }

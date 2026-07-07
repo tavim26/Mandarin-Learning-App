@@ -7,7 +7,7 @@ from PIL import Image, UnidentifiedImageError
 
 
 class OcrException(Exception):
-    """Exceptie ridicata cand extragerea textului din imagine esueaza."""
+    """Exception when text extraction fails."""
     pass
 
 

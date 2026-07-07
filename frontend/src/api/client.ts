@@ -18,19 +18,18 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+
 // Gestioneaza global erorile de autentificare si autorizare
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (!error.response) {
-      // Eroare de retea — serviciu indisponibil
       return Promise.reject(error);
     }
 
     const status = error.response.status;
 
     if (status === 401) {
-      // Token absent, expirat sau corupt — curata sesiunea si redirectioneaza
       useAuthStore.getState().clearAuth();
  
       if (window.location.pathname !== '/login') {

@@ -28,26 +28,26 @@ public class ContentService
     private final ILessonDao lessonDao;
     private final ILessonMaterialDao lessonMaterialDao;
     private final IExerciseDao exerciseDao;
-
     private final StorageService storageService;
 
     @Value("${storage.base-url}")
     private String storageBaseUrl;
 
-    public ContentService(ICourseUnitDao courseUnitDao, ILessonDao lessonDao,
-                          ILessonMaterialDao lessonMaterialDao, IExerciseDao exerciseDao,
-                          StorageService storageService) {
+    public ContentService(ICourseUnitDao courseUnitDao, ILessonDao lessonDao, ILessonMaterialDao lessonMaterialDao, IExerciseDao exerciseDao, StorageService storageService) {
         this.courseUnitDao = courseUnitDao;
         this.lessonDao = lessonDao;
         this.lessonMaterialDao = lessonMaterialDao;
         this.exerciseDao = exerciseDao;
         this.storageService = storageService;
     }
-    // COURSE UNITS
+
+
+
 
 
     @Transactional(readOnly = true)
-    public List<CourseUnitDto> getAllCourseUnits(Integer hskLevel) {
+    public List<CourseUnitDto> getAllCourseUnits(Integer hskLevel)
+    {
         List<CourseUnit> units = (hskLevel != null)
                 ? courseUnitDao.findByHskLevel(hskLevel)
                 : courseUnitDao.findAllByOrderByOrderIndexAsc();
@@ -68,7 +68,8 @@ public class ContentService
 
 
     @Transactional(readOnly = true)
-    public CourseUnitFullDto getCourseUnitFull(Long id) {
+    public CourseUnitFullDto getCourseUnitFull(Long id)
+    {
         CourseUnit unit = courseUnitDao.findById(id)
                 .orElseThrow(() -> new RuntimeException("CourseUnit not found with id: " + id));
 
@@ -88,7 +89,8 @@ public class ContentService
 
 
     @Transactional
-    public CourseUnitDto createCourseUnit(CourseUnitDto dto, Long teacherId) {
+    public CourseUnitDto createCourseUnit(CourseUnitDto dto, Long teacherId)
+    {
         CourseUnit unit = new CourseUnit();
         unit.setTitle(dto.getTitle());
         unit.setDescription(dto.getDescription());
@@ -129,16 +131,14 @@ public class ContentService
 
 
     @Transactional(readOnly = true)
-    public List<CourseUnitDto> getCourseUnitsByTeacher(Long teacherId) {
+    public List<CourseUnitDto> getCourseUnitsByTeacher(Long teacherId)
+    {
         return courseUnitDao.findByCreatedByTeacherId(teacherId).stream()
                 .map(this::mapUnitToDto)
                 .collect(Collectors.toList());
     }
 
 
-
-
-    // LESSONS LOGIC
 
 
     @Transactional(readOnly = true)
@@ -224,8 +224,6 @@ public class ContentService
 
 
 
-    // LESSON MATERIALS LOGIC
-
 
     @Transactional(readOnly = true)
     public List<LessonMaterialDto> getMaterialsForLesson(Long lessonId)
@@ -268,7 +266,6 @@ public class ContentService
 
 
 
-    // EXERCISES LOGIC
 
 
     @Transactional(readOnly = true)
@@ -338,8 +335,10 @@ public class ContentService
 
 
     @Transactional(readOnly = true)
-    public UnitXpStatsDto getUnitXpStats(Long unitId) {
-        if (!courseUnitDao.existsById(unitId)) {
+    public UnitXpStatsDto getUnitXpStats(Long unitId)
+    {
+        if (!courseUnitDao.existsById(unitId))
+        {
             throw new RuntimeException("CourseUnit not found with id: " + unitId);
         }
 
@@ -355,7 +354,8 @@ public class ContentService
     @Transactional(readOnly = true)
     public UnitLessonCountDto getUnitLessonCount(Long unitId)
     {
-        if (!courseUnitDao.existsById(unitId)) {
+        if (!courseUnitDao.existsById(unitId))
+        {
             throw new RuntimeException("CourseUnit not found with id: " + unitId);
         }
         int totalLessons = (int) lessonDao.countByUnitId(unitId);
@@ -364,8 +364,10 @@ public class ContentService
 
 
     @Transactional(readOnly = true)
-    public LessonExerciseTypesDto getLessonExerciseTypes(Long lessonId) {
-        if (!lessonDao.existsById(lessonId)) {
+    public LessonExerciseTypesDto getLessonExerciseTypes(Long lessonId)
+    {
+        if (!lessonDao.existsById(lessonId))
+        {
             throw new RuntimeException("Lesson not found with id: " + lessonId);
         }
 
@@ -378,7 +380,6 @@ public class ContentService
 
 
 
-    // Helpers
 
     private CourseUnitDto mapUnitToDto(CourseUnit unit) {
         CourseUnitDto dto = new CourseUnitDto(

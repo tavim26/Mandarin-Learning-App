@@ -12,7 +12,8 @@ import java.util.Set;
 import java.util.UUID;
 
 @Service
-public class StorageService {
+public class StorageService
+{
 
     private static final Set<String> ALLOWED_TYPES = Set.of(
             "image/jpeg",
@@ -26,7 +27,7 @@ public class StorageService {
             "video/mp4"
     );
 
-    private static final long MAX_FILE_SIZE_BYTES = 50L * 1024 * 1024; // 50MB
+    private static final long MAX_FILE_SIZE_BYTES = 50L * 1024 * 1024;
 
     @Value("${storage.upload-dir}")
     private String uploadDir;
@@ -34,21 +35,22 @@ public class StorageService {
     @Value("${storage.base-url}")
     private String baseUrl;
 
-    public String upload(MultipartFile file) throws IOException {
+    public String upload(MultipartFile file) throws IOException
+    {
 
-        if (file.getContentType() == null || !ALLOWED_TYPES.contains(file.getContentType())) {
+        if (file.getContentType() == null || !ALLOWED_TYPES.contains(file.getContentType()))
+        {
             throw new IllegalArgumentException("File type not allowed: " + file.getContentType());
         }
 
-        if (file.getSize() > MAX_FILE_SIZE_BYTES) {
-            throw new IllegalArgumentException(
-                    "The file exceeds the maximum allowed size of : "
-                            + (file.getSize() / (1024 * 1024)) + "MB."
-            );
+        if (file.getSize() > MAX_FILE_SIZE_BYTES)
+        {
+            throw new IllegalArgumentException("The file exceeds the maximum allowed size of : " + (file.getSize() / (1024 * 1024)) + "MB.");
         }
 
         Path uploadPath = Paths.get(uploadDir).normalize();
-        if (!Files.exists(uploadPath)) {
+        if (!Files.exists(uploadPath))
+        {
             Files.createDirectories(uploadPath);
         }
 
@@ -69,39 +71,49 @@ public class StorageService {
         return baseUrl + "/api/content/files/" + fileName;
     }
 
-    public void delete(String fileUrl) {
+
+
+    public void delete(String fileUrl)
+    {
         String fileName = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
 
         Path uploadPath = Paths.get(uploadDir).normalize();
         Path filePath = uploadPath.resolve(fileName).normalize();
 
-        if (!filePath.startsWith(uploadPath)) {
+        if (!filePath.startsWith(uploadPath))
+        {
             return;
         }
 
         try {
             Files.deleteIfExists(filePath);
         } catch (IOException e) {
-            // fisierul nu exista pe disk, continuam
+            // file does not exist on disk
         }
     }
 
-    public byte[] loadFile(String fileName) throws IOException {
+
+    public byte[] loadFile(String fileName) throws IOException
+    {
         Path uploadPath = Paths.get(uploadDir).normalize();
         Path filePath = uploadPath.resolve(fileName).normalize();
 
-        if (!filePath.startsWith(uploadPath)) {
+        if (!filePath.startsWith(uploadPath))
+        {
             throw new SecurityException("Access not allowed to this file.");
         }
 
         return Files.readAllBytes(filePath);
     }
 
-    public String getContentType(String fileName) throws IOException {
+
+    public String getContentType(String fileName) throws IOException
+    {
         Path uploadPath = Paths.get(uploadDir).normalize();
         Path filePath = uploadPath.resolve(fileName).normalize();
 
-        if (!filePath.startsWith(uploadPath)) {
+        if (!filePath.startsWith(uploadPath))
+        {
             throw new SecurityException("Access not allowed to this file.");
         }
 

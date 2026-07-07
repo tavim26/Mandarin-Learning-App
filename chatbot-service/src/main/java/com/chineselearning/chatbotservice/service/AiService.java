@@ -74,12 +74,11 @@ public class AiService
 
 
 
-    // Construieste request-ul catre Gemini cu system prompt + fereastra de context + mesajul curent
     public String chat(String userMessage, List<ContextMessage> contextHistory, String customInstructions)
     {
         List<Map<String, Object>> contents = new ArrayList<>();
 
-        // construim system prompt-ul dinamic
+
         String effectiveSystemPrompt = buildSystemPrompt(customInstructions);
 
         contents.add(buildContent("user", effectiveSystemPrompt));
@@ -138,7 +137,7 @@ public class AiService
 
 
 
-    // Construieste un obiect "content" conform formatului Gemini API
+
     private Map<String, Object> buildContent(String role, String text)
     {
         Map<String, Object> part = new HashMap<>();
@@ -151,7 +150,7 @@ public class AiService
         return content;
     }
 
-    // Extrage textul din raspunsul JSON al Gemini
+
     @SuppressWarnings("unchecked")
     private String extractTextFromResponse(Map<String, Object> responseBody)
     {
@@ -189,6 +188,5 @@ public class AiService
         return text;
     }
 
-    // Record intern pentru transportul contextului din ChatService
     public record ContextMessage(String sender, String content) {}
 }

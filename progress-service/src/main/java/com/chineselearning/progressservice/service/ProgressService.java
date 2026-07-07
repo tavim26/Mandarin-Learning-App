@@ -67,27 +67,7 @@ public class ProgressService
     }
 
 
-    // Metoda separata pentru a permite @Transactional pe un bean proxy-izat de Spring.
-    // Apelata exclusiv din submitAttempt() — nu este parte din API-ul public al serviciului.
-    private ExerciseAttemptDto saveAttemptAndUpdateProgress(Long studentId, Long exerciseId,
-                                                           LessonResponseDto lesson,
-                                                           SubmitAttemptRequest request,
-                                                           EvaluationResultDto result)
-    {
-        ensureStudentReplicaExists(studentId);
 
-        int attemptNumber = exerciseAttemptDao.countByStudentIdAndExerciseId(studentId, exerciseId) + 1;
-
-        ExerciseAttempt attempt = buildAttempt(studentId, exerciseId, attemptNumber, request, result);
-        ExerciseAttempt saved = exerciseAttemptDao.save(attempt);
-
-        log.info("Attempt salvat: studentId={}, exerciseId={}, attemptNumber={}, isCorrect={}",
-                studentId, exerciseId, attemptNumber, result.isCorrect());
-
-        updateLessonProgress(studentId, lesson);
-
-        return mapToExerciseAttemptDto(saved);
-    }
 
 
     @Transactional(readOnly = true)
@@ -96,7 +76,7 @@ public class ProgressService
         StudentLessonProgress progress = lessonProgressDao
                 .findByStudentIdAndLessonId(studentId, lessonId)
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Nu exista progres pentru studentId=" + studentId + ", lessonId=" + lessonId));
+                        "There is no progress for studentId=" + studentId + ", lessonId=" + lessonId));
 
         return mapToStudentLessonProgressDto(progress);
     }
@@ -168,9 +148,7 @@ public class ProgressService
                 .map(LessonResponseDto::getId)
                 .collect(Collectors.toList());
 
-        // Incarca doar progresele existente — lectiile fara inregistrare sunt implicit NOT_STARTED
-        List<StudentLessonProgress> existingProgresses =
-                lessonProgressDao.findByStudentIdAndLessonIdIn(studentId, lessonIds);
+        List<StudentLessonProgress> existingProgresses = lessonProgressDao.findByStudentIdAndLessonIdIn(studentId, lessonIds);
 
         long completed = existingProgresses.stream()
                 .filter(p -> "COMPLETED".equals(p.getStatus()))
@@ -193,20 +171,39 @@ public class ProgressService
     }
 
 
-    // ========== METODE PRIVATE ==========
+
+
+    private ExerciseAttemptDto saveAttemptAndUpdateProgress(Long studentId, Long exerciseId, LessonResponseDto lesson, SubmitAttemptRequest request, EvaluationResultDto result)
+    {
+        ensureStudentReplicaExists(studentId);
+
+        int attemptNumber = exerciseAttemptDao.countByStudentIdAndExerciseId(studentId, exerciseId) + 1;
+
+        ExerciseAttempt attempt = buildAttempt(studentId, exerciseId, attemptNumber, request, result);
+        ExerciseAttempt saved = exerciseAttemptDao.save(attempt);
+
+        log.info("Saved attempt studentId={}, exerciseId={}, attemptNumber={}, isCorrect={}",
+                studentId, exerciseId, attemptNumber, result.isCorrect());
+
+        updateLessonProgress(studentId, lesson);
+
+        return mapToExerciseAttemptDto(saved);
+    }
+
+
+
 
     private void ensureStudentReplicaExists(Long studentId)
     {
         if (!studentReplicaDao.existsByStudentId(studentId))
         {
-            log.info("Prima incercare pentru studentId={}, creare replica", studentId);
+            log.info("First try for student studentId={}, creating replica", studentId);
             studentReplicaDao.saveIfNotExists(new StudentReplica(studentId));
-            log.info("Replica creata sau deja existenta pentru studentId={}", studentId);
+            log.info("Replic already exists for studentId={}", studentId);
         }
     }
 
-    private ExerciseAttempt buildAttempt(Long studentId, Long exerciseId, int attemptNumber,
-                                         SubmitAttemptRequest request, EvaluationResultDto result)
+    private ExerciseAttempt buildAttempt(Long studentId, Long exerciseId, int attemptNumber, SubmitAttemptRequest request, EvaluationResultDto result)
     {
         ExerciseAttempt attempt = new ExerciseAttempt();
         attempt.setStudentId(studentId);
@@ -239,6 +236,8 @@ public class ProgressService
                 studentId, lesson.getId(), completionPct, progress.getStatus());
     }
 
+
+
     private BigDecimal calculateCompletionPct(Long studentId, LessonResponseDto lesson)
     {
         List<Long> exerciseIds = lesson.getExercises().stream()
@@ -251,12 +250,15 @@ public class ProgressService
                 .setScale(2, java.math.RoundingMode.HALF_UP);
     }
 
+
+
     private StudentLessonProgress fetchOrCreateProgress(Long studentId, Long lessonId)
     {
         return lessonProgressDao
                 .findByStudentIdAndLessonId(studentId, lessonId)
                 .orElse(new StudentLessonProgress(studentId, lessonId));
     }
+
 
     private void updateProgressFields(StudentLessonProgress progress, BigDecimal completionPct)
     {
@@ -268,8 +270,8 @@ public class ProgressService
         progress.setLastAccessedAt(LocalDateTime.now());
     }
 
-    private void handleStatusTransition(StudentLessonProgress progress, BigDecimal completionPct,
-                                        Long studentId, LessonResponseDto lesson)
+
+    private void handleStatusTransition(StudentLessonProgress progress, BigDecimal completionPct, Long studentId, LessonResponseDto lesson)
     {
         if (completionPct.compareTo(new BigDecimal("100")) == 0)
         {
@@ -285,6 +287,7 @@ public class ProgressService
             progress.setCompletedAt(null);
         }
     }
+
 
     private void handleLessonCompleted(StudentLessonProgress progress, Long studentId, LessonResponseDto lesson)
     {
@@ -312,6 +315,7 @@ public class ProgressService
         }
     }
 
+
     private void handleLessonInProgress(StudentLessonProgress progress)
     {
         if (!"IN_PROGRESS".equals(progress.getStatus()))
@@ -320,6 +324,7 @@ public class ProgressService
             progress.setCompletedAt(null);
         }
     }
+
 
     private void awardXpToStudent(Long studentId, int xpToAdd)
     {
@@ -332,7 +337,11 @@ public class ProgressService
     }
 
 
-    // ========== DTO MAPPING ==========
+
+
+
+
+
 
     private ExerciseAttemptDto mapToExerciseAttemptDto(ExerciseAttempt attempt)
     {

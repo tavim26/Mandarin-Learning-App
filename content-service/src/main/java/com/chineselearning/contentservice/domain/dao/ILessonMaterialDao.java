@@ -13,7 +13,5 @@ public interface ILessonMaterialDao {
 
     void deleteById(Long id);
 
-    boolean existsById(Long id);
-
     Optional<LessonMaterial> findById(Long id);
 }

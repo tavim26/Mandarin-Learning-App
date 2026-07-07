@@ -18,11 +18,9 @@ export const useChatSession = () => {
   const [messages, setMessages] = useState<ChatMessageDto[]>([]);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-  // isSending separat — inputul trebuie blocat 2-5s cat raspunde Gemini
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Ref pentru scroll automat la ultimul mesaj
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = useCallback(() => {
@@ -36,7 +34,7 @@ export const useChatSession = () => {
       const data = await chatbotApi.getSessions();
       setSessions(data);
     } catch {
-      setError('Nu s-au putut incarca sesiunile.');
+      setError('Could not load sessions.');
     } finally {
       setIsLoadingSessions(false);
     }
@@ -50,7 +48,7 @@ export const useChatSession = () => {
       const data = await chatbotApi.getMessages(session.id);
       setMessages(data);
     } catch {
-      setError('Nu s-au putut incarca mesajele.');
+      setError('Could not load messages.');
     } finally {
       setIsLoadingMessages(false);
     }
@@ -66,7 +64,7 @@ export const useChatSession = () => {
       setMessages([]);
       return created;
     } catch {
-      setError('Crearea sesiunii a esuat.');
+      setError('Session creation has failed.');
       return null;
     }
   };
@@ -80,7 +78,6 @@ export const useChatSession = () => {
       const res = await chatbotApi.sendMessage(activeSession.id, { content });
       setMessages((prev) => [...prev, res.userMessage, res.aiMessage]);
 
-      // Actualizeaza preview-ul sesiunii in sidebar
       setSessions((prev) =>
         prev.map((s) =>
           s.id === activeSession.id
@@ -99,11 +96,11 @@ export const useChatSession = () => {
       const status =
         (err as { response?: { status?: number } })?.response?.status;
       if (status === 409) {
-        setError('Sesiunea este inchisa. Nu mai pot fi trimise mesaje.');
+        setError('Session is closed. No more messages can be sent.');
       } else if (status === 503) {
-        setError('Serviciul AI este momentan indisponibil. Incearca din nou.');
+        setError('AI Service is temporary unavailable. Try again later.');
       } else {
-        setError('Trimiterea mesajului a esuat.');
+        setError('Message sending has failed.');
       }
       return false;
     } finally {
@@ -121,7 +118,7 @@ export const useChatSession = () => {
       );
       return true;
     } catch {
-      setError('Inchiderea sesiunii a esuat.');
+      setError('Session closing has failed.');
       return false;
     }
   };
@@ -140,7 +137,7 @@ export const useChatSession = () => {
       }
       return true;
     } catch {
-      setError('Redenumirea sesiunii a esuat.');
+      setError('Session renaming has failed.');
       return false;
     }
   };
@@ -155,7 +152,7 @@ export const useChatSession = () => {
       }
       return true;
     } catch {
-      setError('Stergerea sesiunii a esuat.');
+      setError('Session deletion has failed.');
       return false;
     }
   };

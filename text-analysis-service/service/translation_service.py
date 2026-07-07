@@ -4,7 +4,7 @@ GOOGLE_TRANSLATE_URL = "https://translation.googleapis.com/language/translate/v2
 
 
 class TranslationException(Exception):
-    """Exceptie ridicata cand Google Translate API este indisponibil sau returneaza eroare."""
+    """Exception when Google Translate API is unavailable."""
     pass
 
 
@@ -13,7 +13,7 @@ class TranslationService:
     def __init__(self, api_key: str):
         if not api_key:
             raise RuntimeError(
-                "GOOGLE_TRANSLATE_API_KEY nu este configurata. "
+                "GOOGLE_TRANSLATE_API_KEY is not configured. "
             )
         self._api_key = api_key
 
@@ -67,7 +67,7 @@ class TranslationService:
         except requests.exceptions.Timeout:
             raise TranslationException("Google Translate API exceeded the allowed time.")
         except requests.exceptions.ConnectionError:
-            raise TranslationException("Nu s-a putut stabili conexiunea cu Google Translate API.")
+            raise TranslationException("Could not connect to Google Translate API.")
 
         if response.status_code != 200:
             raise TranslationException(

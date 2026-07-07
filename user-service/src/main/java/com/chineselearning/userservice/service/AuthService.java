@@ -45,32 +45,27 @@ public class AuthService
     @Transactional
     public RegisterResponseDto register(RegisterRequestDto request)
     {
-        // Verificam daca emailul este deja inregistrat
         if (credentialDao.existsByEmail(request.getEmail()))
         {
             throw new IllegalArgumentException("Email already registered");
         }
 
-        // La register public sunt acceptate toate cele 3 roluri
         if (!request.getRole().equals("STUDENT") && !request.getRole().equals("TEACHER") && !request.getRole().equals("ADMIN"))
         {
             throw new IllegalArgumentException("Role must be STUDENT, TEACHER or ADMIN");
         }
 
-        // Construim entitatea Credential cu parola hash-uita
         Credential credential = new Credential();
         credential.setEmail(request.getEmail());
         credential.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         credential.setRole(request.getRole());
         credential.setCreatedAt(LocalDateTime.now());
 
-        // Construim entitatea User
         User user = new User();
         user.setFullName(request.getFullName());
         user.setCredential(credential);
         credential.setUser(user);
 
-        // Cream entitatea specifica rolului
         if (request.getRole().equals("STUDENT"))
         {
             Student student = new Student();
@@ -95,10 +90,10 @@ public class AuthService
         );
     }
 
+
+
     public AuthResponseDto login(AuthRequestDto request)
     {
-        // AuthenticationManager verifica email + parola folosind CustomUserDetailsService
-        // Arunca BadCredentialsException automat daca credentialele sunt invalide
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getEmail(),
@@ -106,13 +101,11 @@ public class AuthService
                 )
         );
 
-        // Incarcam Credential din DB pentru a extrage datele necesare token-ului
         Credential credential = credentialDao.findByEmailAndIsActiveTrue(request.getEmail())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(credential.getEmail());
 
-        // Adaugam userId si role ca extra claims in payload-ul JWT
         Map<String, Object> extraClaims = new HashMap<>();
         extraClaims.put("userId", credential.getId());
         extraClaims.put("role", credential.getRole());

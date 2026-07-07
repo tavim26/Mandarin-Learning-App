@@ -5,7 +5,7 @@ export interface AuthUser {
   userId: number;
   role: Role;
   fullName: string;
-  email?: string; // populat separat din GET /api/users/me
+  email?: string; 
 }
 
 export interface AuthRequestDto {

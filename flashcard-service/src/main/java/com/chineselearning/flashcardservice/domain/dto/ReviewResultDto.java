@@ -2,10 +2,8 @@ package com.chineselearning.flashcardservice.domain.dto;
 
 public class ReviewResultDto {
 
-    // Inregistrarea recenziei salvate
     private FlashcardReviewDto review;
 
-    // Starea SM-2 actualizata dupa recenzie
     private FlashcardProgressDto progress;
 
     public ReviewResultDto() {}

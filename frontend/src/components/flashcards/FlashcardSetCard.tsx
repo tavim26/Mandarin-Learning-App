@@ -13,16 +13,15 @@ export const FlashcardSetCard = ({ set, onClick, onStudy }: Props) => {
   const [isLoadingStats, setIsLoadingStats] = useState(false);
 
   const handleMouseEnter = useCallback(async () => {
-    if (stats) return; // Nu re-fetcha daca deja le avem
+    if (stats) return; 
     setIsLoadingStats(true);
     try {
-      // fetchSetStats seteaza in hook — avem nevoie sa returneze datele
-      // Alternativ: apelam direct flashcardApi
+     
       const { flashcardApi } = await import('@/api/flashcardApi');
       const result = await flashcardApi.getSetStats(set.id);
       setStats(result);
     } catch {
-      // Ignoram silentios
+      // silent ignore
     } finally {
       setIsLoadingStats(false);
     }
@@ -80,7 +79,7 @@ export const FlashcardSetCard = ({ set, onClick, onStudy }: Props) => {
         )}
       </div>
 
-      {/* Progress bar SM-2 — apare dupa hover */}
+      {/* Progress bar SM-2*/}
       {stats && stats.totalCards > 0 && (
         <div className="space-y-1.5 animate-fade-in">
           <div className="flex h-2 w-full overflow-hidden rounded-full bg-muted">

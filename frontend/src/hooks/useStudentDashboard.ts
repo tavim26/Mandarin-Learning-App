@@ -5,7 +5,7 @@ import { useFlashcards } from './useFlashcards';
 import { useContent } from './useContent';
 
 // Hook compozit — agrega datele necesare exclusiv pentru dashboard-ul studentului.
-// O singura sursa pentru pagina StudentDashboard, evita apeluri multiple in componenta.
+
 export const useStudentDashboard = () => {
   const { userId } = useAuthStore();
 

@@ -89,7 +89,8 @@ public class ExerciseDao implements IExerciseDao
         entity.setDifficulty(exercise.getDifficulty());
         entity.setContentData(exercise.getContentData());
 
-        if (exercise.getLesson() != null && exercise.getLesson().getId() != null) {
+        if (exercise.getLesson() != null && exercise.getLesson().getId() != null)
+        {
             entity.setLesson(lessonJpaRepository.getReferenceById(exercise.getLesson().getId()));
         }
 

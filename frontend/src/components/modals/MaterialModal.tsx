@@ -29,7 +29,7 @@ const MATERIAL_TYPES = [
   { value: 'link', label: 'External Link' },
 ];
 
-// Tipuri de fisiere acceptate per tip selectat
+// Tipuri de fisiere acceptate 
 const ACCEPTED_EXTENSIONS: Record<string, string> = {
   pdf: '.pdf',
   word: '.doc,.docx',
@@ -79,7 +79,7 @@ export const MaterialModal = ({
     if (!canSubmit()) return;
 
     if (isLink) {
-      // Per fluxul din README: POST /materials cu URL direct
+     
       const { contentApi } = await import('@/api/contentApi');
       try {
         await contentApi.createMaterial({
@@ -154,7 +154,7 @@ export const MaterialModal = ({
             </Select>
           </div>
 
-          {/* Link URL — doar pentru tip link */}
+          {/* Link URL */}
           {isLink && (
             <div className="space-y-1.5">
               <Label htmlFor="linkUrl">URL</Label>
@@ -171,7 +171,7 @@ export const MaterialModal = ({
             </div>
           )}
 
-          {/* File picker — pentru toate tipurile exceptand link */}
+          {/* File picker */}
           {type && !isLink && (
             <div className="space-y-1.5">
               <Label>File</Label>

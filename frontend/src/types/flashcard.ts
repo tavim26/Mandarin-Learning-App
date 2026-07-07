@@ -1,4 +1,3 @@
-// Scala calitate SM-2: 0=Again, 1=Again(hard), 2=Hard, 3=Good, 4=Good(easy), 5=Easy
 export type ReviewQuality = 0 | 1 | 2 | 3 | 4 | 5;
 
 export type Sm2Category = 'new' | 'learning' | 'mature' | 'due';
@@ -19,7 +18,7 @@ export interface FlashcardDto {
 }
 
 export interface FlashcardProgressDto {
-  id: number | null;         // null = card nou, nevazut niciodata
+  id: number | null;         
   studentId: number;
   flashcardId: number;
   easinessFactor: number;
@@ -87,5 +86,5 @@ export interface UpdateFlashcardRequest {
 export interface SubmitReviewRequest {
   flashcardId: number;
   quality: ReviewQuality;
-  // studentId absent — vine din X-User-Id header
+  
 }

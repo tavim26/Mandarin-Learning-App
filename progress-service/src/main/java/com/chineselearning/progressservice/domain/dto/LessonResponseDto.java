@@ -2,7 +2,6 @@ package com.chineselearning.progressservice.domain.dto;
 
 import java.util.List;
 
-// DTO folosit exclusiv pentru deserializarea raspunsurilor HTTP de la content-service
 public class LessonResponseDto
 {
 

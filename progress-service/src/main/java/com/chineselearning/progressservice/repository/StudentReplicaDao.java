@@ -35,8 +35,8 @@ public class StudentReplicaDao implements IStudentReplicaDao
     {
         try {
             jpaRepository.saveAndFlush(toEntity(replica));
-        } catch (DataIntegrityViolationException e) {
-            // Alta cerere concurenta a inserat replica intre check si save — ignorat intentionat
+        } catch (DataIntegrityViolationException ignored) {
+
         }
     }
 

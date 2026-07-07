@@ -49,7 +49,7 @@ export const useContent = () => {
       const data = await contentApi.getUnits(hskLevel);
       setUnits(data);
     } catch {
-      setError('Nu s-au putut incarca unitatile.');
+      setError('Could not load course units.');
     } finally {
       setIsLoading(false);
     }
@@ -62,7 +62,7 @@ export const useContent = () => {
       const data = await contentApi.getUnitFull(unitId);
       setCurrentUnit(data);
     } catch {
-      setError('Nu s-a putut incarca unitatea.');
+      setError('Could not load course unit.');
     } finally {
       setIsLoading(false);
     }
@@ -81,7 +81,7 @@ export const useContent = () => {
       setExerciseTypes(types);
       setMaterials(mats);
     } catch {
-      setError('Nu s-a putut incarca lectia.');
+      setError('Could not load lesson.');
     } finally {
       setIsLoading(false);
     }
@@ -97,7 +97,7 @@ export const useContent = () => {
       setUnits((prev) => [...prev, created]);
       return true;
     } catch {
-      setError('Crearea unitatii a esuat.');
+      setError('Unit creation has failed.');
       return false;
     } finally {
       setIsSaving(false);
@@ -117,7 +117,7 @@ export const useContent = () => {
       }
       return true;
     } catch {
-      setError('Actualizarea unitatii a esuat.');
+      setError('Unit update has failed.');
       return false;
     } finally {
       setIsSaving(false);
@@ -130,19 +130,22 @@ export const useContent = () => {
       setUnits((prev) => prev.filter((u) => u.id !== id));
       return true;
     } catch {
-      setError('Stergerea unitatii a esuat.');
+      setError('Unit deletion has failed.');
       return false;
     }
   };
 
-  // --- CRUD Lesson ---
+  
+
+
+
   const createLesson = async (
     data: Omit<LessonDto, 'id' | 'exercises'>
   ): Promise<boolean> => {
     setIsSaving(true);
     try {
       const created = await contentApi.createLesson(data);
-      // Actualizeaza lectiile din unitatea curenta in memorie
+      
       if (currentUnit?.id === created.unitId) {
         setCurrentUnit((prev) =>
           prev
@@ -152,7 +155,7 @@ export const useContent = () => {
       }
       return true;
     } catch {
-      setError('Crearea lectiei a esuat.');
+      setError('Lesson creation has failed.');
       return false;
     } finally {
       setIsSaving(false);
@@ -183,7 +186,7 @@ export const useContent = () => {
       }
       return true;
     } catch {
-      setError('Actualizarea lectiei a esuat.');
+      setError('Lesson update has failed.');
       return false;
     } finally {
       setIsSaving(false);
@@ -202,12 +205,15 @@ export const useContent = () => {
       }
       return true;
     } catch {
-      setError('Stergerea lectiei a esuat.');
+      setError('Lesson deletion has failed.');
       return false;
     }
   };
 
-  // --- CRUD Exercise ---
+  
+
+
+
   const createExercise = async (
     data: Omit<ExerciseDto, 'id'>
   ): Promise<boolean> => {
@@ -223,7 +229,7 @@ export const useContent = () => {
       }
       return true;
     } catch {
-      setError('Crearea exercitiului a esuat.');
+      setError('Exercise creation has failed.');
       return false;
     } finally {
       setIsSaving(false);
@@ -251,7 +257,7 @@ export const useContent = () => {
       }
       return true;
     } catch {
-      setError('Actualizarea exercitiului a esuat.');
+      setError('Exercise update has failed.');
       return false;
     } finally {
       setIsSaving(false);
@@ -273,12 +279,14 @@ export const useContent = () => {
       }
       return true;
     } catch {
-      setError('Stergerea exercitiului a esuat.');
+      setError('Exercise deletion has failed.');
       return false;
     }
   };
 
-  // --- Materials ---
+  
+
+
   const uploadAndCreateMaterial = async (
     lessonId: number,
     title: string,
@@ -287,14 +295,12 @@ export const useContent = () => {
   ): Promise<boolean> => {
     setIsSaving(true);
     try {
-      // Pasul 1: upload fisier → URL MinIO
-      const url = await contentApi.uploadMaterialFile(file);
-      // Pasul 2: salveaza materialul in DB cu URL-ul primit
+      const url = await contentApi.uploadMaterialFile(file)
       const created = await contentApi.createMaterial({ lessonId, title, type, url });
       setMaterials((prev) => [...prev, created]);
       return true;
     } catch {
-      setError('Incarcarea materialului a esuat.');
+      setError('Lesson material uploading has failed.');
       return false;
     } finally {
       setIsSaving(false);
@@ -307,7 +313,7 @@ export const useContent = () => {
       setMaterials((prev) => prev.filter((m) => m.id !== id));
       return true;
     } catch {
-      setError('Stergerea materialului a esuat.');
+      setError('Lesson material deletion has failed.');
       return false;
     }
   };

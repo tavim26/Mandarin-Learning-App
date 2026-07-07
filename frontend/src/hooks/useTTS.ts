@@ -9,7 +9,6 @@ export const useTTS = () => {
   const speak = useCallback((text: string, lang = 'zh-CN') => {
     if (!isSupported) return;
 
-    // Anuleaza orice timeout pending — previne race conditions la click rapid
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
@@ -17,7 +16,6 @@ export const useTTS = () => {
     window.speechSynthesis.cancel();
 
     timeoutRef.current = setTimeout(() => {
-      // Resume neconditional — scoate engine-ul din orice stare suspendata
       window.speechSynthesis.resume();
 
       const utterance = new SpeechSynthesisUtterance(text);

@@ -9,7 +9,7 @@ import type {
 } from '@/types';
 
 export const progressApi = {
-  // --- Tentative ---
+  
   submitAttempt: async (
     data: SubmitAttemptRequest
   ): Promise<ExerciseAttemptDto> => {
@@ -30,7 +30,7 @@ export const progressApi = {
     return res.data;
   },
 
-  // --- Progres lectii ---
+  
   getLessonProgress: async (
     studentId: number,
     lessonId: number
@@ -85,7 +85,7 @@ export const progressApi = {
     return res.data;
   },
 
-  // --- XP si nivel ---
+  
   getStudentReplica: async (studentId: number): Promise<StudentReplicaDto> => {
     const res = await apiClient.get<StudentReplicaDto>(
       `/api/progress/students/${studentId}`

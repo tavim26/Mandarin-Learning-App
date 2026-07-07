@@ -28,9 +28,7 @@ interface Props {
   onClose: () => void;
 }
 
-// ============================================================
-// Continut modal — montat fresh prin key la fiecare deschidere
-// ============================================================
+// Continut modal 
 const ModalContent = ({
   hanzi,
   pinyin,
@@ -46,7 +44,7 @@ const ModalContent = ({
   const [selectedSetId, setSelectedSetId] = useState('');
   const [success, setSuccess] = useState(false);
 
-  // Fetch sets la mount — pattern corect
+  
   useState(() => {
     fetchSets();
   });
@@ -169,9 +167,9 @@ const ModalContent = ({
   );
 };
 
-// ============================================================
+
+
 // Wrapper
-// ============================================================
 export const CreateFlashcardFromTokenModal = ({
   open,
   hanzi,

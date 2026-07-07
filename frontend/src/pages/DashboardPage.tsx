@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
-// Pagina de redirect — trimite userul catre dashboard-ul corespunzator rolului sau.
+// Pagina de redirect
 const DashboardPage = () => {
   const { role } = useAuth();
   const navigate = useNavigate();

@@ -17,9 +17,9 @@ import java.util.List;
 
 @Component
 @Order(1)
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
+public class JwtAuthenticationFilter extends OncePerRequestFilter
+{
 
-    // Endpoint-uri care nu necesita validare JWT
     private static final List<String> PUBLIC_PATHS = List.of(
             "/api/auth/register",
             "/api/auth/login"
@@ -27,27 +27,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil)
+    {
         this.jwtUtil = jwtUtil;
     }
 
     @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
+    protected boolean shouldNotFilter(HttpServletRequest request)
+    {
         String path = request.getRequestURI();
         return PUBLIC_PATHS.stream().anyMatch(path::startsWith);
     }
 
-    // ÎNLOCUIEȘTE întreaga metodă doFilterInternal CU:
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
             FilterChain filterChain
-    ) throws ServletException, IOException {
+    ) throws ServletException, IOException
+    {
 
         String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        if (authHeader == null || !authHeader.startsWith("Bearer "))
+        {
             response.setStatus(HttpStatus.UNAUTHORIZED.value());
             response.setContentType("application/json");
             response.getWriter().write("{\"error\": \"Token JWT lipsa sau invalid\"}");

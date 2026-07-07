@@ -24,10 +24,7 @@ const getFaviconUrl = (url: string): string => {
   }
 };
 
-// ============================================================
 // Preview per tip
-// ============================================================
-
 const ImagePreview = ({ url, title }: { url: string; title: string }) => (
   <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-border bg-muted">
     <img
@@ -121,9 +118,9 @@ const LinkPreview = ({ url }: { url: string }) => {
   );
 };
 
-// ============================================================
+
+
 // MaterialPreview — entry point
-// ============================================================
 export const MaterialPreview = ({ material }: Props) => {
   const type = material.type.toLowerCase();
 

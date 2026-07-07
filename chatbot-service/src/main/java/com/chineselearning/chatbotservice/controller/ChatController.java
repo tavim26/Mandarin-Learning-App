@@ -27,8 +27,6 @@ public class ChatController
     }
 
 
-    // SESIUNI
-
     @PostMapping("/sessions")
     public ResponseEntity<ChatSessionDto> createSession(
             @RequestHeader("X-User-Id") Long studentId,
@@ -53,7 +51,6 @@ public class ChatController
     }
 
 
-    // MESAJE
 
     @PostMapping("/sessions/{sessionId}/messages")
     public ResponseEntity<SendMessageResponse> sendMessage(
@@ -108,7 +105,7 @@ public class ChatController
     }
 
 
-    // EXCEPTION HANDLERS
+
 
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<String> handleNotFound(EntityNotFoundException e)

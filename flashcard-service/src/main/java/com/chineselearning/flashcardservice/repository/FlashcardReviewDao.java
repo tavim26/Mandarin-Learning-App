@@ -41,8 +41,6 @@ public class FlashcardReviewDao implements IFlashcardReviewDao
     }
 
 
-    // Conversie domain -> entity
-    // Necesita incarcarea FlashcardEntity din DB pentru a seta relatia JPA corecta
     private FlashcardReviewEntity toEntity(FlashcardReview domain)
     {
         FlashcardReviewEntity entity = new FlashcardReviewEntity();
@@ -51,7 +49,6 @@ public class FlashcardReviewDao implements IFlashcardReviewDao
         entity.setReviewedAt(domain.getReviewedAt());
         entity.setQuality(domain.getQuality());
 
-        // Relatia JPA necesita referinta la entitatea flashcard, nu doar id-ul
         FlashcardEntity flashcardEntity = flashcardJpaRepository.findById(domain.getFlashcardId())
                 .orElseThrow(() -> new RuntimeException("Flashcard-ul cu id " + domain.getFlashcardId() + " nu exista"));
         entity.setFlashcard(flashcardEntity);
@@ -59,7 +56,6 @@ public class FlashcardReviewDao implements IFlashcardReviewDao
         return entity;
     }
 
-    // Conversie entity -> domain
     private FlashcardReview toDomain(FlashcardReviewEntity entity)
     {
         FlashcardReview domain = new FlashcardReview();

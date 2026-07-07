@@ -20,12 +20,12 @@ export const useAuth = () => {
     try {
       const res = await authApi.login(data);
       setAuth({ ...res });
-      // Redirectioneaza pe baza rolului
+      
       if (res.role === 'ADMIN') navigate('/admin/dashboard');
       else if (res.role === 'TEACHER') navigate('/teacher/dashboard');
       else navigate('/dashboard');
     } catch (err: unknown) {
-      setError(extractErrorMessage(err, 'Email sau parola incorecte.'));
+      setError(extractErrorMessage(err, 'Incorrect email or password.'));
     } finally {
       setIsLoading(false);
     }
@@ -38,7 +38,7 @@ export const useAuth = () => {
       await authApi.register(data);
       navigate('/login');
     } catch (err: unknown) {
-      setError(extractErrorMessage(err, 'Inregistrarea a esuat.'));
+      setError(extractErrorMessage(err, 'Registration has failed.'));
     } finally {
       setIsLoading(false);
     }
@@ -62,7 +62,7 @@ export const useAuth = () => {
   };
 };
 
-// Helper intern — nu se exporta
+
 const extractErrorMessage = (err: unknown, fallback: string): string => {
   if (
     typeof err === 'object' &&

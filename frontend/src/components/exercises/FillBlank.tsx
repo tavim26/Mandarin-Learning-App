@@ -15,9 +15,7 @@ interface Chip {
   text: string;
 }
 
-// ============================================================
 // DraggableChip
-// ============================================================
 const DraggableChip = ({
   chip,
   disabled,
@@ -28,8 +26,6 @@ const DraggableChip = ({
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({ id: chip.id, disabled });
 
-  // Cand isDragging, NU aplicam transform pe original —
-  // DragOverlay se ocupa de vizualizarea in miscare
   const style = isDragging
     ? undefined
     : transform
@@ -60,9 +56,7 @@ const DraggableChip = ({
   );
 };
 
-// ============================================================
 // DroppableSlot — blank in propozitie
-// ============================================================
 const DroppableSlot = ({
   id,
   chip,
@@ -99,9 +93,9 @@ const DroppableSlot = ({
   );
 };
 
-// ============================================================
+
+
 // DroppablePool — zona chip-urilor disponibile
-// ============================================================
 const DroppablePool = ({ children }: { children: React.ReactNode }) => {
   const { setNodeRef, isOver } = useDroppable({ id: 'pool' });
 
@@ -119,9 +113,9 @@ const DroppablePool = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-// ============================================================
+
+
 // FillBlank
-// ============================================================
 interface Props {
   prompt: string;
   data: FillBlankData;
@@ -204,7 +198,7 @@ export const FillBlank = ({
         if (sourceSlotIdx >= 0) {
           newSlots[sourceSlotIdx] = existingChipId;
         }
-        // Daca sursa e pool, chip-ul existent ramane in pool (nu e in newSlots)
+        // Daca sursa e pool, chip-ul existent ramane in pool
       } else if (sourceSlotIdx >= 0) {
         newSlots[sourceSlotIdx] = null;
       }
@@ -229,7 +223,6 @@ export const FillBlank = ({
     setSlots(Array(data.correctAnswers.length).fill(null));
   };
 
-  // Parseaza prompt-ul in parti
   const parts = prompt.split('___');
   let slotCounter = 0;
 

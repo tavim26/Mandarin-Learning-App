@@ -54,7 +54,6 @@ public class FlashcardProgressDao implements IFlashcardProgressDao
 
 
 
-    // Conversie domain -> entity
     private FlashcardProgressEntity toEntity(FlashcardProgress domain)
     {
         FlashcardProgressEntity entity = new FlashcardProgressEntity();
@@ -73,7 +72,6 @@ public class FlashcardProgressDao implements IFlashcardProgressDao
         return entity;
     }
 
-    // Conversie entity -> domain
     private FlashcardProgress toDomain(FlashcardProgressEntity entity)
     {
         FlashcardProgress domain = new FlashcardProgress();

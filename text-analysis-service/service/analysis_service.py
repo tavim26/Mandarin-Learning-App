@@ -119,7 +119,6 @@ class AnalysisService:
 
     def get_student_stats(self, student_id: int) -> StudentStatsDto:
 
-        # statistica 1 — distributie tokeni pe nivel HSK
         raw_distribution = self._analysis_token_dao.get_token_hsk_distribution(student_id)
         token_distribution = [
             HskTokenDistributionDto(hsk_level=level, token_count=count)
