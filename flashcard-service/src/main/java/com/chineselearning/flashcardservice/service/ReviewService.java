@@ -154,7 +154,7 @@ public class ReviewService
         {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
-                    "Acces interzis: nu poti accesa datele altui student");
+                    "Access forbidden: you cannot access other students cards.");
         }
     }
 
