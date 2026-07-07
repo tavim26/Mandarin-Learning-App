@@ -22,7 +22,7 @@ export const ChatInput = ({
     if (!trimmed || isSending || isDisabled) return;
 
     setValue('');
-    // Reset height textarea
+   
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }

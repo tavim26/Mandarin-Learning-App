@@ -78,7 +78,7 @@ public class AuthorizationFilter extends OncePerRequestFilter {
 
         if (role == null || userIdHeader == null)
         {
-            sendForbidden(response, "Date de autentificare lipsa");
+            sendForbidden(response, "No authentication data");
             return;
         }
 
@@ -93,7 +93,7 @@ public class AuthorizationFilter extends OncePerRequestFilter {
             boolean blockedForTeacher = STUDENT_ONLY_PREFIXES.stream()
                     .anyMatch(path::startsWith);
             if (blockedForTeacher) {
-                sendForbidden(response, "Acces interzis pentru rolul TEACHER");
+                sendForbidden(response, "Access denied for TEACHER role");
                 return;
             }
         }
@@ -101,7 +101,7 @@ public class AuthorizationFilter extends OncePerRequestFilter {
         boolean isAdminOnly = ADMIN_ONLY_ROUTES.stream()
                 .anyMatch(rule -> rule.matches(method, path));
         if (isAdminOnly) {
-            sendForbidden(response, "Acces interzis — necesita rol ADMIN");
+            sendForbidden(response, "Access allowed only for ADMINS");
             return;
         }
 
@@ -117,7 +117,7 @@ public class AuthorizationFilter extends OncePerRequestFilter {
 
                     if (!resourceUserId.equals(authenticatedUserId))
                     {
-                        sendForbidden(response, "Acces interzis — resursa apartine altui utilizator");
+                        sendForbidden(response, "Access denied. This resource belongs to another user.");
                         return;
                     }
                     break;

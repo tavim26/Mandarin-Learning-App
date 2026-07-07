@@ -53,7 +53,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter
         {
             response.setStatus(HttpStatus.UNAUTHORIZED.value());
             response.setContentType("application/json");
-            response.getWriter().write("{\"error\": \"Token JWT lipsa sau invalid\"}");
+            response.getWriter().write("{\"error\": \"Invalid JWT Token\"}");
             return;
         }
 
@@ -62,7 +62,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter
         if (!jwtUtil.isTokenValid(token)) {
             response.setStatus(HttpStatus.UNAUTHORIZED.value());
             response.setContentType("application/json");
-            response.getWriter().write("{\"error\": \"Token JWT expirat sau corupt\"}");
+            response.getWriter().write("{\"error\": \"Expired or corrupt JWT TOKEN\"}");
             return;
         }
 
@@ -73,7 +73,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter
         if (userId == null || role == null || email == null) {
             response.setStatus(HttpStatus.UNAUTHORIZED.value());
             response.setContentType("application/json");
-            response.getWriter().write("{\"error\": \"Token JWT incomplet\"}");
+            response.getWriter().write("{\"error\": \"Incomplete JWT Token\"}");
             return;
         }
 

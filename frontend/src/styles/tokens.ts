@@ -1,7 +1,4 @@
-// src/styles/tokens.ts
-// Oglinda JavaScript a variabilelor CSS din index.css.
-// Folosit EXCLUSIV in contexte non-CSS: recharts, canvas, logica JS.
-// Pentru className, foloseste clasele Tailwind definite in index.css.
+
 
 export const colors = {
   primary:       '#e85d04',
@@ -14,7 +11,7 @@ export const colors = {
   mutedFg:       '#6b7280',
 } as const;
 
-// Folosit in recharts / chart.js pentru colorizarea seriilor per nivel
+
 export const hskColors: Record<number, string> = {
   1: '#15803d',
   2: '#0369a1',
@@ -26,7 +23,6 @@ export const hskColors: Record<number, string> = {
 
 export const hskUnknownColor = '#6b7280';
 
-// Folosit in recharts pentru distributia SM-2
 export const sm2CategoryColors = {
   new:      '#6b7280',
   learning: '#d97706',

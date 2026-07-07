@@ -17,16 +17,14 @@ const StudentLessonCompletePage = () => {
   const location = useLocation();
   const [showConfetti, setShowConfetti] = useState(true);
 
-  // Preluăm datele trimise prin navigate() din pagina anterioară
+  
   const state = location.state as LocationState | null;
 
-  // Oprim generarea de confetti noi după 5 secunde
   useEffect(() => {
     const timer = setTimeout(() => setShowConfetti(false), 5000);
     return () => clearTimeout(timer);
   }, []);
 
-  // Dacă cineva accesează direct URL-ul fără state, îl trimitem înapoi
   if (!state) {
     navigate('/lessons', { replace: true });
     return null;
@@ -46,7 +44,6 @@ const StudentLessonCompletePage = () => {
         className="absolute inset-0 z-50 pointer-events-none"
       />
 
-      {/* Trofeu cu animație de scalare/bounce */}
       <div className="relative mb-8 animate-bounce-slow">
         <div className="absolute inset-0 bg-yellow-400/20 rounded-full blur-3xl" />
         <Trophy className="h-32 w-32 text-yellow-500 relative z-10 drop-shadow-xl" />

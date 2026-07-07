@@ -15,7 +15,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/progress/students")
-@Tag(name = "Student Progress Summary", description = "Endpointuri pentru gestionarea XP-ului, nivelului si clasamentului studentilor")
+@Tag(name = "Student Progress Summary", description = "Endpoints for managing student XP, level, and leaderboard")
 public class StudentReplicaController
 {
 
@@ -28,8 +28,8 @@ public class StudentReplicaController
 
     @GetMapping("/leaderboard")
     @Operation(
-            summary = "Obtine clasamentul global",
-            description = "Returneaza primii 10 studenti ordonati dupa XP-ul total acumulat din toate lectiile."
+            summary = "Get the global leaderboard",
+            description = "Returns the top 10 students ordered by total XP accumulated across all lessons."
     )
     public ResponseEntity<List<StudentReplicaDto>> getLeaderboard()
     {
@@ -38,8 +38,8 @@ public class StudentReplicaController
 
     @GetMapping("/{studentId}")
     @Operation(
-            summary = "Obtine rezumatul progresului unui student",
-            description = "Returneaza XP-ul total si nivelul curent al studentului."
+            summary = "Get a student's progress summary",
+            description = "Returns the total XP and current level of the student."
     )
     public ResponseEntity<?> getStudentById(
             @PathVariable Long studentId,
@@ -58,8 +58,8 @@ public class StudentReplicaController
 
     @GetMapping("/{studentId}/exists")
     @Operation(
-            summary = "Verifica existenta replicii unui student",
-            description = "Returneaza true daca studentul a trimis cel putin o incercare si replica a fost creata."
+            summary = "Check whether a student's replica exists",
+            description = "Returns true if the student has submitted at least one attempt and the replica has been created."
     )
     public ResponseEntity<?> studentExists(
             @PathVariable Long studentId,
@@ -75,8 +75,8 @@ public class StudentReplicaController
 
     @GetMapping("/admin/all")
     @Operation(
-            summary = "Obtine toate replicile studentilor (admin)",
-            description = "Returneaza rezumatele de progres ale tuturor studentilor. Acces restrictionat la ADMIN."
+            summary = "Get all student replicas (admin)",
+            description = "Returns the progress summaries of all students. Access restricted to ADMIN."
     )
     public ResponseEntity<?> getAllStudents(@RequestHeader("X-User-Role") String role)
     {

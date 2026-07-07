@@ -17,7 +17,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/progress")
-@Tag(name = "Progress Tracking", description = "Endpointuri pentru gestionarea incercarilor la exercitii si progresul lectiilor")
+@Tag(name = "Progress Tracking", description = "Endpoints for managing exercise attempts and lesson progress")
 public class ProgressController
 {
 
@@ -30,8 +30,8 @@ public class ProgressController
 
     @PostMapping("/attempts")
     @Operation(
-            summary = "Trimite o incercare la un exercitiu",
-            description = "Evalueaza raspunsul studentului si actualizeaza progresul lectiei. Creeaza automat replica studentului la prima incercare."
+            summary = "Submit an exercise attempt",
+            description = "Evaluates the student's answer and updates the lesson progress. Automatically creates the student replica on the first attempt."
     )
     public ResponseEntity<?> submitAttempt(
             @Valid
@@ -52,8 +52,8 @@ public class ProgressController
 
     @GetMapping("/attempts/student/{studentId}/exercise/{exerciseId}")
     @Operation(
-            summary = "Obtine toate incercarile unui student la un exercitiu",
-            description = "Returneaza lista incercarilor unui student pentru un exercitiu specific, ordonate dupa numarul incercarii."
+            summary = "Get all attempts of a student for an exercise",
+            description = "Returns the list of a student's attempts for a specific exercise, ordered by attempt number."
     )
     public ResponseEntity<?> getStudentAttemptsForExercise(
             @PathVariable Long studentId,
@@ -77,8 +77,8 @@ public class ProgressController
 
     @GetMapping("/lessons/student/{studentId}/lesson/{lessonId}")
     @Operation(
-            summary = "Obtine progresul unui student la o lectie",
-            description = "Returneaza procentul de completare, statusul si XP-ul acordat pentru o lectie specifica."
+            summary = "Get a student's progress for a lesson",
+            description = "Returns the completion percentage, status, and XP awarded for a specific lesson."
     )
     public ResponseEntity<?> getLessonProgress(
             @PathVariable Long studentId,
@@ -101,8 +101,8 @@ public class ProgressController
 
     @GetMapping("/lessons/student/{studentId}")
     @Operation(
-            summary = "Obtine tot progresul unui student",
-            description = "Returneaza toate inregistrarile de progres ale unui student, pentru toate lectiile incepute."
+            summary = "Get all progress records of a student",
+            description = "Returns all progress records of a student, for every lesson started."
     )
     public ResponseEntity<?> getAllProgressForStudent(
             @PathVariable Long studentId,
@@ -122,8 +122,8 @@ public class ProgressController
 
     @GetMapping("/lessons/student/{studentId}/in-progress")
     @Operation(
-            summary = "Obtine lectiile in curs de desfasurare",
-            description = "Returneaza doar lectiile cu statusul IN_PROGRESS pentru un student."
+            summary = "Get the lessons currently in progress",
+            description = "Returns only the lessons with status IN_PROGRESS for a student."
     )
     public ResponseEntity<?> getInProgressLessons(
             @PathVariable Long studentId,
@@ -142,8 +142,8 @@ public class ProgressController
 
     @GetMapping("/lessons/{lessonId}/leaderboard")
     @Operation(
-            summary = "Obtine clasamentul unei lectii",
-            description = "Returneaza primii 10 studenti ordonati dupa procentul de completare pentru o lectie specifica."
+            summary = "Get the leaderboard for a lesson",
+            description = "Returns the top 10 students ordered by completion percentage for a specific lesson."
     )
     public ResponseEntity<List<StudentLessonProgressDto>> getLessonLeaderboard(@PathVariable Long lessonId)
     {
@@ -155,8 +155,8 @@ public class ProgressController
 
     @GetMapping("/students/{studentId}/summary")
     @Operation(
-            summary = "Obtine rezumatul dashboard-ului unui student",
-            description = "Returneaza XP, nivel, numar de lectii completate si in progres intr-un singur apel."
+            summary = "Get a student's dashboard summary",
+            description = "Returns XP, level, and the number of completed and in-progress lessons in a single call."
     )
     public ResponseEntity<?> getStudentSummary(
             @PathVariable Long studentId,
@@ -175,8 +175,8 @@ public class ProgressController
 
     @GetMapping("/units/{unitId}/student/{studentId}/progress")
     @Operation(
-            summary = "Obtine progresul unui student la o unitate",
-            description = "Returneaza numarul de lectii completate, in progres si neincepute dintr-o unitate, plus procentul de completare al unitatii."
+            summary = "Get a student's progress for a unit",
+            description = "Returns the number of completed, in-progress, and not-started lessons in a unit, plus the unit completion percentage."
     )
     public ResponseEntity<?> getUnitProgress(
             @PathVariable Long unitId,

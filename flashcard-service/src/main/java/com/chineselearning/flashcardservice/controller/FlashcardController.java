@@ -19,7 +19,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/flashcards")
-@Tag(name = "Flashcard Service", description = "Gestionarea seturilor de flashcard-uri, a cardurilor individuale si a recenziilor SM-2")
+@Tag(name = "Flashcard Service", description = "Management of flashcard sets, individual cards, and SM-2 reviews")
 public class FlashcardController
 {
 
@@ -35,8 +35,8 @@ public class FlashcardController
 
 
     @Operation(
-            summary = "Creare set nou",
-            description = "Creeaza un set nou de flashcard-uri pentru studentul autentificat."
+            summary = "Create new set",
+            description = "Creates a new flashcard set for the authenticated student."
     )
     @PostMapping("/sets")
     public ResponseEntity<FlashcardSetDto> createSet(
@@ -50,8 +50,8 @@ public class FlashcardController
 
 
     @Operation(
-            summary = "Seturi ale unui student",
-            description = "Returneaza toate seturile de flashcard-uri apartinand unui student, ordonate descrescator dupa id."
+            summary = "Sets belonging to a student",
+            description = "Returns all flashcard sets belonging to a student, ordered descending by id."
     )
     @GetMapping("/sets/student/{studentId}")
     public ResponseEntity<List<FlashcardSetDto>> getSetsByStudent(
@@ -64,8 +64,8 @@ public class FlashcardController
 
 
     @Operation(
-            summary = "Obtinere set dupa id",
-            description = "Returneaza detaliile unui set de flashcard-uri identificat prin id."
+            summary = "Get set by id",
+            description = "Returns the details of a flashcard set identified by id."
     )
     @GetMapping("/sets/{setId}")
     public ResponseEntity<FlashcardSetDto> getSetById(@PathVariable Long setId)
@@ -78,8 +78,8 @@ public class FlashcardController
 
 
     @Operation(
-            summary = "Actualizare set",
-            description = "Modifica titlul si descrierea unui set existent. Operatia este permisa doar proprietarului setului."
+            summary = "Update set",
+            description = "Modifies the title and description of an existing set. This operation is only allowed for the owner of the set."
     )
     @PutMapping("/sets/{setId}")
     public ResponseEntity<FlashcardSetDto> updateSet(
@@ -92,8 +92,8 @@ public class FlashcardController
     }
 
     @Operation(
-            summary = "Stergere set",
-            description = "Sterge un set si toate flashcard-urile din el. Operatia este permisa doar proprietarului setului."
+            summary = "Delete set",
+            description = "Deletes a set and all flashcards within it. This operation is only allowed for the owner of the set."
     )
     @DeleteMapping("/sets/{setId}")
     public ResponseEntity<Void> deleteSet(
@@ -110,8 +110,8 @@ public class FlashcardController
     // FLASHCARD-URI INDIVIDUALE
 
     @Operation(
-            summary = "Adaugare flashcard",
-            description = "Adauga un flashcard nou intr-un set existent. Operatia este permisa doar proprietarului setului."
+            summary = "Add flashcard",
+            description = "Adds a new flashcard to an existing set. This operation is only allowed for the owner of the set."
     )
     @PostMapping("/cards")
     public ResponseEntity<FlashcardDto> createFlashcard(
@@ -125,8 +125,8 @@ public class FlashcardController
 
 
     @Operation(
-            summary = "Cardurile unui set",
-            description = "Returneaza lista tuturor flashcard-urilor dintr-un set identificat prin id."
+            summary = "Cards belonging to a set",
+            description = "Returns the list of all flashcards within a set identified by id."
     )
     @GetMapping("/sets/{setId}/cards")
     public ResponseEntity<List<FlashcardDto>> getFlashcardsBySet(@PathVariable Long setId)
@@ -138,8 +138,8 @@ public class FlashcardController
 
 
     @Operation(
-            summary = "Obtinere flashcard dupa id",
-            description = "Returneaza detaliile unui flashcard individual identificat prin id."
+            summary = "Get flashcard by id",
+            description = "Returns the details of an individual flashcard identified by id."
     )
     @GetMapping("/cards/{flashcardId}")
     public ResponseEntity<FlashcardDto> getFlashcardById(@PathVariable Long flashcardId)
@@ -151,8 +151,8 @@ public class FlashcardController
 
 
     @Operation(
-            summary = "Actualizare flashcard",
-            description = "Modifica textul fetei si al versoului unui flashcard existent. Operatia este permisa doar proprietarului setului."
+            summary = "Update flashcard",
+            description = "Modifies the front and back text of an existing flashcard. This operation is only allowed for the owner of the set."
     )
     @PutMapping("/cards/{flashcardId}")
     public ResponseEntity<FlashcardDto> updateFlashcard(
@@ -168,8 +168,8 @@ public class FlashcardController
 
 
     @Operation(
-            summary = "Stergere flashcard",
-            description = "Sterge un flashcard dupa id. Operatia este permisa doar proprietarului setului."
+            summary = "Delete flashcard",
+            description = "Deletes a flashcard by id. This operation is only allowed for the owner of the set."
     )
     @DeleteMapping("/cards/{flashcardId}")
     public ResponseEntity<Void> deleteFlashcard(
@@ -185,9 +185,9 @@ public class FlashcardController
 
 
     @Operation(
-            summary = "Statistici set",
-            description = "Returneaza distributia cardurilor dintr-un set per categorie SM-2: " +
-                    "new, learning, mature, scadente azi si easiness factor mediu."
+            summary = "Set statistics",
+            description = "Returns the distribution of cards within a set per SM-2 category: " +
+                    "new, learning, mature, due today, and average easiness factor."
     )
     @GetMapping("/sets/{setId}/stats")
     public ResponseEntity<FlashcardSetStatsDto> getSetStats(
@@ -200,10 +200,10 @@ public class FlashcardController
 
 
     @Operation(
-            summary = "Total carduri scadente — toate seturile",
-            description = "Returneaza numarul total de carduri scadente azi pentru studentul autentificat, " +
-                    "detaliat per set. Include carduri nevazute niciodata si carduri cu nextReviewAt <= now. " +
-                    "Seturile fara carduri scadente sunt excluse din raspuns."
+            summary = "Total due cards — all sets",
+            description = "Returns the total number of cards due today for the authenticated student, " +
+                    "broken down per set. Includes cards never seen before and cards with nextReviewAt <= now. " +
+                    "Sets with no due cards are excluded from the response."
     )
     @GetMapping("/reviews/due/all")
     public ResponseEntity<TotalDueStatsDto> getTotalDueStats(
@@ -219,9 +219,9 @@ public class FlashcardController
     // RECENZII SI PROGRES SM-2
 
     @Operation(
-            summary = "Trimitere recenzie",
-            description = "Inregistreaza scorul de calitate (0-5) al studentului pentru un flashcard. " +
-                    "Ruleaza algoritmul SM-2 si returneaza recenzia salvata impreuna cu starea SM-2 actualizata."
+            summary = "Submit review",
+            description = "Records the student's quality score (0-5) for a flashcard. " +
+                    "Runs the SM-2 algorithm and returns the saved review together with the updated SM-2 state."
     )
     @PostMapping("/reviews")
     public ResponseEntity<ReviewResultDto> submitReview(
@@ -236,9 +236,9 @@ public class FlashcardController
 
 
     @Operation(
-            summary = "Carduri scadente pentru recenzie",
-            description = "Returneaza toate flashcard-urile unui student pentru care next_review_at este in trecut, " +
-                    "precum si cardurile care nu au fost niciodata recenzate."
+            summary = "Cards due for review",
+            description = "Returns all of a student's flashcards for which next_review_at is in the past, " +
+                    "as well as cards that have never been reviewed."
     )
     @GetMapping("/reviews/due/{studentId}")
     public ResponseEntity<List<FlashcardProgressDto>> getDueFlashcards(
@@ -254,9 +254,9 @@ public class FlashcardController
 
 
     @Operation(
-            summary = "Istoric recenzii",
-            description = "Returneaza istoricul complet al recenziilor unui student pentru un flashcard specific, " +
-                    "ordonat cronologic ascendent."
+            summary = "Review history",
+            description = "Returns the complete review history of a student for a specific flashcard, " +
+                    "ordered chronologically ascending."
     )
     @GetMapping("/reviews/history/{studentId}/{flashcardId}")
     public ResponseEntity<List<FlashcardReviewDto>> getReviewHistory(
@@ -272,9 +272,9 @@ public class FlashcardController
 
 
     @Operation(
-            summary = "Stare SM-2 curenta",
-            description = "Returneaza starea curenta a algoritmului SM-2 pentru un student si un flashcard specific. " +
-                    "Contine easiness factor, interval curent si data urmatoarei recenzii."
+            summary = "Current SM-2 state",
+            description = "Returns the current SM-2 algorithm state for a specific student and flashcard. " +
+                    "Contains the easiness factor, current interval, and the date of the next review."
     )
     @GetMapping("/reviews/progress/{studentId}/{flashcardId}")
     public ResponseEntity<FlashcardProgressDto> getProgress(
