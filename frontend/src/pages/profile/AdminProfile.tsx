@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,11 +30,16 @@ type EmailForm = z.infer<typeof emailSchema>;
 type PasswordForm = z.infer<typeof passwordSchema>;
 
 const AdminProfile = () => {
-  const { fullName } = useAuthStore();
+  const { fullName, token } = useAuthStore();
   const { error, successMessage, updateEmail, updatePassword } = useProfile();
 
+  const [showOld, setShowOld] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+
+
+  
+  
 
   const emailForm = useForm<EmailForm>({
     resolver: zodResolver(emailSchema),
@@ -59,12 +64,31 @@ const AdminProfile = () => {
     const success = await updatePassword(data.oldPassword, data.newPassword);
     if (success) {
       passwordForm.reset({
-        oldPassword: '········',
+        oldPassword: '',
         newPassword: '',
         confirmPassword: '',
       });
     }
   };
+
+
+  useEffect(() => {
+    if (token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const payload = JSON.parse(atob(base64));
+        
+        if (payload.sub) {
+          emailForm.reset({ email: payload.sub });
+        }
+      } catch (e) {
+        console.error("JWT Token decoding has failed", e);
+      }
+    }
+  }, [token, emailForm]);
+
+
 
   return (
     <div className="space-y-6 animate-fade-in max-w-2xl">
@@ -149,6 +173,32 @@ const AdminProfile = () => {
           onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}
           className="space-y-3"
         >
+
+
+          <div className="space-y-1.5">
+            <Label htmlFor="oldPassword">Current Password</Label>
+            <div className="relative">
+              <Input
+                id="oldPassword"
+                type={showOld ? 'text' : 'password'}
+                {...passwordForm.register('oldPassword')}
+                placeholder="Enter current password"
+                className="input-branded pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowOld((p) => !p)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showOld ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {passwordForm.formState.errors.oldPassword && (
+              <p className="text-xs text-destructive">
+                {passwordForm.formState.errors.oldPassword.message}
+              </p>
+            )}
+          </div>
           
 
           <div className="space-y-1.5">

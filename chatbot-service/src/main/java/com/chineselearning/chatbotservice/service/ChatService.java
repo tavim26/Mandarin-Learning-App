@@ -82,6 +82,7 @@ public class ChatService
 
     @Transactional
     public SendMessageResponse sendMessage(Long sessionId, Long requestingStudentId, SendMessageRequest request) throws AccessDeniedException {
+
         ChatSession session = chatSessionDao.findById(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException("Session with id" + sessionId + " does not exist."));
 

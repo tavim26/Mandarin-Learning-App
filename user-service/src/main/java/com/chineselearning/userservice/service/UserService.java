@@ -305,23 +305,29 @@ public class UserService
 
     private StudentProfileDto mapToStudentProfileDto(User user)
     {
+        boolean isBanned = !user.getCredential().isActive();
+
         return new StudentProfileDto(
                 user.getId(),
                 user.getFullName(),
                 user.getCredential().getRole(),
                 user.getStudent() != null ? user.getStudent().getNickname() : null,
-                user.getCredential().getEmail()
+                user.getCredential().getEmail(),
+                isBanned
         );
     }
 
     private TeacherProfileDto mapToTeacherProfileDto(User user)
     {
+        boolean isBanned = !user.getCredential().isActive();
+
         return new TeacherProfileDto(
                 user.getId(),
                 user.getFullName(),
                 user.getCredential().getRole(),
                 user.getTeacher() != null ? user.getTeacher().getTitle() : null,
-                user.getCredential().getEmail()
+                user.getCredential().getEmail(),
+                isBanned
         );
     }
 
@@ -330,10 +336,14 @@ public class UserService
 
 
     private UserDto mapToUserDto(User user) {
+
+        boolean isBanned = !user.getCredential().isActive();
+
         return new UserDto(
                 user.getId(),
                 user.getFullName(),
-                user.getCredential().getRole()
+                user.getCredential().getRole(),
+                isBanned
         );
     }
 

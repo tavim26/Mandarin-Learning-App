@@ -28,7 +28,7 @@ export const TranslationExercise = ({
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Translate the following into Romanian or English:
+        Translate the following:
       </p>
       <div className="rounded-lg bg-muted/50 border border-border px-4 py-3">
         <p className="font-display text-2xl text-foreground tracking-wide">

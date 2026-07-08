@@ -7,14 +7,16 @@ public class TeacherProfileDto
     private String role;
     private String title;
     private String email;
+    private boolean isBanned;
 
-    public TeacherProfileDto(Long userId, String fullName, String role, String title, String email)
+    public TeacherProfileDto(Long userId, String fullName, String role, String title, String email, boolean isBanned)
     {
         this.userId = userId;
         this.fullName = fullName;
         this.role = role;
         this.title = title;
         this.email = email;
+        this.isBanned = isBanned;
     }
 
     public Long getUserId() { return userId; }
@@ -22,4 +24,5 @@ public class TeacherProfileDto
     public String getRole() { return role; }
     public String getTitle() { return title; }
     public String getEmail() { return email; }
+    public boolean isBanned() { return isBanned; }
 }

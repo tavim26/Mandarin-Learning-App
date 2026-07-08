@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Users, Plus, Trash2, KeyRound, Pencil, Search } from 'lucide-react';
+import { Users, Plus, Trash2, KeyRound, Pencil, Search, Ban, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/common/PageHeader';
@@ -11,6 +11,7 @@ import { ResetPasswordModal } from '@/components/modals/ResetPasswordModal';
 import { DeleteConfirmModal } from '@/components/modals/DeleteConfirmModal';
 import { EditStudentModal } from '@/components/modals/EditStudentModal';
 import { EditTeacherModal } from '@/components/modals/EditTeacherModal';
+import { BanConfirmModal } from '@/components/modals/BanConfirmModal';
 import { useUsers } from '@/hooks/useUsers';
 
 import type { Role } from '@/hooks/useAuth';
@@ -29,6 +30,8 @@ const AdminUsersPage = () => {
     fetchStudents,
     fetchTeachers,
     deleteUser,
+    banUser,
+    unbanUser
   } = useUsers();
 
   const [searchStudents, setSearchStudents] = useState('');
@@ -45,6 +48,7 @@ const AdminUsersPage = () => {
   id: number;
   fullName: string;
   role: Role;
+  banned: boolean;
 } | null>(null);
 
   const [deleteTarget, setDeleteTarget] = useState<{
@@ -52,6 +56,12 @@ const AdminUsersPage = () => {
     name: string;
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+
+  const [banTarget, setBanTarget] = useState<{ id: number; name: string; banned: boolean } | null>(null);
+  const [isBanning, setIsBanning] = useState(false);
+
+
 
   useEffect(() => {
     fetchStudents();
@@ -74,6 +84,23 @@ const AdminUsersPage = () => {
     }
   };
 
+
+  const handleToggleBan = async () => {
+    if (!banTarget) return;
+    setIsBanning(true);
+    
+    const success = banTarget.banned 
+      ? await unbanUser(banTarget.id) 
+      : await banUser(banTarget.id);
+      
+    setIsBanning(false);
+    
+    if (success) {
+      setBanTarget(null);
+      refresh(); // Re-fetch pentru a actualiza state-ul vizual
+    }
+  };
+
   const filteredStudents = students.filter(
     (s) =>
       s.fullName.toLowerCase().includes(searchStudents.toLowerCase()) ||
@@ -91,6 +118,9 @@ const AdminUsersPage = () => {
     if (role === 'TEACHER') return 'bg-teacher/10 text-teacher';
     return 'bg-muted text-muted-foreground';
   };
+
+
+
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -195,15 +225,38 @@ const AdminUsersPage = () => {
                             <button
                               onClick={() =>
                                 setResetTarget({
-  id: student.userId,
-  fullName: student.fullName,
-  role: student.role as Role,
-})
+                                  id: student.userId,
+                                  fullName: student.fullName,
+                                  role: student.role as Role,
+                                  banned: student.banned,
+                                })
                               }
                               title="Reset password"
                               className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:text-teacher hover:bg-teacher/10 transition-colors"
                             >
                               <KeyRound className="h-3.5 w-3.5" />
+                            </button>
+                            {/* NOU: Butonul de Ban/Unban pentru Studenți */}
+                            <button
+                              onClick={() =>
+                                setBanTarget({
+                                  id: student.userId,
+                                  name: student.fullName,
+                                  banned: student.banned,
+                                })
+                              }
+                              title={student.banned ? 'Unban student' : 'Ban student'}
+                              className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${
+                                student.banned
+                                  ? 'text-green-600 hover:bg-green-600/10'
+                                  : 'text-muted-foreground hover:text-amber-600 hover:bg-amber-600/10'
+                              }`}
+                            >
+                              {student.banned ? (
+                                <ShieldCheck className="h-3.5 w-3.5" />
+                              ) : (
+                                <Ban className="h-3.5 w-3.5" />
+                              )}
                             </button>
                             <button
                               onClick={() =>
@@ -305,15 +358,38 @@ const AdminUsersPage = () => {
                             <button
                               onClick={() =>
                                 setResetTarget({
-  id: teacher.userId,
-  fullName: teacher.fullName,
-  role: teacher.role as Role,
-})
+                                  id: teacher.userId,
+                                  fullName: teacher.fullName,
+                                  role: teacher.role as Role,
+                                  banned: teacher.banned,
+                                })
                               }
                               title="Reset password"
                               className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:text-teacher hover:bg-teacher/10 transition-colors"
                             >
                               <KeyRound className="h-3.5 w-3.5" />
+                            </button>
+                            {/* NOU: Butonul de Ban/Unban pentru Profesori */}
+                            <button
+                              onClick={() =>
+                                setBanTarget({
+                                  id: teacher.userId,
+                                  name: teacher.fullName,
+                                  banned: teacher.banned,
+                                })
+                              }
+                              title={teacher.banned ? 'Unban teacher' : 'Ban teacher'}
+                              className={`flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${
+                                teacher.banned
+                                  ? 'text-green-600 hover:bg-green-600/10'
+                                  : 'text-muted-foreground hover:text-amber-600 hover:bg-amber-600/10'
+                              }`}
+                            >
+                              {teacher.banned ? (
+                                <ShieldCheck className="h-3.5 w-3.5" />
+                              ) : (
+                                <Ban className="h-3.5 w-3.5" />
+                              )}
                             </button>
                             <button
                               onClick={() =>
@@ -361,11 +437,11 @@ const AdminUsersPage = () => {
       />
 
       <ResetPasswordModal
-  open={!!resetTarget}
-  user={resetTarget}
-  onClose={() => setResetTarget(null)}
-  onSuccess={() => setResetTarget(null)}
-/>
+        open={!!resetTarget}
+        user={resetTarget}
+        onClose={() => setResetTarget(null)}
+        onSuccess={() => setResetTarget(null)}
+      />
 
       <DeleteConfirmModal
         open={!!deleteTarget}
@@ -374,6 +450,15 @@ const AdminUsersPage = () => {
         isLoading={isDeleting}
         onConfirm={handleDelete}
         onClose={() => setDeleteTarget(null)}
+      />
+
+      {/* NOU: Modalul de confirmare pentru Ban/Unban */}
+      <BanConfirmModal
+        open={!!banTarget}
+        user={banTarget}
+        isLoading={isBanning}
+        onConfirm={handleToggleBan}
+        onClose={() => setBanTarget(null)}
       />
     </div>
   );

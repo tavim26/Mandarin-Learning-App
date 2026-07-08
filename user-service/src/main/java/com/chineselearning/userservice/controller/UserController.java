@@ -6,7 +6,6 @@ import com.chineselearning.userservice.domain.dto.TeacherDto;
 import com.chineselearning.userservice.domain.dto.UserDto;
 import com.chineselearning.userservice.domain.dto.StudentProfileDto;
 import com.chineselearning.userservice.domain.dto.TeacherProfileDto;
-import java.util.Map;
 
 import com.chineselearning.userservice.service.UserService;
 

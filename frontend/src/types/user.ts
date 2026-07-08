@@ -4,6 +4,7 @@ export interface UserDto {
   id: number;
   fullName: string;
   role: Role;
+  banned: boolean;
 }
 
 export interface StudentDto {
@@ -17,6 +18,7 @@ export interface StudentProfileDto {
   role: 'STUDENT';
   nickname: string;
   email: string;
+  banned: boolean;
 }
 
 export interface TeacherDto {
@@ -30,4 +32,5 @@ export interface TeacherProfileDto {
   role: 'TEACHER';
   title: string;
   email: string;
+  banned: boolean;
 }

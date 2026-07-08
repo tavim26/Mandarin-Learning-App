@@ -38,7 +38,7 @@ type NicknameForm = z.infer<typeof nicknameSchema>;
 type PasswordForm = z.infer<typeof passwordSchema>;
 
 const StudentProfile = () => {
-  const { fullName } = useAuthStore();
+  const { fullName, token } = useAuthStore();
   const {
     studentProfile,
     isLoading,
@@ -49,6 +49,7 @@ const StudentProfile = () => {
     updateNickname,
   } = useProfile();
 
+  const [showOld, setShowOld] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -80,6 +81,23 @@ const StudentProfile = () => {
     }
   }, [studentProfile]);
 
+
+
+  useEffect(() => {
+    if (token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const payload = JSON.parse(atob(base64));
+        
+        if (payload.sub) {
+          emailForm.reset({ email: payload.sub });
+        }
+      } catch (e) {
+        console.error("JWT Token decoding has failed", e);
+      }
+    }
+  }, [token, emailForm]);
   
 
   const onEmailSubmit = async (data: EmailForm) => {
@@ -90,6 +108,9 @@ const StudentProfile = () => {
   const onNicknameSubmit = async (data: NicknameForm) => {
     await updateNickname(data.nickname);
   };
+
+
+  
 
   const onPasswordSubmit = async (data: PasswordForm) => {
     const success = await updatePassword(data.oldPassword, data.newPassword);
@@ -233,6 +254,32 @@ const StudentProfile = () => {
           onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}
           className="space-y-3"
         >
+
+
+          <div className="space-y-1.5">
+            <Label htmlFor="oldPassword">Current Password</Label>
+            <div className="relative">
+              <Input
+                id="oldPassword"
+                type={showOld ? 'text' : 'password'}
+                {...passwordForm.register('oldPassword')}
+                placeholder="Enter current password"
+                className="input-branded pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowOld((p) => !p)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showOld ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {passwordForm.formState.errors.oldPassword && (
+              <p className="text-xs text-destructive">
+                {passwordForm.formState.errors.oldPassword.message}
+              </p>
+            )}
+          </div>
           
           {/* New password */}
           <div className="space-y-1.5">

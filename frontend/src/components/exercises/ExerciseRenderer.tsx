@@ -47,7 +47,7 @@ export const ExerciseRenderer = ({
       return (
         <div className="flex items-center gap-2 rounded-lg border border-student/30 bg-student/8 px-4 py-3 text-sm text-student animate-slide-up">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
-          <span className="font-medium">Correct!</span>
+          <span className="font-medium"> </span>
           {attemptResult.feedbackText && (
             <span className="text-student/80 ml-1">{attemptResult.feedbackText}</span>
           )}
@@ -57,7 +57,7 @@ export const ExerciseRenderer = ({
     return (
       <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/8 px-4 py-3 text-sm text-destructive animate-slide-up">
         <XCircle className="h-4 w-4 shrink-0" />
-        <span className="font-medium">Incorrect</span>
+        <span className="font-medium"> </span>
         {attemptResult.feedbackText && (
           <span className="text-destructive/80 ml-1">{attemptResult.feedbackText}</span>
         )}
