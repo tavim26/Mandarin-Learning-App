@@ -136,7 +136,7 @@ export const FillBlank = ({
       .map((text, i) => ({ id: `chip-${i}`, text }))
   );
 
-  // slots[i] = chip.id | null
+  
   const [slots, setSlots] = useState<(string | null)[]>(() =>
     Array(data.correctAnswers.length).fill(null)
   );
@@ -194,11 +194,11 @@ export const FillBlank = ({
       const newSlots = [...slots];
 
       if (existingChipId && existingChipId !== chipId) {
-        // Swap: chip existent merge in slot sursa sau inapoi in pool
+       
         if (sourceSlotIdx >= 0) {
           newSlots[sourceSlotIdx] = existingChipId;
         }
-        // Daca sursa e pool, chip-ul existent ramane in pool
+        
       } else if (sourceSlotIdx >= 0) {
         newSlots[sourceSlotIdx] = null;
       }

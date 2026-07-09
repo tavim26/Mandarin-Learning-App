@@ -39,6 +39,7 @@ export const useAnalysis = () => {
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+
   const fetchList = useCallback(
     async (params?: AnalysisListParams) => {
       if (!userId) return;
@@ -55,6 +56,7 @@ export const useAnalysis = () => {
     },
     [userId]
   );
+
 
   const fetchStats = useCallback(async () => {
     if (!userId) return;
@@ -116,6 +118,7 @@ export const useAnalysis = () => {
     }
   };
 
+
   const analyzeOcr = async (
     image: File,
     language: TranslationLanguage = 'en'
@@ -142,6 +145,8 @@ export const useAnalysis = () => {
       setIsAnalyzing(false);
     }
   };
+
+
 
   const previewText = useCallback(async (text: string) => {
     if (!text.trim()) return;
@@ -178,6 +183,7 @@ export const useAnalysis = () => {
     }
   };
 
+  
   return {
     analysisList,
     currentAnalysis,

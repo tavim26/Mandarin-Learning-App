@@ -190,7 +190,7 @@ const AppRouter = () => {
           }
         />
 
-        {/* --- Student --- */}
+        {/* Student */}
         <Route
           path="/student/dashboard"
           element={
@@ -267,7 +267,7 @@ const AppRouter = () => {
   }
 />
 
-        {/* --- Teacher --- */}
+        {/* Teacher  */}
         <Route
           path="/teacher/dashboard"
           element={
@@ -303,7 +303,7 @@ const AppRouter = () => {
   }
 />
 
-        {/* --- Admin --- */}
+        {/*  Admin  */}
         <Route
           path="/admin/dashboard"
           element={
@@ -321,7 +321,7 @@ const AppRouter = () => {
           }
         />
 
-        {/* --- Profile --- */}
+        {/* Profile */}
         <Route
           path="/profile/student"
           element={
@@ -347,7 +347,7 @@ const AppRouter = () => {
           }
         />
 
-        {/* --- Shared --- */}
+        {/* Shared */}
         <Route
           path="/chat"
           element={

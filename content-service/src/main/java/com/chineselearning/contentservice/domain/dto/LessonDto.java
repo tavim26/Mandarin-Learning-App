@@ -1,6 +1,7 @@
 package com.chineselearning.contentservice.domain.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
 
@@ -8,14 +9,14 @@ public class LessonDto {
 
     private Long id;
 
-    @NotBlank(message = "Unit id is mandatory")
+    @NotNull(message = "Unit id is mandatory")
     private Long unitId;
 
     @NotBlank(message = "Lesson title is mandatory")
     private String title;
     private String description;
 
-    @NotBlank(message = "XP reward is mandatory")
+    @NotNull(message = "XP reward is mandatory")
     private Integer xpReward;
     private Integer orderIndex;
     private List<ExerciseDto> exercises;

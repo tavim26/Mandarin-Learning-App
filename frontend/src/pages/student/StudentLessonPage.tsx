@@ -97,7 +97,7 @@ const MaterialsPanel = ({
                 </a>
               </div>
 
-              {/* Preview inline pentru audio/video */}
+              {/* Preview pentru audio/video */}
               {material.type.toLowerCase() === 'audio' && (
                 <audio
                   controls
@@ -333,7 +333,7 @@ const StudentLessonPage = () => {
 
             {attemptResult ? (
               <div className="flex items-center gap-3">
-                {/* Butonul de Try Again apare doar dacă răspunsul este greșit */}
+                {/* Butonul de Try Again */}
                 {!attemptResult.isCorrect && (
                   <Button 
                     onClick={handleTryAgain} 

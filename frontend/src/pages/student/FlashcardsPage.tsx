@@ -20,10 +20,6 @@ import { DeleteConfirmModal } from '@/components/modals/DeleteConfirmModal';
 import { useFlashcards } from '@/hooks/useFlashcards';
 import type { FlashcardSetDto } from '@/hooks/useFlashcards';
 
-// ============================================================
-// SetFormContent — montat fresh la fiecare deschidere prin key
-// Zero useEffect — useState se initializeaza direct din props
-// ============================================================
 interface SetFormContentProps {
   initial?: FlashcardSetDto | null;
   onClose: () => void;
@@ -101,10 +97,7 @@ const SetFormContent = ({
   );
 };
 
-// ============================================================
-// SetFormModal — wrapper Dialog
-// key pe SetFormContent garanteaza remount la fiecare deschidere
-// ============================================================
+
 interface SetFormModalProps {
   open: boolean;
   initial?: FlashcardSetDto | null;
@@ -135,9 +128,7 @@ const SetFormModal = ({
   );
 };
 
-// ============================================================
-// FlashcardsPage
-// ============================================================
+
 const FlashcardsPage = () => {
   const navigate = useNavigate();
   const {
@@ -245,7 +236,7 @@ const FlashcardsPage = () => {
   onStudy={() => navigate(`/flashcards/review/${set.id}`)}
 />
 
-              {/* Actiuni edit/delete — apar la hover */}
+              {/* Actiuni edit/delete  */}
               <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={(e) => {

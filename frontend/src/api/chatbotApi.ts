@@ -9,7 +9,7 @@ import type {
 } from '@/types';
 
 export const chatbotApi = {
-  // --- Sesiuni ---
+ 
   createSession: async (
     data: CreateSessionRequest
   ): Promise<ChatSessionDto> => {
@@ -59,7 +59,7 @@ export const chatbotApi = {
     await apiClient.delete(`/api/chatbot/sessions/${sessionId}`);
   },
 
-  // --- Mesaje ---
+  
   sendMessage: async (
     sessionId: number,
     data: SendMessageRequest

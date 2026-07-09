@@ -18,7 +18,7 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { useProgress } from '@/hooks/useProgress';
 import { colors } from '@/styles/tokens';
 
-// Tooltip personalizat consistent cu design system-ul
+// Tooltip personalizat 
 const CustomTooltip = ({
   active,
   payload,
@@ -67,7 +67,7 @@ const AdminStatsPage = () => {
       const data = await progressApi.getAllStudentsAdmin();
       setAllStudents(data);
     } catch {
-      // Ignoram silentios
+      // Ignore
     } finally {
       setIsLoadingAll(false);
     }
@@ -335,7 +335,6 @@ const AdminStatsPage = () => {
   );
 };
 
-// Import useState — adaugat dupa scriere
 import { useState } from 'react';
 
 export default AdminStatsPage;

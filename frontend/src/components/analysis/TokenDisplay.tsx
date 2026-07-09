@@ -33,7 +33,7 @@ export const TokenDisplay = ({ token, showHskBadge = true }: Props) => {
     [speak, token.hanzi]
   );
 
-  // Punctuatia nu este interactiva
+  
   if (token.pos === 'punctuatie') {
     return (
       <span className="text-muted-foreground font-display text-xl">

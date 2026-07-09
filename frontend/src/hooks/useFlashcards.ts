@@ -26,6 +26,8 @@ export const useFlashcards = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+
+
   const fetchSets = useCallback(async () => {
     if (!userId) return;
     setIsLoading(true);
@@ -40,6 +42,8 @@ export const useFlashcards = () => {
     }
   }, [userId]);
 
+
+
   const fetchCards = useCallback(async (setId: number) => {
     setIsLoading(true);
     setError(null);
@@ -52,6 +56,8 @@ export const useFlashcards = () => {
       setIsLoading(false);
     }
   }, []);
+
+
 
   const fetchSetStats = useCallback(async (setId: number) => {
     try {
@@ -71,6 +77,8 @@ export const useFlashcards = () => {
     }
   }, []);
 
+
+
   const createSet = async (
     data: CreateFlashcardSetRequest
   ): Promise<FlashcardSetDto | null> => {
@@ -86,6 +94,8 @@ export const useFlashcards = () => {
       setIsSaving(false);
     }
   };
+
+
 
   const updateSet = async (
     setId: number,
@@ -104,6 +114,8 @@ export const useFlashcards = () => {
     }
   };
 
+
+
   const deleteSet = async (setId: number): Promise<boolean> => {
     try {
       await flashcardApi.deleteSet(setId);
@@ -115,6 +127,8 @@ export const useFlashcards = () => {
     }
   };
 
+
+
   const createCard = async (
     data: CreateFlashcardRequest
   ): Promise<boolean> => {
@@ -122,7 +136,7 @@ export const useFlashcards = () => {
     try {
       const created = await flashcardApi.createCard(data);
       setCurrentCards((prev) => [...prev, created]);
-      // Actualizeaza cardCount in lista de seturi
+      
       setSets((prev) =>
         prev.map((s) =>
           s.id === data.setId ? { ...s, cardCount: s.cardCount + 1 } : s
@@ -136,6 +150,8 @@ export const useFlashcards = () => {
       setIsSaving(false);
     }
   };
+
+
 
   const updateCard = async (
     flashcardId: number,
@@ -156,6 +172,8 @@ export const useFlashcards = () => {
     }
   };
 
+
+
   const deleteCard = async (
     flashcardId: number,
     setId: number
@@ -175,6 +193,8 @@ export const useFlashcards = () => {
     }
   };
 
+
+  
   return {
     sets,
     currentCards,

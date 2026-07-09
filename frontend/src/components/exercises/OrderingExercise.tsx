@@ -84,7 +84,7 @@ export const OrderingExercise = ({
   onAnswer,
   disabled = false,
 }: Props) => {
-  // Genereaza items cu ID-uri unice la mount — rezolva duplicate
+  
   const [items, setItems] = useState<WordItem[]>(() =>
     [...data.words]
       .sort(() => Math.random() - 0.5)

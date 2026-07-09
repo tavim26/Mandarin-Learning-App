@@ -5,7 +5,6 @@ import { useTTS } from '@/hooks/useTTS';
 import { CreateFlashcardFromTokenModal } from '@/components/modals/CreateFlashcardFromTokenModal';
 import { createPortal } from 'react-dom';
 
-// Tip token unificat — compatibil cu PreviewTokenDto si AnalysisTokenDto
 export interface RichTokenDto {
   hanzi: string;
   pinyin: string;
@@ -276,7 +275,6 @@ export const ChineseText = ({
     );
   }
 
-  // Fallback la textul brut cat timp se incarca
   if (!preloadedTokens && (isLoading || !fetchedTokens)) {
     return (
       <span className={`font-display text-xl text-foreground ${className}`}>

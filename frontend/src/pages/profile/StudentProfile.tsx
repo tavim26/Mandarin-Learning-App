@@ -74,7 +74,7 @@ const StudentProfile = () => {
     },
   });
 
-  // Pre-populeaza nickname cand profilul se incarca
+  
   useEffect(() => {
     if (studentProfile?.nickname) {
       nicknameForm.reset({ nickname: studentProfile.nickname });

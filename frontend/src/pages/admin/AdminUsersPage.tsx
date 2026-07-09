@@ -97,7 +97,7 @@ const AdminUsersPage = () => {
     
     if (success) {
       setBanTarget(null);
-      refresh(); // Re-fetch pentru a actualiza state-ul vizual
+      refresh();
     }
   };
 
@@ -147,7 +147,7 @@ const AdminUsersPage = () => {
         </div>
       ) : (
         <>
-          {/* ---- Tabel Studenti ---- */}
+          {/* Tabel Studenti */}
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-4">
               <h2 className="font-display font-semibold text-foreground">
@@ -236,7 +236,7 @@ const AdminUsersPage = () => {
                             >
                               <KeyRound className="h-3.5 w-3.5" />
                             </button>
-                            {/* NOU: Butonul de Ban/Unban pentru Studenți */}
+                            {/* Butonul de Ban/Unban  */}
                             <button
                               onClick={() =>
                                 setBanTarget({
@@ -280,7 +280,7 @@ const AdminUsersPage = () => {
             )}
           </div>
 
-          {/* ---- Tabel Profesori ---- */}
+          {/* Tabel Profesori  */}
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-4">
               <h2 className="font-display font-semibold text-foreground">
@@ -369,7 +369,7 @@ const AdminUsersPage = () => {
                             >
                               <KeyRound className="h-3.5 w-3.5" />
                             </button>
-                            {/* NOU: Butonul de Ban/Unban pentru Profesori */}
+                            {/* NOU: Ban/Unban pentru Profesori */}
                             <button
                               onClick={() =>
                                 setBanTarget({
@@ -452,7 +452,7 @@ const AdminUsersPage = () => {
         onClose={() => setDeleteTarget(null)}
       />
 
-      {/* NOU: Modalul de confirmare pentru Ban/Unban */}
+     
       <BanConfirmModal
         open={!!banTarget}
         user={banTarget}

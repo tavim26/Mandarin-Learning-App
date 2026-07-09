@@ -77,8 +77,6 @@ type BaseForm = z.infer<typeof baseSchema>;
 
 
 
-// Pasul 1 — Selectie tip 
-
 const StepSelectType = ({
   onSelect,
 }: {

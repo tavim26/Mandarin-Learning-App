@@ -9,7 +9,7 @@ const apiClient = axios.create({
   },
 });
 
-// Ataseaza automat JWT-ul inainte de fiecare request
+// atasare JWT inainte de fiecare request
 apiClient.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token;
   if (token) {
@@ -19,7 +19,7 @@ apiClient.interceptors.request.use((config) => {
 });
 
 
-// Gestioneaza global erorile de autentificare si autorizare
+// gestionare erori de autentificare si autorizare
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {

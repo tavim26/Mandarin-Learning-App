@@ -27,7 +27,7 @@ export const useProgress = () => {
   const [summary, setSummary] = useState<StudentSummaryDto | null>(null);
   const [replica, setReplica] = useState<StudentReplicaDto | null>(null);
 
-  const [lessonProgress, setLessonProgress] = useState <StudentLessonProgressDto | null | undefined>(undefined); // undefined = neîncarcat | null = încarcat, fara progres | dto = progres existent
+  const [lessonProgress, setLessonProgress] = useState <StudentLessonProgressDto | null | undefined>(undefined); 
 
   const [allLessonProgress, setAllLessonProgress] = useState <StudentLessonProgressDto[]
   >([]);

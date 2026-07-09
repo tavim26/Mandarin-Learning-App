@@ -23,7 +23,7 @@ interface ChartEntry {
   color: string;
 }
 
-// Tooltip personalizat — stilizat cu design system-ul propriu
+// Tooltip personalizat
 const CustomTooltip = ({
   active,
   payload,

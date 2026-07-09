@@ -7,7 +7,6 @@ import { ErrorBanner } from '@/components/common/ErrorBanner';
 import { EmptyState } from '@/components/common/EmptyState';
 import { HskStatsChart } from '@/components/analysis/HskStatsChart';
 import { DeleteConfirmModal } from '@/components/modals/DeleteConfirmModal';
-{/* Importul existent de TokenDisplay nu mai este necesar */}
 import { ChineseText } from '@/components/common/ChineseText';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import type {
@@ -75,7 +74,6 @@ const AnalysisPage = () => {
   const handleSelectAnalysis = useCallback(
   (id: number) => {
     if (id === -1) {
-      // Deselect
       fetchAnalysisById(0);
       return;
     }
@@ -381,7 +379,7 @@ const AnalysisPage = () => {
               <button
                 onClick={() =>
                   isSelected
-                    ? handleSelectAnalysis(-1) // deselect
+                    ? handleSelectAnalysis(-1) 
                     : handleSelectAnalysis(item.id)
                 }
                 className="flex-1 text-left space-y-1"
