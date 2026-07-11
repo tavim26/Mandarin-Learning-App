@@ -45,7 +45,7 @@ public class ReviewService
     {
         Flashcard flashcard = flashcardDao.findById(request.getFlashcardId())
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Flashcard-ul cu id " + request.getFlashcardId() + " nu exista"));
+                        HttpStatus.NOT_FOUND, "Flashcard with ID" + request.getFlashcardId() + " does not exist"));
 
         FlashcardProgress progress = flashcardProgressDao
                 .findByStudentIdAndFlashcardId(studentId, request.getFlashcardId())

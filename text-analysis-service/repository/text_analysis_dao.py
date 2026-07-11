@@ -11,6 +11,7 @@ class TextAnalysisDao(ITextAnalysisDao):
     def __init__(self, db: Session):
         self.db = db
 
+
     def save(self, analysis: TextAnalysis) -> TextAnalysis:
         entity = self._to_entity(analysis)
         try:
@@ -21,6 +22,7 @@ class TextAnalysisDao(ITextAnalysisDao):
         except Exception:
             self.db.rollback()
             raise
+
 
     def find_by_id(self, analysis_id: int) -> TextAnalysis | None:
         entity = (
@@ -49,6 +51,7 @@ class TextAnalysisDao(ITextAnalysisDao):
         except Exception:
             self.db.rollback()
             raise
+
 
     def find_page_by_student_id(
             self,
@@ -91,6 +94,7 @@ class TextAnalysisDao(ITextAnalysisDao):
 
         return [self._to_domain(e) for e in entities], total
 
+
     def get_source_type_split(self, student_id: int) -> dict[str, int]:
         from sqlalchemy import func
 
@@ -104,6 +108,7 @@ class TextAnalysisDao(ITextAnalysisDao):
             .all()
         )
         return {row.source_type: row.count for row in rows}
+
 
 
 

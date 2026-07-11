@@ -5,7 +5,7 @@ public class UserDto
     private Long id;
     private String fullName;
     private String role;
-    private boolean isBanned; // Câmp nou
+    private boolean isBanned;
 
     public UserDto() {}
 

@@ -25,7 +25,6 @@ public class FlashcardEntity
     @Column(name = "back_text", columnDefinition = "TEXT", nullable = false)
     private String backText;
 
-    // Cascade DELETE spre progress si reviews — evita FK violation la stergerea cardului
     @OneToMany(mappedBy = "flashcard", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<FlashcardProgressEntity> progressRecords = new ArrayList<>();
 

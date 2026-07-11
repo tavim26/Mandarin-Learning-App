@@ -176,6 +176,7 @@ class AnalysisService:
             source_type: str,
             translation_language: str,
     ) -> TextAnalysisDto:
+
         processed_tokens = self._nlp.process(raw_text)
         overall_hsk_level = self._calculate_overall_hsk(processed_tokens)
         translated_text = self._translation.translate(raw_text, translation_language)

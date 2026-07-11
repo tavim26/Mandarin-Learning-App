@@ -50,7 +50,7 @@ public class FlashcardReviewDao implements IFlashcardReviewDao
         entity.setQuality(domain.getQuality());
 
         FlashcardEntity flashcardEntity = flashcardJpaRepository.findById(domain.getFlashcardId())
-                .orElseThrow(() -> new RuntimeException("Flashcard-ul cu id " + domain.getFlashcardId() + " nu exista"));
+                .orElseThrow(() -> new RuntimeException("Flashcard with ID " + domain.getFlashcardId() + " does not exist."));
         entity.setFlashcard(flashcardEntity);
 
         return entity;

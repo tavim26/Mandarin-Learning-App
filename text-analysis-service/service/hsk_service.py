@@ -24,8 +24,10 @@ class HskService:
                 f"HSK file is not valid JSON: {e}"
             )
 
+
     def get_level(self, hanzi: str) -> int | None:
         return self._hsk_map.get(hanzi)
+
 
     def get_total_per_level(self) -> dict[int, int]:
         totals: dict[int, int] = {}

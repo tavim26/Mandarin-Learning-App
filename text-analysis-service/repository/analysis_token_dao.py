@@ -10,6 +10,7 @@ class AnalysisTokenDao(IAnalysisTokenDao):
     def __init__(self, db: Session):
         self.db = db
 
+
     def save_all(self, tokens: list[AnalysisToken]) -> list[AnalysisToken]:
         entities = [self._to_entity(t) for t in tokens]
         try:
@@ -22,6 +23,7 @@ class AnalysisTokenDao(IAnalysisTokenDao):
             self.db.rollback()
             raise
 
+
     def find_all_by_analysis_id(self, analysis_id: int) -> list[AnalysisToken]:
         entities = (
             self.db.query(AnalysisTokenEntity)
@@ -30,6 +32,7 @@ class AnalysisTokenDao(IAnalysisTokenDao):
             .all()
         )
         return [self._to_domain(e) for e in entities]
+
 
 
     def get_token_hsk_distribution(self, student_id: int) -> list[tuple[int | None, int]]:
@@ -52,6 +55,7 @@ class AnalysisTokenDao(IAnalysisTokenDao):
         return [(row.hsk_level, row.token_count) for row in rows]
 
 
+
     def get_unique_chars_per_hsk_level(self, student_id: int) -> list[tuple[int, int]]:
         from repository.entities.text_analysis_entity import TextAnalysisEntity
         from sqlalchemy import func
@@ -71,6 +75,10 @@ class AnalysisTokenDao(IAnalysisTokenDao):
             .all()
         )
         return [(row.hsk_level, row.unique_count) for row in rows]
+
+
+
+
 
     def _to_entity(self, token: AnalysisToken) -> AnalysisTokenEntity:
         return AnalysisTokenEntity(

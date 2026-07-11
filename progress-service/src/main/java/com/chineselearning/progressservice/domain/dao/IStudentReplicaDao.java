@@ -16,9 +16,7 @@ public interface IStudentReplicaDao
 
     boolean existsByStudentId(Long studentId);
 
-    // Toti studentii ordonati dupa XP — folosit doar de admin
     List<StudentReplica> findAllOrderByXpTotalDesc();
 
-    // Primii 10 studenti — folosit de leaderboard
     List<StudentReplica> findTop10OrderByXpTotalDesc();
 }
