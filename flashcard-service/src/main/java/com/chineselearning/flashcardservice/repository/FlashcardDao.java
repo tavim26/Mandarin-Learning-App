@@ -63,9 +63,13 @@ public class FlashcardDao implements IFlashcardDao
     }
 
     @Override
+    @Transactional
     public void delete(Flashcard flashcard)
     {
-        flashcardJpaRepository.deleteById(flashcard.getId());
+        FlashcardEntity entity = flashcardJpaRepository.findById(flashcard.getId())
+                .orElseThrow();
+        entity.getSet().getFlashcards().remove(entity);
+        flashcardJpaRepository.delete(entity);
     }
 
 
