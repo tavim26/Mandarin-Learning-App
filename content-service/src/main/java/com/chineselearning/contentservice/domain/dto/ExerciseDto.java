@@ -9,7 +9,6 @@ public class ExerciseDto {
 
     private Long id;
 
-    @NotNull(message = "Lesson id is mandatory")
     private Long lessonId;
 
     @NotBlank(message = "Exercise type is mandatory")
